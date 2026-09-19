@@ -1,0 +1,120 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Models\Activity;
+use App\Models\ApplicationModel;
+use App\Models\Organization;
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
+
+/**
+ * PRD §16 requires every screen to be live and functional, with no dead links. This walks all
+ * three role experiences and fails on any 500 or missing route.
+ */
+class ScreenSmokeTest extends TestCase
+{
+    use RefreshDatabase;
+
+    public function test_every_public_screen_renders(): void
+    {
+        $organization = Organization::factory()->create();
+        $application = ApplicationModel::factory()->for($organization)->approved()->create();
+        $organization->accreditations()->create([
+            'application_id' => $application->id,
+            'verification_code' => 'SMOKE-TEST-01',
+            'status' => 'active',
+            'active_org_marker' => $organization->id,
+            'issued_at' => now()->toDateString(),
+            'expires_at' => now()->addYears(3)->toDateString(),
+        ]);
+
+        foreach (['home', 'about', 'accreditation', 'directory', 'resources', 'contact'] as $route) {
+            $this->get(route($route))->assertOk();
+        }
+
+        $this->get(route('directory.show', $organization))->assertOk();
+    }
+
+    public function test_every_admin_screen_renders(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $application = ApplicationModel::factory()->create();
+        Activity::factory()->create();
+
+        foreach ([
+            'admin.dashboard',
+            'admin.applications.index',
+            'admin.activities.index',
+            'admin.organizations.index',
+            'admin.scorecards.index',
+            'admin.analytics',
+        ] as $route) {
+            $this->actingAs($admin)->get(route($route))->assertOk();
+        }
+
+        $this->actingAs($admin)->get(route('admin.applications.show', $application))->assertOk();
+    }
+
+    public function test_the_analytics_pdf_export_produces_a_pdf(): void
+    {
+        $admin = User::factory()->admin()->create();
+        Activity::factory()->verified()->create();
+
+        $response = $this->actingAs($admin)->get(route('admin.analytics.export'));
+
+        $response->assertOk()->assertHeader('content-type', 'application/pdf');
+        $this->assertStringStartsWith('%PDF', $response->getContent());
+    }
+
+    public function test_every_cso_screen_renders_with_an_organization(): void
+    {
+        $rep = User::factory()->create();
+        $organization = Organization::factory()->for($rep)->create();
+        $application = ApplicationModel::factory()->for($organization)->create();
+
+        foreach ([
+            'cso.dashboard',
+            'cso.profile.edit',
+            'cso.applications.index',
+            'cso.applications.create',
+            'cso.activities.index',
+        ] as $route) {
+            $this->actingAs($rep)->get(route($route))->assertOk();
+        }
+
+        $this->actingAs($rep)->get(route('cso.applications.show', $application))->assertOk();
+    }
+
+    public function test_cso_screens_render_before_an_organization_exists(): void
+    {
+        $rep = User::factory()->create();
+
+        foreach (['cso.dashboard', 'cso.profile.edit', 'cso.applications.index', 'cso.activities.index'] as $route) {
+            $this->actingAs($rep)->get(route($route))->assertOk();
+        }
+    }
+
+    public function test_a_new_rep_can_create_their_organization_profile(): void
+    {
+        $rep = User::factory()->create();
+
+        $this->actingAs($rep)
+            ->patch(route('cso.profile.update'), [
+                'name' => 'Bantayan Coastal Volunteers',
+                'sector' => config('sectors')[0],
+                'barangay' => config('barangays')[0],
+                'advocacy' => 'Shoreline protection and clean-up drives.',
+                'members' => [
+                    ['name' => 'Ana Reyes', 'position' => 'President'],
+                    ['name' => '', 'position' => ''],
+                ],
+            ])
+            ->assertRedirect(route('cso.profile.edit'));
+
+        $organization = $rep->refresh()->organization;
+        $this->assertSame('Bantayan Coastal Volunteers', $organization->name);
+        $this->assertCount(1, $organization->members);
+    }
+}

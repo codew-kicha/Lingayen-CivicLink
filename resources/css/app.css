@@ -1,0 +1,127 @@
+@import url('https://fonts.bunny.net/css?family=public-sans:400,500,600,700|ibm-plex-mono:400,500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    html {
+        @apply bg-surface text-ink;
+    }
+
+    body {
+        @apply font-sans antialiased;
+    }
+
+    h1, h2, h3 {
+        text-wrap: balance;
+    }
+
+    p {
+        text-wrap: pretty;
+    }
+
+    :focus-visible {
+        @apply outline-2 outline-offset-2 outline-navy-600;
+    }
+}
+
+@layer components {
+    /* Buttons. Variants share the base; see DESIGN_SYSTEM.md §5.1. */
+    .btn {
+        @apply inline-flex items-center justify-center gap-2 rounded-md px-4 py-2.5
+               text-sm font-semibold transition-colors duration-fast ease-out-strong
+               active:scale-[0.98] disabled:pointer-events-none;
+    }
+
+    .btn-primary {
+        @apply btn bg-navy-600 text-paper hover:bg-navy-700 active:bg-navy-800
+               disabled:bg-navy-200 disabled:text-muted;
+    }
+
+    .btn-secondary {
+        @apply btn border border-line-strong bg-paper text-navy-700
+               hover:border-navy-300 hover:bg-navy-50 active:bg-navy-100
+               disabled:border-line disabled:text-muted;
+    }
+
+    .btn-ghost {
+        @apply btn text-navy-700 hover:bg-navy-50 active:bg-navy-100 disabled:text-muted;
+    }
+
+    .btn-danger {
+        @apply btn bg-danger-600 text-paper hover:brightness-90 active:brightness-75
+               disabled:bg-danger-100 disabled:text-muted;
+    }
+
+    /* Forms. Labels above, errors below, see DESIGN_SYSTEM.md §5.2. */
+    .field-label {
+        @apply mb-1.5 block text-sm font-semibold text-ink;
+    }
+
+    .field-input {
+        @apply w-full rounded-sm border border-line-strong bg-paper px-3 py-2 text-base
+               text-ink transition-colors duration-fast ease-out-strong
+               placeholder:text-muted hover:border-navy-300
+               focus:border-navy-600 focus:ring-0
+               disabled:cursor-not-allowed disabled:bg-surface disabled:text-muted;
+    }
+
+    .field-input-error {
+        @apply border-danger-600;
+    }
+
+    .field-error {
+        @apply mt-1.5 text-sm text-danger-600;
+    }
+
+    .field-hint {
+        @apply mt-1.5 text-sm text-muted;
+    }
+
+    /* Panels. Admin surfaces drop the shadow. */
+    .panel {
+        @apply rounded-lg border border-line bg-paper shadow-panel;
+    }
+
+    .panel-flat {
+        @apply rounded-lg border border-line bg-paper;
+    }
+
+    /* Status badges. Word plus color, never color alone. */
+    .badge {
+        @apply inline-flex items-center gap-1.5 rounded-sm px-2 py-0.5 text-xs font-semibold;
+    }
+
+    .badge-neutral { @apply badge border border-line bg-surface text-muted; }
+    .badge-info    { @apply badge bg-info-100 text-info-600; }
+    .badge-warning { @apply badge bg-warning-100 text-warning-600; }
+    .badge-success { @apply badge bg-success-100 text-success-600; }
+    .badge-danger  { @apply badge bg-danger-100 text-danger-600; }
+
+    /* Tables, the admin workhorse. See DESIGN_SYSTEM.md §5.5. */
+    .table-head {
+        @apply border-b border-line-strong px-4 py-2 text-left text-xs font-semibold
+               uppercase tracking-wide text-muted;
+    }
+
+    .table-cell {
+        @apply border-b border-line px-4 py-2.5 align-middle text-sm;
+    }
+
+    .table-num {
+        @apply table-cell text-right font-mono tabular-nums;
+    }
+
+    .table-row {
+        @apply transition-colors duration-fast ease-out-strong hover:bg-navy-50;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
