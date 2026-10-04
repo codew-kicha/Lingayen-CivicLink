@@ -14,20 +14,20 @@
                            placeholder="Organization name" class="field-input">
                 </div>
                 <div>
-                    <label for="sector" class="field-label">Sector</label>
-                    <select id="sector" name="sector" class="field-input">
-                        <option value="">All sectors</option>
-                        @foreach ($sectors as $sector)
-                            <option value="{{ $sector }}" @selected(request('sector') === $sector)>{{ $sector }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div>
                     <label for="barangay" class="field-label">Barangay</label>
                     <select id="barangay" name="barangay" class="field-input">
                         <option value="">All barangays</option>
                         @foreach ($barangays as $barangay)
                             <option value="{{ $barangay }}" @selected(request('barangay') === $barangay)>{{ $barangay }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div>
+                    <label for="sector" class="field-label">Sector</label>
+                    <select id="sector" name="sector" class="field-input">
+                        <option value="">All sectors</option>
+                        @foreach ($sectors as $sector)
+                            <option value="{{ $sector }}" @selected(request('sector') === $sector)>{{ $sector }}</option>
                         @endforeach
                     </select>
                 </div>
@@ -54,19 +54,22 @@
         @else
             <div class="mt-6 grid gap-4" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));">
                 @foreach ($organizations as $organization)
-                    <a href="{{ route('directory.show', $organization) }}"
-                       class="panel block p-5 transition-colors duration-fast ease-out-strong hover:border-navy-300">
-                        <div class="flex items-start gap-3">
-                            <h2 class="font-semibold text-ink">{{ $organization->name }}</h2>
-                            <span class="ml-auto shrink-0"><x-status-badge status="active" /></span>
-                        </div>
-                        <p class="mt-1.5 text-sm text-muted">
-                            {{ $organization->sector }} &middot; Brgy. {{ $organization->barangay }}
-                        </p>
-                        @if ($organization->advocacy)
-                            <p class="mt-3 line-clamp-2 text-sm text-muted">{{ $organization->advocacy }}</p>
-                        @endif
-                    </a>
+                    <div class="reveal">
+                        <a href="{{ route('directory.show', $organization) }}"
+                           class="panel block h-full p-5 transition-colors duration-fast ease-out-strong hover:border-navy-300">
+                            <div class="flex items-start gap-3">
+                                <x-sector-icon :sector="$organization->sector" class="mt-0.5 h-6 w-6 shrink-0 text-navy-600" />
+                                <h2 class="font-semibold text-ink">{{ $organization->name }}</h2>
+                                <span class="ml-auto shrink-0"><x-status-badge status="active" /></span>
+                            </div>
+                            <p class="mt-1.5 pl-9 text-sm text-muted">
+                                Brgy. {{ $organization->barangay }} &middot; {{ $organization->sector }}
+                            </p>
+                            @if ($organization->advocacy)
+                                <p class="mt-3 line-clamp-2 text-sm text-muted">{{ $organization->advocacy }}</p>
+                            @endif
+                        </a>
+                    </div>
                 @endforeach
             </div>
 

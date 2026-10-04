@@ -3,9 +3,9 @@
         <div class="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
             <h1 class="text-2xl font-semibold text-ink">About Lingayen CivicLink</h1>
             <p class="mt-3 max-w-[68ch] text-muted">
-                A service of the Public Employment Service Office of Lingayen, Pangasinan, built to
-                move CSO accreditation off paper and to keep a continuing public record of what
-                accredited organizations actually do between accreditation cycles.
+                Run by the Civil Society Desk Office of the Public Employment Service Office, Lingayen,
+                Pangasinan, to move CSO accreditation off paper and to keep a continuing public record
+                of what accredited organizations actually do between accreditation cycles.
             </p>
         </div>
     </div>
@@ -26,6 +26,18 @@
                         organizations log their activities, PESO verifies them, and the result is a
                         living public record instead of a list refreshed once every election cycle.
                     </p>
+                </div>
+
+                {{-- Decorative placeholder photos; swap for real CSO event photos later (§8). --}}
+                <div class="mt-8 grid grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] gap-3">
+                    <figure class="photo-duotone aspect-[4/3] rounded-lg">
+                        <img src="{{ asset('images/stock/floating-market.jpg') }}" alt="" loading="lazy"
+                             width="1600" height="1000">
+                    </figure>
+                    <figure class="photo-duotone aspect-[3/4] self-end rounded-lg sm:aspect-[4/5]">
+                        <img src="{{ asset('images/stock/reading-session.jpg') }}" alt="" loading="lazy"
+                             width="1600" height="1000">
+                    </figure>
                 </div>
             </section>
 
@@ -50,7 +62,6 @@
 
             <section>
                 <h2 class="text-xl font-semibold text-ink">Office officials</h2>
-                <p class="mt-2 text-sm text-muted">Placeholder entries pending confirmation from the PESO office.</p>
                 <ul class="mt-5 divide-y divide-line border-y border-line">
                     @foreach ($officials as $official)
                         <li class="flex flex-wrap items-baseline gap-x-4 gap-y-1 py-3">
@@ -67,15 +78,23 @@
             <dl class="mt-4 space-y-4 text-sm">
                 <div>
                     <dt class="text-muted">Office</dt>
-                    <dd class="mt-0.5 text-ink">Public Employment Service Office</dd>
+                    <dd class="mt-0.5 text-ink">{{ config('office.office.name') }}</dd>
+                    <dd class="text-muted">{{ config('office.office.parent') }}</dd>
                 </div>
                 <div>
                     <dt class="text-muted">Address</dt>
-                    <dd class="mt-0.5 text-ink">Municipal Hall, Poblacion, Lingayen, Pangasinan</dd>
+                    <dd class="mt-0.5 text-ink">{{ config('office.office.address') }}</dd>
                 </div>
                 <div>
                     <dt class="text-muted">Office hours</dt>
-                    <dd class="mt-0.5 text-ink">Monday to Friday, 8:00 AM to 5:00 PM</dd>
+                    <dd class="mt-0.5 text-ink">{{ config('office.office.hours') }}</dd>
+                </div>
+                <div>
+                    <dt class="text-muted">Facebook</dt>
+                    <dd class="mt-0.5">
+                        <a href="{{ config('office.office.facebook') }}" rel="noopener" target="_blank"
+                           class="text-navy-700 hover:underline">facebook.com/pesolingayen</a>
+                    </dd>
                 </div>
             </dl>
             <a href="{{ route('contact') }}" class="btn-secondary mt-6 w-full">Contact the office</a>

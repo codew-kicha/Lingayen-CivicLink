@@ -18,8 +18,6 @@ class StoreApplicationRequest extends FormRequest
      */
     public function rules(): array
     {
-        $types = array_keys(config('document_types'));
-
         return [
             'type' => ['required', Rule::in(['new', 'renewal'])],
 
@@ -28,18 +26,20 @@ class StoreApplicationRequest extends FormRequest
 
             'expires_at' => ['array'],
             'expires_at.*' => ['nullable', 'date', 'after:today'],
-        ] + collect($types)
-            ->mapWithKeys(fn (string $type) => ["documents.{$type}" => ['required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120']])
+        ] + collect(config('document_types'))
+            ->mapWithKeys(fn (array $type, string $key) => [
+                "documents.{$key}" => [$type['optional'] ? 'nullable' : 'required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
+            ])
             ->all();
     }
 
     public function messages(): array
     {
         return collect(config('document_types'))
-            ->mapWithKeys(fn (string $label, string $key) => [
-                "documents.{$key}.required" => "Upload your {$label}.",
-                "documents.{$key}.mimes" => "{$label} must be a PDF, JPG, or PNG file.",
-                "documents.{$key}.max" => "{$label} must be smaller than 5 MB.",
+            ->mapWithKeys(fn (array $type, string $key) => [
+                "documents.{$key}.required" => "Upload your {$type['label']}.",
+                "documents.{$key}.mimes" => "{$type['label']} must be a PDF, JPG, or PNG file.",
+                "documents.{$key}.max" => "{$type['label']} must be smaller than 5 MB.",
             ])
             ->all();
     }

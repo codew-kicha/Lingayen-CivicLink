@@ -1,47 +1,46 @@
 <x-guest-layout>
-    <!-- Session Status -->
-    <x-auth-session-status class="mb-4" :status="session('status')" />
+    <x-slot:title>Sign in</x-slot:title>
+    <x-slot:heading>Sign in</x-slot:heading>
+    <x-slot:intro>For CSO representatives and Civil Society Desk Office staff.</x-slot:intro>
 
-    <form method="POST" action="{{ route('login') }}">
+    <x-slot:aside>
+        <p class="max-w-[30ch] text-2xl font-semibold leading-snug [text-wrap:balance]">
+            Track your application, log your organization's activities, and see your record as residents see it.
+        </p>
+        <ul class="mt-8 space-y-3 text-navy-200">
+            <li class="flex gap-3"><x-phosphor-seal-check class="h-5 w-5 shrink-0 text-rose-400" aria-hidden="true" /> Application status through each Sangguniang Bayan reading</li>
+            <li class="flex gap-3"><x-phosphor-seal-check class="h-5 w-5 shrink-0 text-rose-400" aria-hidden="true" /> Activities verified by the Civil Society Desk Office</li>
+            <li class="flex gap-3"><x-phosphor-seal-check class="h-5 w-5 shrink-0 text-rose-400" aria-hidden="true" /> Your organization's public profile and performance score</li>
+        </ul>
+    </x-slot:aside>
+
+    <form method="POST" action="{{ route('login') }}" class="space-y-5">
         @csrf
 
-        <!-- Email Address -->
         <div>
-            <x-input-label for="email" :value="__('Email')" />
-            <x-text-input id="email" class="block mt-1 w-full" type="email" name="email" :value="old('email')" required autofocus autocomplete="username" />
-            <x-input-error :messages="$errors->get('email')" class="mt-2" />
+            <label for="email" class="field-label">Email</label>
+            <input id="email" name="email" type="email" value="{{ old('email') }}" required autofocus autocomplete="username"
+                   @error('email') aria-invalid="true" aria-describedby="email-error" @enderror
+                   class="field-input @error('email') field-input-error @enderror">
+            @error('email')<p id="email-error" class="field-error">{{ $message }}</p>@enderror
         </div>
 
-        <!-- Password -->
-        <div class="mt-4">
-            <x-input-label for="password" :value="__('Password')" />
+        <x-password-field />
 
-            <x-text-input id="password" class="block mt-1 w-full"
-                            type="password"
-                            name="password"
-                            required autocomplete="current-password" />
-
-            <x-input-error :messages="$errors->get('password')" class="mt-2" />
-        </div>
-
-        <!-- Remember Me -->
-        <div class="block mt-4">
-            <label for="remember_me" class="inline-flex items-center">
-                <input id="remember_me" type="checkbox" class="rounded dark:bg-gray-900 border-gray-300 dark:border-gray-700 text-indigo-600 shadow-sm focus:ring-indigo-500 dark:focus:ring-indigo-600 dark:focus:ring-offset-gray-800" name="remember">
-                <span class="ms-2 text-sm text-gray-600 dark:text-gray-400">{{ __('Remember me') }}</span>
+        <div class="flex items-center justify-between gap-4">
+            <label for="remember_me" class="flex min-h-11 items-center gap-2 text-sm text-ink">
+                <input id="remember_me" name="remember" type="checkbox" class="rounded-sm border-line-strong text-navy-600">
+                Keep me signed in on this device
             </label>
+            <a href="{{ route('password.request') }}" class="text-sm font-semibold text-navy-700 hover:underline">Forgot password?</a>
         </div>
 
-        <div class="flex items-center justify-end mt-4">
-            @if (Route::has('password.request'))
-                <a class="underline text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-offset-gray-800" href="{{ route('password.request') }}">
-                    {{ __('Forgot your password?') }}
-                </a>
-            @endif
-
-            <x-primary-button class="ms-3">
-                {{ __('Log in') }}
-            </x-primary-button>
-        </div>
+        <button type="submit" class="btn-primary w-full">Sign in</button>
     </form>
+
+    <div class="mt-10 border-t border-line pt-6">
+        <p class="font-semibold text-ink">Your organization isn't registered yet?</p>
+        <p class="mt-1 text-sm text-muted">Create an account for your CSO, then file your accreditation application online.</p>
+        <a href="{{ route('register') }}" class="btn-secondary mt-4">Register your organization</a>
+    </div>
 </x-guest-layout>

@@ -52,7 +52,7 @@
                         @foreach ($application->documents as $document)
                             <tr class="table-row">
                                 <td class="table-cell font-medium">
-                                    {{ config("document_types.{$document->document_type}", Str::headline($document->document_type)) }}
+                                    {{ \App\Models\Document::label($document->document_type) }}
                                 </td>
                                 <td class="table-cell">
                                     <a href="{{ route('documents.download', $document) }}"

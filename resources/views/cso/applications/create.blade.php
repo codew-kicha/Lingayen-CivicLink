@@ -28,20 +28,25 @@
         <section class="panel p-5">
             <h2 class="font-semibold text-ink">Requirements</h2>
             <p class="mt-0.5 text-sm text-muted">
-                All {{ count($documentTypes) }} documents are required. Add an expiry date where the
-                document carries one, so we can remind you before it lapses.
+                Upload each required document. Add an expiry date where the document carries one, so
+                we can remind you before it lapses.
             </p>
 
             <div class="mt-5 space-y-5">
-                @foreach ($documentTypes as $key => $label)
+                @foreach ($documentTypes as $key => $type)
                     <div class="grid gap-3 border-t border-line pt-5 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
                         <div>
-                            <label for="doc-{{ $key }}" class="field-label">{{ $label }}</label>
+                            <label for="doc-{{ $key }}" class="field-label">
+                                {{ $type['label'] }}
+                                @if ($type['optional'])
+                                    <span class="font-normal text-muted">(optional, only if you have one)</span>
+                                @endif
+                            </label>
                             <input type="file" id="doc-{{ $key }}" name="documents[{{ $key }}]"
                                    accept=".pdf,.jpg,.jpeg,.png"
                                    class="field-input @error("documents.{$key}") field-input-error @enderror"
                                    @error("documents.{$key}") aria-invalid="true" aria-describedby="doc-{{ $key }}-error" @enderror
-                                   required>
+                                   @required(! $type['optional'])>
                             <p class="field-hint">{{ config("office.requirement_notes.{$key}") }}</p>
                             @error("documents.{$key}")
                                 <p id="doc-{{ $key }}-error" class="field-error">{{ $message }}</p>

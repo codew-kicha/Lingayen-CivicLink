@@ -62,7 +62,7 @@
                 <div class="border-b border-line px-5 py-3">
                     <h2 class="font-semibold text-ink">Submitted documents</h2>
                     <p class="mt-0.5 text-sm text-muted">
-                        {{ $application->documents->count() }} of {{ count(config('document_types')) }} requirements uploaded
+                        {{ $application->documents->whereIn('document_type', \App\Models\Document::requiredTypes())->count() }} of {{ count(\App\Models\Document::requiredTypes()) }} required documents uploaded
                     </p>
                 </div>
 
@@ -83,7 +83,7 @@
                             @foreach ($application->documents as $document)
                                 <tr class="table-row">
                                     <td class="table-cell font-medium">
-                                        {{ config("document_types.{$document->document_type}", Str::headline($document->document_type)) }}
+                                        {{ \App\Models\Document::label($document->document_type) }}
                                     </td>
                                     <td class="table-cell">
                                         <a href="{{ route('documents.download', $document) }}"

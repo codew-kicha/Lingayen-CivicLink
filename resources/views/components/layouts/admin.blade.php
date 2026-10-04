@@ -35,6 +35,8 @@
                         ['admin.analytics', 'Analytics & Reports', null],
                         ['admin.news.index', 'News posts', null],
                         ['admin.annual-reports.index', 'Annual reports', null],
+                        ['admin.accounts.index', 'Accounts', null],
+                        ['admin.audit.index', 'Audit log', null],
                     ];
                 @endphp
                 @foreach ($nav as [$route, $label, $count])
@@ -42,11 +44,11 @@
                        @if (request()->routeIs($route)) aria-current="page" @endif
                        class="flex items-center gap-2 rounded-sm px-3 py-2 text-sm font-medium
                               transition-colors duration-fast ease-out-strong
-                              hover:bg-navy-800 hover:text-paper focus-visible:outline-amber-400
+                              hover:bg-navy-800 hover:text-paper focus-visible:outline-rose-400
                               {{ request()->routeIs($route) ? 'bg-navy-800 text-paper' : '' }}">
                         <span>{{ $label }}</span>
                         @if ($count)
-                            <span class="ml-auto rounded-sm bg-amber-500 px-1.5 py-0.5 text-xs font-semibold text-navy-900">
+                            <span class="ml-auto rounded-sm bg-rose-500 px-1.5 py-0.5 text-xs font-semibold text-navy-900">
                                 {{ $count }}
                             </span>
                         @endif
@@ -56,13 +58,13 @@
 
             <div class="border-t border-navy-800 px-2 py-2">
                 <a href="{{ route('profile.edit') }}"
-                   class="block rounded-sm px-3 py-2 text-sm hover:bg-navy-800 hover:text-paper focus-visible:outline-amber-400">
+                   class="block rounded-sm px-3 py-2 text-sm hover:bg-navy-800 hover:text-paper focus-visible:outline-rose-400">
                     {{ auth()->user()->name }}
                 </a>
                 <form method="POST" action="{{ route('logout') }}">
                     @csrf
                     <button type="submit"
-                            class="w-full rounded-sm px-3 py-2 text-left text-sm hover:bg-navy-800 hover:text-paper focus-visible:outline-amber-400">
+                            class="w-full rounded-sm px-3 py-2 text-left text-sm hover:bg-navy-800 hover:text-paper focus-visible:outline-rose-400">
                         Log out
                     </button>
                 </form>

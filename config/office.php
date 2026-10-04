@@ -1,16 +1,25 @@
 <?php
 
-// Static public-page content for Milestone 1. Realistic placeholders, to be replaced with the
-// client's own copy (PRD §14, Day 6).
+// Public-page content. Officials, address, and hours confirmed by the client (PRD §11).
+// Phone and email are still pending from the client, so they are deliberately absent.
 return [
 
-    'officials' => [
-        ['name' => 'To be supplied by PESO', 'position' => 'PESO Manager'],
-        ['name' => 'To be supplied by PESO', 'position' => 'Accreditation Officer'],
-        ['name' => 'To be supplied by PESO', 'position' => 'Records Officer'],
-        ['name' => 'To be supplied by SB Secretariat', 'position' => 'Sangguniang Bayan Secretary'],
+    'office' => [
+        'name' => 'Civil Society Desk Office',
+        'parent' => 'Public Employment Service Office, Municipality of Lingayen',
+        'address' => '#1 Bengson Street, Lingayen, Pangasinan 2401',
+        // Unconfirmed whether the office is closed Friday to Sunday or keeps other hours (PRD §11).
+        'hours' => 'Monday to Thursday, 7:00 AM to 6:00 PM',
+        'facebook' => 'https://www.facebook.com/pesolingayen/',
     ],
 
+    'officials' => [
+        ['name' => 'Hon. Josefina “Iday” V. Castañeda', 'position' => 'Municipal Mayor'],
+        ['name' => 'Hon. Jay Mark Kevin D. Crisostomo', 'position' => 'Municipal Vice Mayor'],
+        ['name' => 'Van Macley Moulic', 'position' => 'Civil Society Desk Officer'],
+    ],
+
+    // Step 4 assumes three SB readings; the client has not yet confirmed the count (PRD §19).
     'process' => [
         [
             'title' => 'File the application',
@@ -35,12 +44,11 @@ return [
     ],
 
     'requirement_notes' => [
-        'sec_registration' => 'From SEC, DTI, or CDA, whichever registered your organization.',
-        'board_resolution' => 'Authorizing the application and naming your representative.',
-        'list_of_officers' => 'Current officers and members, with positions.',
-        'financial_statement' => 'Covering the most recently completed fiscal year.',
-        'work_program' => 'Planned activities and advocacy for the coming year.',
-        'barangay_clearance' => 'From the barangay where your organization principally operates.',
+        'accreditation_form' => 'The office\'s accreditation form, filled in and signed by your president.',
+        'officers_members_list' => 'Current officers and members, with positions.',
+        'constitution_bylaws' => 'Your organization\'s adopted constitution and by-laws.',
+        'fee_receipt' => 'PHP 1,000 for new applications, paid at the Municipal Treasury. PHP 500 for renewals, which is sometimes waived.',
+        'dole_sec_certification' => 'Submit only if your organization is registered with DOLE or SEC.',
     ],
 
     'faqs' => [

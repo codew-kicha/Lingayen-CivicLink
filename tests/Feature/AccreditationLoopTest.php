@@ -142,6 +142,46 @@ class AccreditationLoopTest extends TestCase
         $this->assertDatabaseCount('accreditations', 0);
     }
 
+    public function test_the_optional_dole_sec_certification_can_be_omitted_but_required_ones_cannot(): void
+    {
+        Storage::fake('local');
+
+        $rep = User::factory()->create();
+        Organization::factory()->for($rep)->create();
+
+        $file = fn (string $type) => UploadedFile::fake()->create("{$type}.pdf", 100, 'application/pdf');
+        $required = collect(\App\Models\Document::requiredTypes())->mapWithKeys(fn ($type) => [$type => $file($type)]);
+
+        $this->actingAs($rep)
+            ->post(route('cso.applications.store'), ['type' => 'new', 'documents' => $required->all()])
+            ->assertSessionHasNoErrors()
+            ->assertRedirect();
+
+        $this->assertCount(count(\App\Models\Document::requiredTypes()), ApplicationModel::firstOrFail()->documents);
+
+        $this->actingAs($rep)
+            ->post(route('cso.applications.store'), ['type' => 'new', 'documents' => $required->except('fee_receipt')->all()])
+            ->assertSessionHasErrors('documents.fee_receipt');
+    }
+
+    public function test_unknown_document_keys_are_not_stored(): void
+    {
+        Storage::fake('local');
+
+        $rep = User::factory()->create();
+        Organization::factory()->for($rep)->create();
+
+        $documents = collect(\App\Models\Document::requiredTypes())
+            ->mapWithKeys(fn ($type) => [$type => UploadedFile::fake()->create("{$type}.pdf", 100, 'application/pdf')])
+            ->put('made_up_type', UploadedFile::fake()->create('extra.pdf', 100, 'application/pdf'));
+
+        $this->actingAs($rep)
+            ->post(route('cso.applications.store'), ['type' => 'new', 'documents' => $documents->all()])
+            ->assertRedirect();
+
+        $this->assertDatabaseMissing('documents', ['document_type' => 'made_up_type']);
+    }
+
     /**
      * Turns "documents[x]" keys into the nested array the request expects.
      */

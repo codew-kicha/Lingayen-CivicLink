@@ -19,7 +19,7 @@
             <span @if ($index === $currentIndex) aria-current="step" @endif
                   class="rounded-sm px-2 py-1 font-medium
                          @if ($index < $currentIndex) text-success-600
-                         @elseif ($index === $currentIndex) text-navy-700 shadow-[inset_0_-2px_0_0_theme(colors.amber.500)]
+                         @elseif ($index === $currentIndex) text-navy-700 shadow-[inset_0_-2px_0_0_theme(colors.rose.600)]
                          @else text-muted @endif">
                 {{ $label }}
             </span>

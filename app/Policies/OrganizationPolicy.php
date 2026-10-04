@@ -36,4 +36,10 @@ class OrganizationPolicy
     {
         return $user->isAdmin();
     }
+
+    // Admin record-keeping: create on behalf of a CSO, edit details, attach a login, revoke.
+    public function manage(User $user): bool
+    {
+        return $user->isAdmin();
+    }
 }

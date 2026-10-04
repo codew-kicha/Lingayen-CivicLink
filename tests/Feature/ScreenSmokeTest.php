@@ -50,11 +50,39 @@ class ScreenSmokeTest extends TestCase
             'admin.organizations.index',
             'admin.scorecards.index',
             'admin.analytics',
+            'admin.accounts.index',
+            'admin.organizations.create',
+            'admin.audit.index',
+            'profile.edit',
         ] as $route) {
             $this->actingAs($admin)->get(route($route))->assertOk();
         }
 
         $this->actingAs($admin)->get(route('admin.applications.show', $application))->assertOk();
+        $this->actingAs($admin)->withSession(['auth.password_confirmed_at' => time()])
+            ->get(route('admin.accounts.create'))->assertOk();
+
+        // Edit screen in each account state: with a login, without one, and invitation pending.
+        $withoutLogin = Organization::factory()->create(['user_id' => null]);
+        $pending = Organization::factory()->for(User::factory()->unverified())->create();
+        foreach ([$application->organization, $withoutLogin, $pending] as $organization) {
+            $this->actingAs($admin)->get(route('admin.organizations.edit', $organization))->assertOk();
+        }
+    }
+
+    public function test_auth_screens_render(): void
+    {
+        foreach (['login', 'register', 'password.request'] as $route) {
+            $this->get(route($route))->assertOk();
+        }
+
+        $invited = User::factory()->unverified()->create();
+        $this->get(\Illuminate\Support\Facades\URL::temporarySignedRoute('invitation.show', now()->addHour(), ['user' => $invited]))
+            ->assertOk()->assertSee('Set your password');
+
+        $used = User::factory()->create();
+        $this->get(\Illuminate\Support\Facades\URL::temporarySignedRoute('invitation.show', now()->addHour(), ['user' => $used]))
+            ->assertOk()->assertSee('already been used');
     }
 
     public function test_the_analytics_pdf_export_produces_a_pdf(): void

@@ -16,10 +16,30 @@ class PublicController extends Controller
     public function home(): View
     {
         return view('public.home', [
+            // Newest verified activity per organization, and only organizations the public
+            // directory already shows.
+            'ticker' => Activity::query()
+                ->where('status', 'verified')
+                ->whereIn('organization_id', $this->accreditedQuery()->select('id'))
+                ->with('organization:id,name,barangay')
+                ->latest('verified_at')
+                ->limit(40)
+                ->get()
+                ->unique('organization_id')
+                ->take(6)
+                ->values()
+                ->map(fn (Activity $activity) => [
+                    'title' => $activity->title,
+                    'organization' => $activity->organization->name,
+                    'barangay' => $activity->organization->barangay,
+                    'held' => $this->heldAgo($activity->activity_date),
+                    'url' => route('directory.show', $activity->organization_id),
+                ])
+                ->all(),
             'stats' => [
                 ['value' => Accreditation::where('status', 'active')->count(), 'label' => 'Accredited organizations'],
                 ['value' => Activity::where('status', 'verified')->count(), 'label' => 'Verified activities'],
-                ['value' => number_format(Activity::where('status', 'verified')->sum('participants_estimate')), 'label' => 'Residents reached'],
+                ['value' => (int) Activity::where('status', 'verified')->sum('participants_estimate'), 'label' => 'Residents reached'],
                 ['value' => Organization::whereHas('accreditations', fn ($q) => $q->where('status', 'active'))
                     ->distinct('barangay')->count('barangay'), 'label' => 'Barangays represented'],
             ],
@@ -27,18 +47,24 @@ class PublicController extends Controller
                 ->selectRaw('sector as name, count(*) as count')
                 ->groupBy('sector')
                 ->orderByDesc('count')
-                ->limit(8)
+                ->orderBy('sector')
                 ->get()
                 ->toArray(),
-            'featured' => $this->accreditedQuery()
+            'featured' => Accreditation::query()
+                ->where('status', 'active')
+                ->whereIn('organization_id', $this->accreditedQuery()->select('id'))
+                ->with('organization')
+                ->latest('issued_at')
                 ->latest('id')
-                ->limit(3)
+                ->limit(4)
                 ->get()
-                ->map(fn ($org) => [
-                    'name' => $org->name,
-                    'sector' => $org->sector,
-                    'barangay' => $org->barangay,
-                    'advocacy' => $org->advocacy,
+                ->map(fn (Accreditation $accreditation) => [
+                    'url' => route('directory.show', $accreditation->organization),
+                    'name' => $accreditation->organization->name,
+                    'sector' => $accreditation->organization->sector,
+                    'barangay' => $accreditation->organization->barangay,
+                    'advocacy' => $accreditation->organization->advocacy,
+                    'accredited_on' => $accreditation->issued_at,
                 ])
                 ->all(),
             'news' => NewsPost::where('status', 'published')
@@ -66,9 +92,10 @@ class PublicController extends Controller
         return view('public.accreditation', [
             'process' => config('office.process'),
             'requirements' => collect(config('document_types'))
-                ->map(fn ($label, $key) => [
-                    'label' => $label,
-                    'note' => config("office.requirement_notes.$key", 'Required for both new and renewal applications.'),
+                ->map(fn (array $type, string $key) => [
+                    'label' => $type['label'],
+                    'optional' => $type['optional'],
+                    'note' => config("office.requirement_notes.$key"),
                 ])
                 ->values()
                 ->all(),
@@ -81,6 +108,8 @@ class PublicController extends Controller
             ->when($request->string('q')->trim()->value(), fn ($query, $term) => $query->where('name', 'like', "%{$term}%"))
             ->when($request->input('sector'), fn ($query, $sector) => $query->where('sector', $sector))
             ->when($request->input('barangay'), fn ($query, $barangay) => $query->where('barangay', $barangay))
+            ->orderBy('barangay')
+            ->orderBy('sector')
             ->orderBy('name')
             ->paginate(12);
 
@@ -99,11 +128,17 @@ class PublicController extends Controller
 
         abort_unless($accreditation !== null, 404);
 
+        $verified = $organization->activities()->where('status', 'verified');
+
         return view('public.organization', [
             'organization' => $organization,
             'accreditation' => $accreditation,
-            'activities' => $organization->activities()
-                ->where('status', 'verified')
+            'ledger' => [
+                'count' => (clone $verified)->count(),
+                'reached' => (int) (clone $verified)->sum('participants_estimate'),
+                'since' => (clone $verified)->min('activity_date'),
+            ],
+            'activities' => (clone $verified)
                 ->latest('activity_date')
                 ->limit(20)
                 ->get(),
@@ -130,6 +165,16 @@ class PublicController extends Controller
     /**
      * Publicly listable organizations: visible in the directory and currently accredited.
      */
+    // activity_date has no time component, so "8 hours ago" would be misleading.
+    private function heldAgo(\Illuminate\Support\Carbon $date): string
+    {
+        return match (true) {
+            $date->isToday() => 'today',
+            $date->isYesterday() => 'yesterday',
+            default => $date->diffForHumans(now()->startOfDay(), ['syntax' => \Carbon\CarbonInterface::DIFF_RELATIVE_TO_NOW]),
+        };
+    }
+
     private function accreditedQuery()
     {
         return Organization::query()

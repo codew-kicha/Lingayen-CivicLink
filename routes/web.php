@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin;
 use App\Http\Controllers\AnnualReportController;
+use App\Http\Controllers\Auth;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\Cso;
 use App\Http\Controllers\DocumentController;
@@ -20,6 +21,12 @@ Route::post('/contact', [ContactController::class, 'send'])->name('contact.send'
 Route::get('/annual-reports/{annualReport}/download', [AnnualReportController::class, 'download'])
     ->name('annual-reports.download');
 
+// Admin-sent invitation: signed, expiring, and single-use (see InvitationController).
+Route::middleware(['signed', 'throttle:10,1'])->group(function () {
+    Route::get('/invitation/{user}', [Auth\InvitationController::class, 'show'])->name('invitation.show');
+    Route::post('/invitation/{user}', [Auth\InvitationController::class, 'store'])->name('invitation.store');
+});
+
 // Post-login landing: send each role to its own dashboard rather than a shared one.
 Route::get('/dashboard', function () {
     return redirect()->route(auth()->user()->isAdmin() ? 'admin.dashboard' : 'cso.dashboard');
@@ -28,7 +35,6 @@ Route::get('/dashboard', function () {
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
     // Private uploads are never served from a guessable path; the policy check lives here.
     Route::get('/documents/{document}/download', [DocumentController::class, 'download'])
@@ -49,7 +55,25 @@ Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->name('ad
     Route::post('/activities/{activity}/reject', [Admin\ActivityVerificationController::class, 'reject'])->name('activities.reject');
 
     Route::get('/organizations', [Admin\OrganizationModerationController::class, 'index'])->name('organizations.index');
+    Route::get('/organizations/create', [Admin\OrganizationModerationController::class, 'create'])->name('organizations.create');
+    Route::post('/organizations', [Admin\OrganizationModerationController::class, 'store'])->name('organizations.store');
+    Route::get('/organizations/{organization}/edit', [Admin\OrganizationModerationController::class, 'edit'])->name('organizations.edit');
+    Route::patch('/organizations/{organization}', [Admin\OrganizationModerationController::class, 'update'])->name('organizations.update');
+    Route::post('/organizations/{organization}/account', [Admin\OrganizationModerationController::class, 'attachAccount'])->name('organizations.account');
     Route::patch('/organizations/{organization}/visibility', [Admin\OrganizationModerationController::class, 'toggleVisibility'])->name('organizations.visibility');
+
+    Route::get('/accounts', [Admin\AccountController::class, 'index'])->name('accounts.index');
+    Route::post('/accounts/{user}/invitation', [Admin\AccountController::class, 'resendInvitation'])->name('accounts.invitation');
+    Route::patch('/accounts/{user}/reactivate', [Admin\AccountController::class, 'reactivate'])->name('accounts.reactivate');
+    Route::get('/audit-log', [Admin\AuditLogController::class, 'index'])->name('audit.index');
+
+    // Actions that grant access or remove it: the admin re-enters their password first.
+    Route::middleware('password.confirm')->group(function () {
+        Route::get('/accounts/create', [Admin\AccountController::class, 'create'])->name('accounts.create');
+        Route::post('/accounts', [Admin\AccountController::class, 'store'])->name('accounts.store');
+        Route::patch('/accounts/{user}/deactivate', [Admin\AccountController::class, 'deactivate'])->name('accounts.deactivate');
+        Route::post('/organizations/{organization}/revoke', [Admin\OrganizationModerationController::class, 'revoke'])->name('organizations.revoke');
+    });
 
     Route::get('/scorecards', [Admin\ScorecardController::class, 'index'])->name('scorecards.index');
     Route::post('/scorecards/recalculate', [Admin\ScorecardController::class, 'recalculate'])->name('scorecards.recalculate');

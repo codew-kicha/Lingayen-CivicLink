@@ -1,0 +1,10 @@
+Temporary placeholder photography (docs/DESIGN_SYSTEM.md §8). Replace with real CSO event
+photos in ../events/ and update the paths in the views; the .photo-duotone treatment stays.
+Source: picsum.photos, Unsplash License.
+
+file                 | picsum id | photographer  | original
+shoreline-dusk.jpg   | 362       | Ry Van        | https://unsplash.com/photos/2UbJtgQp8VQ
+floating-market.jpg  | 686       | Harvey Enrile | https://unsplash.com/photos/FQ_DGG-8OcY
+reading-session.jpg  | 832       | hieu le       | https://unsplash.com/photos/SrkuyPb3aUk
+canoe-fishers.jpg    | 469       | Matthew Clark | https://unsplash.com/photos/_IMinUHfUs0
+crop-rows.jpg        | 955       | Matt Benson   | https://unsplash.com/photos/rHbob_bEsSs

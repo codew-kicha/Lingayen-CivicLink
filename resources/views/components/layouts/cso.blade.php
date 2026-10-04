@@ -16,7 +16,7 @@
 
     <header class="bg-navy-900 text-paper">
         <div class="mx-auto flex max-w-5xl items-center gap-4 px-4 py-3 sm:px-6">
-            <a href="{{ route('cso.dashboard') }}" class="flex items-center gap-2.5 rounded-sm focus-visible:outline-amber-400">
+            <a href="{{ route('cso.dashboard') }}" class="flex items-center gap-2.5 rounded-sm focus-visible:outline-rose-400">
                 <x-civic-mark class="h-8 w-8 text-sm" />
                 <span class="text-sm font-semibold">CivicLink</span>
             </a>
@@ -35,9 +35,9 @@
                        @if (request()->routeIs($route)) aria-current="page" @endif
                        class="whitespace-nowrap rounded-sm px-3 py-2 text-sm font-medium
                               transition-colors duration-fast ease-out-strong hover:bg-navy-800
-                              focus-visible:outline-amber-400
+                              focus-visible:outline-rose-400
                               {{ request()->routeIs($route)
-                                  ? 'text-paper shadow-[inset_0_-2px_0_0_theme(colors.amber.500)]'
+                                  ? 'text-paper shadow-[inset_0_-2px_0_0_theme(colors.rose.500)]'
                                   : 'text-navy-200' }}">
                         {{ $label }}
                     </a>
@@ -47,13 +47,13 @@
             <div class="ml-auto flex items-center gap-2">
                 <a href="{{ route('profile.edit') }}"
                    class="hidden rounded-sm px-3 py-2 text-sm text-navy-200 hover:bg-navy-800
-                          focus-visible:outline-amber-400 sm:inline-block">
+                          focus-visible:outline-rose-400 sm:inline-block">
                     {{ auth()->user()->name }}
                 </a>
                 <form method="POST" action="{{ route('logout') }}">
                     @csrf
                     <button type="submit"
-                            class="rounded-sm px-3 py-2 text-sm text-navy-200 hover:bg-navy-800 focus-visible:outline-amber-400">
+                            class="rounded-sm px-3 py-2 text-sm text-navy-200 hover:bg-navy-800 focus-visible:outline-rose-400">
                         Log out
                     </button>
                 </form>

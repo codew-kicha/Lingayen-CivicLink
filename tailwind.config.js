@@ -1,7 +1,7 @@
 import defaultTheme from 'tailwindcss/defaultTheme';
 import forms from '@tailwindcss/forms';
 
-// Token definitions live in DESIGN_SYSTEM.md. Keep the two in sync.
+// Token definitions live in docs/DESIGN_SYSTEM.md. Keep the two in sync.
 /** @type {import('tailwindcss').Config} */
 export default {
     content: [
@@ -30,13 +30,13 @@ export default {
                     800: 'oklch(0.280 0.070 252)',
                     900: 'oklch(0.210 0.055 250)',
                 },
-                amber: {
-                    100: 'oklch(0.950 0.045 75)',
-                    200: 'oklch(0.900 0.080 72)',
-                    400: 'oklch(0.820 0.140 70)',
-                    500: 'oklch(0.740 0.160 66)',
-                    600: 'oklch(0.650 0.150 62)',
-                    700: 'oklch(0.550 0.130 58)',
+                rose: {
+                    100: 'oklch(0.950 0.035 005)',
+                    200: 'oklch(0.890 0.065 350)',
+                    400: 'oklch(0.780 0.130 348)',
+                    500: 'oklch(0.680 0.165 346)',
+                    600: 'oklch(0.580 0.155 345)',
+                    700: 'oklch(0.480 0.130 344)',
                 },
                 paper: 'oklch(0.990 0.003 252)',
                 surface: 'oklch(0.975 0.006 252)',
@@ -93,6 +93,7 @@ export default {
             transitionDuration: {
                 fast: '120ms',
                 base: '180ms',
+                slow: '400ms',
             },
 
             zIndex: {

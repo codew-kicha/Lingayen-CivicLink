@@ -51,7 +51,9 @@ class ApplicationController extends Controller
                 'submitted_at' => now(),
             ]);
 
-            foreach ($request->file('documents', []) as $type => $file) {
+            foreach (array_keys(config('document_types')) as $type) {
+                $file = $request->file("documents.{$type}");
+
                 if (! $file) {
                     continue;
                 }

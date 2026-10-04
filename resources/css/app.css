@@ -116,7 +116,52 @@
     .table-row {
         @apply transition-colors duration-fast ease-out-strong hover:bg-navy-50;
     }
+
+    /*
+     * Navy duotone, applied to every photo (DESIGN_SYSTEM.md §8). Grayscale sits on the <img>,
+     * not the wrapper: a filter on the wrapper would also grayscale the navy ::after layer.
+     */
+    .photo-duotone {
+        @apply relative isolate overflow-hidden bg-navy-900;
+    }
+
+    .photo-duotone > img {
+        @apply h-full w-full object-cover;
+        filter: grayscale(1) contrast(1.1);
+    }
+
+    /* Lifts the grayscale shadows to navy; without it the photo reads as plain black and white. */
+    .photo-duotone::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        z-index: 1;
+        pointer-events: none;
+        background: oklch(0.36 0.09 254);
+        mix-blend-mode: lighten;
+    }
+
+    .photo-duotone::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        z-index: 1;
+        pointer-events: none;
+        background: linear-gradient(180deg, oklch(0.21 0.055 250 / 0.55), oklch(0.21 0.055 250 / 0.15));
+        mix-blend-mode: multiply;
+    }
+
+    /* Directory cards reveal as they scroll in (§4). .motion-ok is set only by the public layout. */
+    .motion-ok .reveal {
+        @apply translate-y-2 opacity-0 transition duration-slow ease-out-strong;
+    }
+
+    .motion-ok .reveal.is-revealed {
+        @apply translate-y-0 opacity-100;
+    }
 }
+
+[x-cloak] { display: none !important; }
 
 @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after {

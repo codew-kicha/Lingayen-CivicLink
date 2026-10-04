@@ -1,8 +1,15 @@
 <?php
 
-// Placeholder sector taxonomy for Milestone 1 (docs/PRD_Lingayen_CivicLink_Complete.md §4).
+// The Civil Society Desk Office's own classification (PRD §19).
 return [
-    'Health', 'Education', 'Environment', 'Livelihood and Cooperatives', "Women's Welfare",
-    'Youth and Sports', 'Senior Citizens', 'Disaster Risk Reduction', 'Agriculture and Fisheries',
-    'Persons with Disabilities', 'Indigenous Peoples', 'General / Multi-Sectoral',
+    'Health',
+    'Cooperative',
+    'Farmers and Fisherfolks',
+    "KALIPI (Women's)",
+    'OFW',
+    'Pedicab Drivers',
+    'Rural Improvement Club',
+    'Senior Citizen',
+    'TODA',
+    'Independent Organizations',
 ];

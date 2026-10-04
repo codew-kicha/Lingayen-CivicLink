@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\Accreditation;
 use App\Models\Activity;
 use App\Models\AnnualReport;
+use App\Models\AuditLog;
 use App\Models\ApplicationModel;
 use App\Models\NewsPost;
 use App\Models\Organization;
@@ -12,6 +13,7 @@ use App\Models\User;
 use App\Services\PerformanceScoreCalculator;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 /**
  * Rebuilds a realistic demo dataset in one command:
@@ -22,39 +24,70 @@ use Illuminate\Support\Facades\Hash;
  */
 class DatabaseSeeder extends Seeder
 {
+    // Every demo account uses this. It satisfies Password::defaults() like a real password must.
+    public const DEMO_PASSWORD = 'Lingayen-Demo-2026';
+
     public function run(): void
     {
         $admin = User::factory()->admin()->create([
             'name' => 'PESO Administrator',
             'email' => 'admin@lingayen.gov.ph',
-            'password' => Hash::make('password'),
+            'password' => Hash::make(self::DEMO_PASSWORD),
         ]);
 
         $this->accreditedOrganizations($admin);
         $this->organizationsInReview();
         $this->rejectedApplicant();
         $this->brandNewRegistrant();
+        $this->accountStates($admin);
         $this->newsAndReports($admin);
         $this->computeScores();
     }
 
-    /** Six accredited organizations with verified activity histories. */
+    /**
+     * Accredited organizations with verified activity histories, one or more per real sector.
+     * Activity titles are sector-plausible because they surface verbatim in the home-page ticker.
+     */
     private function accreditedOrganizations(User $admin): void
     {
         $profiles = [
-            ['Lingayen Coastal Watch', 'Environment', 'Pangapisan North', 'Protects the shoreline and mangrove areas through regular clean-ups and coastal monitoring.'],
-            ['Bantayan Women Weavers Cooperative', "Women's Welfare", 'Bantayan', 'Trains women in weaving and handicraft production, and runs a shared marketing programme.'],
-            ['Poblacion Youth Movement', 'Youth and Sports', 'Poblacion', 'Organizes leadership training, sports leagues, and out-of-school youth tutoring.'],
-            ['Malawa Farmers Association', 'Agriculture and Fisheries', 'Malawa', 'Supports smallholder rice and vegetable farmers with seed sharing and training.'],
-            ['Domalandan Senior Citizens Circle', 'Senior Citizens', 'Domalandan Center', 'Runs wellness sessions and a medicine assistance programme for older residents.'],
-            ['Sabangan Disaster Response Volunteers', 'Disaster Risk Reduction', 'Sabangan', 'Trains barangay volunteers in first aid, evacuation, and flood early warning.'],
+            ['Pangapisan Fisherfolk Association', 'Farmers and Fisherfolks', 'Pangapisan North',
+                'Protects the shoreline and mangrove areas through regular clean-ups and coastal monitoring.',
+                ['coastal clean-up', 'mangrove planting', 'safe fishing orientation']],
+            ['Bantayan Women Weavers Cooperative', 'Cooperative', 'Bantayan',
+                'Trains members in weaving and handicraft production, and runs a shared marketing programme.',
+                ['weaving skills training', 'product pricing workshop', 'members\' general assembly']],
+            ['Poblacion TODA', 'TODA', 'Poblacion',
+                'Represents tricycle operators and drivers on route, fare, and road safety concerns.',
+                ['road safety seminar', 'free rides for senior citizens on market day', 'terminal clean-up']],
+            ['Malawa Farmers Association', 'Farmers and Fisherfolks', 'Malawa',
+                'Supports smallholder rice and vegetable farmers with seed sharing and training.',
+                ['seed sharing day', 'organic fertilizer training', 'community vegetable garden launch']],
+            ['Domalandan Senior Citizens Circle', 'Senior Citizen', 'Domalandan Center',
+                'Runs wellness sessions and a medicine assistance programme for older residents.',
+                ['senior wellness day', 'free blood pressure screening', 'medicine assistance distribution']],
+            ['Sabangan Rural Improvement Club', 'Rural Improvement Club', 'Sabangan',
+                'Organizes home-based livelihood and nutrition programmes for rural households.',
+                ['backyard gardening demonstration', 'food processing training', 'nutrition class for mothers']],
+            ['KALIPI Libsong West', "KALIPI (Women's)", 'Libsong West',
+                'Brings women together for livelihood, health, and anti-violence advocacy.',
+                ['anti-VAWC awareness forum', 'livelihood skills training', 'women\'s health caravan']],
+            ['Baay Pedicab Drivers Association', 'Pedicab Drivers', 'Baay',
+                'Represents pedicab drivers and runs a mutual aid fund for members.',
+                ['road safety orientation', 'mutual aid fund assembly', 'pedicab terminal clean-up']],
+            ['Lingayen OFW Families Circle', 'OFW', 'Poblacion',
+                'Supports families of overseas Filipino workers with financial literacy and reintegration help.',
+                ['financial literacy seminar', 'reintegration counselling session', 'OFW family day']],
         ];
 
-        foreach ($profiles as $index => [$name, $sector, $barangay, $advocacy]) {
+        // One organization is deliberately hidden to demonstrate directory moderation.
+        $hiddenIndex = 5;
+
+        foreach ($profiles as $index => [$name, $sector, $barangay, $advocacy, $activityTitles]) {
             $user = User::factory()->create([
                 'name' => "Representative, {$name}",
                 'email' => 'rep'.($index + 1).'@example.ph',
-                'password' => Hash::make('password'),
+                'password' => Hash::make(self::DEMO_PASSWORD),
             ]);
 
             $organization = Organization::factory()->for($user)->create([
@@ -62,8 +95,7 @@ class DatabaseSeeder extends Seeder
                 'sector' => $sector,
                 'barangay' => $barangay,
                 'advocacy' => $advocacy,
-                // One organization is deliberately hidden to demonstrate directory moderation.
-                'public_visibility' => $index !== 5,
+                'public_visibility' => $index !== $hiddenIndex,
             ]);
 
             $organization->members()->createMany([
@@ -95,16 +127,36 @@ class DatabaseSeeder extends Seeder
 
             $this->documents($organization, $application, expiring: $index === 3);
 
-            Activity::factory()
-                ->count(fake()->numberBetween(3, 9))
-                ->for($organization)
-                ->verified()
-                ->create(['logged_by' => $user->id, 'verified_by' => $admin->id]);
+            // Real sentences, not lorem ipsum: these print verbatim on the public profile.
+            $describe = fn () => 'Organized by members for residents of Barangay '.$barangay
+                .'. Attendance was recorded on the sign-in sheet submitted to the Civil Society Desk Office.';
 
-            Activity::factory()
-                ->count(fake()->numberBetween(1, 3))
-                ->for($organization)
-                ->create(['logged_by' => $user->id]);
+            foreach (range(1, fake()->numberBetween(3, 9)) as $_) {
+                $heldOn = now()->subDays(fake()->numberBetween(2, 300));
+                $title = fake()->randomElement($activityTitles);
+
+                Activity::factory()->for($organization)->create([
+                    'title' => ucfirst($title),
+                    'description' => $describe(),
+                    'activity_date' => $heldOn->toDateString(),
+                    'status' => 'verified',
+                    // PESO verifies a few days after the activity, never before it.
+                    'verified_at' => $heldOn->copy()->addDays(fake()->numberBetween(1, 6))->min(now()),
+                    'logged_by' => $user->id,
+                    'verified_by' => $admin->id,
+                ]);
+            }
+
+            foreach (range(1, fake()->numberBetween(1, 3)) as $_) {
+                $title = fake()->randomElement($activityTitles);
+
+                Activity::factory()->for($organization)->create([
+                    'title' => ucfirst($title),
+                    'description' => $describe(),
+                    'activity_date' => now()->subDays(fake()->numberBetween(1, 14))->toDateString(),
+                    'logged_by' => $user->id,
+                ]);
+            }
         }
     }
 
@@ -112,17 +164,17 @@ class DatabaseSeeder extends Seeder
     private function organizationsInReview(): void
     {
         $stages = [
-            ['not_endorsed', 'Tonton Neighborhood Association', 'General / Multi-Sectoral', 'Tonton'],
-            ['first_reading', 'Estanza Fisherfolk Alliance', 'Agriculture and Fisheries', 'Estanza'],
+            ['not_endorsed', 'Tonton Neighborhood Association', 'Independent Organizations', 'Tonton'],
+            ['first_reading', 'Estanza Fisherfolk Alliance', 'Farmers and Fisherfolks', 'Estanza'],
             ['second_reading', 'Libsong Health Advocates', 'Health', 'Libsong East'],
-            ['third_reading', 'Maniboc Education Support Group', 'Education', 'Maniboc'],
+            ['third_reading', 'Maniboc TODA', 'TODA', 'Maniboc'],
         ];
 
         foreach ($stages as $index => [$stage, $name, $sector, $barangay]) {
             $user = User::factory()->create([
                 'name' => "Representative, {$name}",
                 'email' => 'applicant'.($index + 1).'@example.ph',
-                'password' => Hash::make('password'),
+                'password' => Hash::make(self::DEMO_PASSWORD),
             ]);
 
             $organization = Organization::factory()->for($user)->create([
@@ -154,12 +206,12 @@ class DatabaseSeeder extends Seeder
         $user = User::factory()->create([
             'name' => 'Representative, Wawa Community Circle',
             'email' => 'rejected@example.ph',
-            'password' => Hash::make('password'),
+            'password' => Hash::make(self::DEMO_PASSWORD),
         ]);
 
         $organization = Organization::factory()->for($user)->create([
             'name' => 'Wawa Community Circle',
-            'sector' => 'General / Multi-Sectoral',
+            'sector' => 'Independent Organizations',
             'barangay' => 'Wawa',
         ]);
 
@@ -171,13 +223,63 @@ class DatabaseSeeder extends Seeder
     }
 
     /** A rep who has registered but not yet built a profile, for the empty-state walkthrough. */
+    /** Registered through the public form but has not filed an application yet (empty-state walkthrough). */
     private function brandNewRegistrant(): void
     {
-        User::factory()->create([
-            'name' => 'New Representative',
+        $user = User::factory()->create([
+            'name' => 'Lorna Bautista',
             'email' => 'new@example.ph',
-            'password' => Hash::make('password'),
+            'password' => Hash::make(self::DEMO_PASSWORD),
         ]);
+
+        Organization::factory()->for($user)->create([
+            'name' => 'Quibaol Rural Improvement Club',
+            'sector' => 'Rural Improvement Club',
+            'barangay' => 'Quibaol',
+            'advocacy' => 'Home gardening and food preservation for farming households.',
+        ]);
+    }
+
+    /** One of each account state the Accounts screen has to show. */
+    private function accountStates(User $admin): void
+    {
+        // Registered by the office from its paper records; nobody can sign in for it yet.
+        Organization::factory()->create([
+            'user_id' => null,
+            'name' => 'Bacsay Farmers Association',
+            'sector' => 'Farmers and Fisherfolks',
+            'barangay' => 'Bacsay',
+        ]);
+
+        // Invited by the office; the representative hasn't set a password yet.
+        $invited = User::factory()->unverified()->create([
+            'name' => 'Ramon Aquino',
+            'email' => 'invited@example.ph',
+            'password' => Hash::make(Str::random(64)),
+        ]);
+        Organization::factory()->for($invited)->create([
+            'name' => 'Libsong East OFW Families',
+            'sector' => 'OFW',
+            'barangay' => 'Libsong East',
+        ]);
+
+        $deactivated = User::factory()->create([
+            'name' => 'Teresa Lim',
+            'email' => 'deactivated@example.ph',
+            'password' => Hash::make(self::DEMO_PASSWORD),
+        ]);
+        $deactivated->forceFill([
+            'is_active' => false,
+            'deactivated_at' => now()->subWeeks(3),
+            'deactivation_reason' => 'Organization dissolved; members joined another association.',
+        ])->save();
+        Organization::factory()->for($deactivated)->create([
+            'name' => 'Tonton Youth Volunteers',
+            'sector' => 'Independent Organizations',
+            'barangay' => 'Tonton',
+        ]);
+
+        AuditLog::record('account.deactivated', $deactivated, ['reason' => $deactivated->deactivation_reason], $admin);
     }
 
     private function newsAndReports(User $admin): void
@@ -185,9 +287,9 @@ class DatabaseSeeder extends Seeder
         $accredited = Organization::where('public_visibility', true)->take(3)->get();
 
         $posts = [
-            ['Accreditation window for 2026 now open', 'The Public Employment Service Office is accepting applications for CSO accreditation until the end of the quarter. Organizations may file online or bring printed requirements to the municipal hall for assisted encoding.'],
-            ['Coastal clean-up covers four barangays', 'Volunteers from several accredited organizations joined the quarterly shoreline clean-up, collecting waste across four coastal barangays and recording the volumes for the environment office.'],
-            ['Reminder on document expiry', 'Accredited organizations are reminded to replace expiring registration certificates and financial statements before they lapse. The system now sends a reminder ahead of each expiry date.'],
+            ['Accreditation window for 2026 now open', 'The Civil Society Desk Office is accepting applications for CSO accreditation until the end of the quarter. Organizations may file online or bring two copies of each requirement to #1 Bengson Street for assisted encoding.'],
+            ['Coastal clean-up covers four barangays', 'Fisherfolk and farmers\' associations joined the quarterly shoreline clean-up, collecting waste across four coastal barangays and recording the volumes for the environment office.'],
+            ['Reminder on document expiry', 'Accredited organizations are reminded to replace expiring DOLE or SEC certifications and updated officer lists before they lapse. The system now sends a reminder ahead of each expiry date.'],
         ];
 
         foreach ($posts as $index => [$title, $body]) {

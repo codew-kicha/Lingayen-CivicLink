@@ -25,7 +25,7 @@
             <ol class="mt-6 grid gap-px overflow-hidden rounded-lg border border-line bg-line md:grid-cols-5">
                 @foreach ($process as $step)
                     <li class="bg-paper p-5">
-                        <p class="font-mono text-xs tabular-nums text-amber-700">Step {{ $loop->iteration }}</p>
+                        <p class="font-mono text-xs tabular-nums text-navy-600">Step {{ $loop->iteration }}</p>
                         <h3 class="mt-2 font-semibold text-ink">{{ $step['title'] }}</h3>
                         <p class="mt-1.5 text-sm text-muted">{{ $step['detail'] }}</p>
                     </li>
@@ -42,8 +42,15 @@
                 <ul class="mt-5 divide-y divide-line border-y border-line">
                     @foreach ($requirements as $requirement)
                         <li class="py-3.5">
-                            <p class="font-medium text-ink">{{ $requirement['label'] }}</p>
-                            <p class="mt-0.5 text-sm text-muted">{{ $requirement['note'] }}</p>
+                            <p class="font-medium text-ink">
+                                {{ $requirement['label'] }}
+                                @if ($requirement['optional'])
+                                    <span class="ml-1 text-sm font-normal text-muted">Optional</span>
+                                @endif
+                            </p>
+                            @if ($requirement['note'])
+                                <p class="mt-0.5 text-sm text-muted">{{ $requirement['note'] }}</p>
+                            @endif
                         </li>
                     @endforeach
                 </ul>
@@ -52,15 +59,15 @@
             <aside class="panel h-fit p-6">
                 <h2 class="font-semibold text-ink">Prefer to file on paper?</h2>
                 <p class="mt-2 text-sm text-muted">
-                    Download the application form, fill it in by hand, and bring it to the PESO
-                    office. Staff will encode it into the same system, and you will be able to track
-                    it online afterwards.
+                    Download the application form, fill it in by hand, and bring it with two copies
+                    of each requirement to the Civil Society Desk Office. Staff will encode it into
+                    the same system, and you will be able to track it online afterwards.
                 </p>
                 <p class="mt-4 text-sm text-muted">
                     The downloadable form is being prepared and will be posted here.
                 </p>
                 <a href="{{ route('register') }}" class="btn-primary mt-6 w-full">Start an online application</a>
-                <a href="{{ route('contact') }}" class="btn-ghost mt-2 w-full">Ask PESO a question</a>
+                <a href="{{ route('contact') }}" class="btn-ghost mt-2 w-full">Ask the CSO Desk Office</a>
             </aside>
         </section>
     </div>

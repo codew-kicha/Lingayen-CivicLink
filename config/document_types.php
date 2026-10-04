@@ -1,11 +1,11 @@
 <?php
 
-// Required accreditation document types (docs/PRD_Lingayen_CivicLink_Complete.md §4, §9).
+// Accreditation requirements as confirmed by the Civil Society Desk Office (PRD §19).
+// DOLE/SEC certification is submitted only if the organization has one.
 return [
-    'sec_registration' => 'SEC/DTI/CDA Registration Certificate',
-    'board_resolution' => 'Board Resolution',
-    'list_of_officers' => 'List of Officers and Members',
-    'financial_statement' => 'Latest Financial Statement',
-    'work_program' => 'Annual Work Program',
-    'barangay_clearance' => 'Barangay Clearance',
+    'accreditation_form' => ['label' => 'Accomplished Accreditation Form', 'optional' => false],
+    'officers_members_list' => ['label' => 'Updated List of Officers and Members', 'optional' => false],
+    'constitution_bylaws' => ['label' => 'Constitution and By-Laws', 'optional' => false],
+    'fee_receipt' => ['label' => 'Accreditation Fee Receipt', 'optional' => false],
+    'dole_sec_certification' => ['label' => 'DOLE or SEC Certification', 'optional' => true],
 ];

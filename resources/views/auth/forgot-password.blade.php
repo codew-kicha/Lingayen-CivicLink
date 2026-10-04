@@ -1,25 +1,23 @@
 <x-guest-layout>
-    <div class="mb-4 text-sm text-gray-600 dark:text-gray-400">
-        {{ __('Forgot your password? No problem. Just let us know your email address and we will email you a password reset link that will allow you to choose a new one.') }}
-    </div>
+    <x-slot:title>Reset your password</x-slot:title>
+    <x-slot:heading>Reset your password</x-slot:heading>
+    <x-slot:intro>Enter the email you registered with. We'll send a link to choose a new password.</x-slot:intro>
 
-    <!-- Session Status -->
-    <x-auth-session-status class="mb-4" :status="session('status')" />
-
-    <form method="POST" action="{{ route('password.email') }}">
+    <form method="POST" action="{{ route('password.email') }}" class="space-y-5">
         @csrf
 
-        <!-- Email Address -->
         <div>
-            <x-input-label for="email" :value="__('Email')" />
-            <x-text-input id="email" class="block mt-1 w-full" type="email" name="email" :value="old('email')" required autofocus />
-            <x-input-error :messages="$errors->get('email')" class="mt-2" />
+            <label for="email" class="field-label">Email</label>
+            <input id="email" name="email" type="email" value="{{ old('email') }}" required autofocus autocomplete="username"
+                   @error('email') aria-invalid="true" aria-describedby="email-error" @enderror
+                   class="field-input @error('email') field-input-error @enderror">
+            @error('email')<p id="email-error" class="field-error">{{ $message }}</p>@enderror
         </div>
 
-        <div class="flex items-center justify-end mt-4">
-            <x-primary-button>
-                {{ __('Email Password Reset Link') }}
-            </x-primary-button>
-        </div>
+        <button type="submit" class="btn-primary w-full">Email me a reset link</button>
+
+        <p class="text-center text-sm text-muted">
+            Remembered it? <a href="{{ route('login') }}" class="font-semibold text-navy-700 hover:underline">Sign in</a>
+        </p>
     </form>
 </x-guest-layout>

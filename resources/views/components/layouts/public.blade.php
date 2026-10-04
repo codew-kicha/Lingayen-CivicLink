@@ -5,6 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="{{ $description ?? 'Accreditation and activity monitoring for civil society organizations in Lingayen, Pangasinan.' }}">
     <title>{{ isset($title) ? $title . ' | Lingayen CivicLink' : 'Lingayen CivicLink' }}</title>
+    {{-- Public pages run at motion 5; set before first paint so revealed content never flashes. --}}
+    <script>
+        if ('IntersectionObserver' in window && ! matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            document.documentElement.classList.add('motion-ok');
+        }
+    </script>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="min-h-screen bg-paper">
@@ -17,7 +23,7 @@
 
     <header class="bg-navy-900 text-paper">
         <div class="mx-auto flex max-w-7xl items-center gap-6 px-4 py-3 sm:px-6 lg:px-8">
-            <a href="{{ route('home') }}" class="flex items-center gap-2.5 rounded-sm focus-visible:outline-amber-400">
+            <a href="{{ route('home') }}" class="flex items-center gap-2.5 rounded-sm focus-visible:outline-rose-400">
                 <x-civic-mark />
                 <span class="text-base font-semibold tracking-tight">Lingayen CivicLink</span>
             </a>
@@ -36,9 +42,9 @@
                     <a href="{{ route($route) }}"
                        @if (request()->routeIs($route)) aria-current="page" @endif
                        class="rounded-sm px-3 py-2 text-sm font-medium transition-colors duration-fast ease-out-strong
-                              hover:bg-navy-800 focus-visible:outline-amber-400
+                              hover:bg-navy-800 focus-visible:outline-rose-400
                               {{ request()->routeIs($route)
-                                  ? 'text-paper shadow-[inset_0_-2px_0_0_theme(colors.amber.500)]'
+                                  ? 'text-paper shadow-[inset_0_-2px_0_0_theme(colors.rose.500)]'
                                   : 'text-navy-200' }}">
                         {{ $label }}
                     </a>
@@ -49,27 +55,27 @@
                 <a href="{{ route('contact') }}"
                    class="hidden rounded-md px-3 py-2 text-sm font-medium text-navy-200
                           transition-colors duration-fast ease-out-strong hover:bg-navy-800
-                          focus-visible:outline-amber-400 sm:inline-block">
+                          focus-visible:outline-rose-400 sm:inline-block">
                     Contact Us
                 </a>
                 @auth
                     <a href="{{ route('dashboard') }}"
-                       class="rounded-md bg-amber-500 px-3.5 py-2 text-sm font-semibold text-navy-900
-                              transition-colors duration-fast ease-out-strong hover:bg-amber-400
-                              focus-visible:outline-amber-400">
+                       class="rounded-md bg-rose-500 px-3.5 py-2 text-sm font-semibold text-navy-900
+                              transition-colors duration-fast ease-out-strong hover:bg-rose-400
+                              focus-visible:outline-rose-400">
                         My dashboard
                     </a>
                 @else
                     <a href="{{ route('login') }}"
                        class="rounded-md px-3 py-2 text-sm font-medium text-navy-200
                               transition-colors duration-fast ease-out-strong hover:bg-navy-800
-                              focus-visible:outline-amber-400">
+                              focus-visible:outline-rose-400">
                         Log in
                     </a>
                     <a href="{{ route('register') }}"
-                       class="rounded-md bg-amber-500 px-3.5 py-2 text-sm font-semibold text-navy-900
-                              transition-colors duration-fast ease-out-strong hover:bg-amber-400
-                              focus-visible:outline-amber-400">
+                       class="rounded-md bg-rose-500 px-3.5 py-2 text-sm font-semibold text-navy-900
+                              transition-colors duration-fast ease-out-strong hover:bg-rose-400
+                              focus-visible:outline-rose-400">
                         Apply Now
                     </a>
                 @endauth
@@ -82,7 +88,7 @@
                     <a href="{{ route($route) }}"
                        @if (request()->routeIs($route)) aria-current="page" @endif
                        class="whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium
-                              focus-visible:outline-amber-400
+                              focus-visible:outline-rose-400
                               {{ request()->routeIs($route) ? 'bg-navy-800 text-paper' : 'text-navy-200' }}">
                         {{ $label }}
                     </a>
@@ -124,7 +130,9 @@
                     CSO accreditation for Local Special Bodies.
                 </p>
                 <p class="mt-4 text-sm text-muted">
-                    Public Employment Service Office, Lingayen
+                    {{ config('office.office.name') }}<br>
+                    {{ config('office.office.address') }}<br>
+                    {{ config('office.office.hours') }}
                 </p>
             </div>
         </div>

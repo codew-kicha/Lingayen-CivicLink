@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Document;
 use App\Models\Organization;
 use App\Models\PerformanceScore;
 use Illuminate\Support\Carbon;
@@ -114,7 +115,7 @@ class PerformanceScoreCalculator
 
     private function documentCurrency(Organization $organization): float
     {
-        $required = array_keys(config('document_types'));
+        $required = Document::requiredTypes();
 
         $current = $organization->documents()
             ->whereIn('document_type', $required)

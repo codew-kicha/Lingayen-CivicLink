@@ -57,7 +57,7 @@
                         }
                         foreach ($expiringDocuments as $document) {
                             $waiting->push(
-                                config("document_types.{$document->document_type}", Str::headline($document->document_type))
+                                \App\Models\Document::label($document->document_type)
                                 .' expires '.$document->expires_at->format('d M Y')
                             );
                         }

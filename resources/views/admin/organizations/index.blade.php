@@ -6,10 +6,16 @@
             <input type="search" id="q" name="q" value="{{ request('q') }}"
                    placeholder="Organization name" class="field-input w-72">
         </div>
+        <label class="mb-2.5 flex items-center gap-2 text-sm text-ink">
+            <input type="checkbox" name="account" value="none" @checked(request('account') === 'none')
+                   class="rounded-sm border-line-strong text-navy-600">
+            No login yet
+        </label>
         <button type="submit" class="btn-primary">Search</button>
-        @if (request('q'))
+        @if (request()->hasAny(['q', 'account']))
             <a href="{{ route('admin.organizations.index') }}" class="btn-ghost">Clear</a>
         @endif
+        <a href="{{ route('admin.organizations.create') }}" class="btn-secondary ml-auto">Register organization</a>
     </form>
 
     <section class="panel-flat overflow-hidden">
@@ -23,6 +29,7 @@
                         <tr>
                             <th scope="col" class="table-head">Organization</th>
                             <th scope="col" class="table-head">Sector</th>
+                            <th scope="col" class="table-head">Representative</th>
                             <th scope="col" class="table-head">Accreditation</th>
                             <th scope="col" class="table-head text-right">Verified activities</th>
                             <th scope="col" class="table-head">Public listing</th>
@@ -34,10 +41,22 @@
                             @php $accreditation = $organization->accreditations->first(); @endphp
                             <tr class="table-row">
                                 <td class="table-cell">
-                                    <p class="font-medium text-ink">{{ $organization->name }}</p>
+                                    <a href="{{ route('admin.organizations.edit', $organization) }}"
+                                       class="font-medium text-navy-700 hover:underline">{{ $organization->name }}</a>
                                     <p class="text-xs text-muted">Brgy. {{ $organization->barangay }}</p>
                                 </td>
                                 <td class="table-cell text-muted">{{ $organization->sector }}</td>
+                                <td class="table-cell text-sm">
+                                    @if (! $organization->user)
+                                        <span class="badge-neutral">No login</span>
+                                    @elseif (! $organization->user->is_active)
+                                        <span class="badge-danger">Deactivated</span>
+                                    @elseif (! $organization->user->email_verified_at)
+                                        <span class="badge-warning">Invited</span>
+                                    @else
+                                        <span class="text-ink">{{ $organization->user->name }}</span>
+                                    @endif
+                                </td>
                                 <td class="table-cell">
                                     @if ($accreditation)
                                         <x-status-badge status="active" />

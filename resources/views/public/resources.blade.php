@@ -73,7 +73,7 @@
                         <li>
                             <a href="{{ route('annual-reports.download', $report) }}"
                                class="panel flex items-baseline gap-3 p-4 transition-colors duration-fast ease-out-strong hover:border-navy-300">
-                                <span class="font-mono text-sm tabular-nums text-amber-700">{{ $report->year }}</span>
+                                <span class="font-mono text-sm tabular-nums text-navy-600">{{ $report->year }}</span>
                                 <span class="text-sm font-medium text-ink">{{ $report->title }}</span>
                             </a>
                         </li>

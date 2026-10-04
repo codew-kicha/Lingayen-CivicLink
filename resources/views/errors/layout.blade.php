@@ -15,7 +15,7 @@
     </header>
 
     <main class="mx-auto flex w-full max-w-2xl flex-1 flex-col justify-center px-4 py-20 sm:px-6">
-        <p class="font-mono text-sm tabular-nums text-amber-700">@yield('code')</p>
+        <p class="font-mono text-sm tabular-nums text-navy-600">@yield('code')</p>
         <h1 class="mt-2 text-2xl font-semibold text-ink">@yield('title')</h1>
         <p class="mt-3 max-w-[60ch] text-muted">@yield('message')</p>
 

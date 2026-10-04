@@ -6,6 +6,7 @@ use Illuminate\Auth\Events\Lockout;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
+use App\Models\AuditLog;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -44,6 +45,7 @@ class LoginRequest extends FormRequest
 
         if (! Auth::attempt($this->only('email', 'password'), $this->boolean('remember'))) {
             RateLimiter::hit($this->throttleKey());
+            AuditLog::record('login.failed', meta: ['email' => $this->string('email')->lower()->value()]);
 
             throw ValidationException::withMessages([
                 'email' => trans('auth.failed'),
@@ -51,6 +53,17 @@ class LoginRequest extends FormRequest
         }
 
         RateLimiter::clear($this->throttleKey());
+
+        // Checked only after the password matched, so this reveals nothing to someone guessing emails.
+        if (! Auth::user()->is_active) {
+            $user = Auth::user();
+            Auth::guard('web')->logout();
+            AuditLog::record('login.blocked_deactivated', $user, actor: $user);
+
+            throw ValidationException::withMessages([
+                'email' => 'This account has been deactivated. Contact the Civil Society Desk Office to restore access.',
+            ]);
+        }
     }
 
     /**

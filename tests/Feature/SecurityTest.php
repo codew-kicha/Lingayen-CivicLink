@@ -29,9 +29,9 @@ class SecurityTest extends TestCase
         $this->actingAs($rep)
             ->post(route('cso.applications.store'), [
                 'type' => 'new',
-                'documents' => ['sec_registration' => UploadedFile::fake()->create('payload.php', 10, 'application/x-php')],
+                'documents' => ['accreditation_form' => UploadedFile::fake()->create('payload.php', 10, 'application/x-php')],
             ])
-            ->assertSessionHasErrors('documents.sec_registration');
+            ->assertSessionHasErrors('documents.accreditation_form');
 
         $this->assertDatabaseCount('applications', 0);
         $this->assertDatabaseCount('documents', 0);
@@ -47,9 +47,9 @@ class SecurityTest extends TestCase
         $this->actingAs($rep)
             ->post(route('cso.applications.store'), [
                 'type' => 'new',
-                'documents' => ['sec_registration' => UploadedFile::fake()->create('huge.pdf', 6000, 'application/pdf')],
+                'documents' => ['accreditation_form' => UploadedFile::fake()->create('huge.pdf', 6000, 'application/pdf')],
             ])
-            ->assertSessionHasErrors('documents.sec_registration');
+            ->assertSessionHasErrors('documents.accreditation_form');
 
         $this->assertDatabaseCount('documents', 0);
     }
@@ -61,7 +61,7 @@ class SecurityTest extends TestCase
         $owner = User::factory()->create();
         $ownerOrg = Organization::factory()->for($owner)->create();
         $document = $ownerOrg->documents()->create([
-            'document_type' => 'sec_registration',
+            'document_type' => 'accreditation_form',
             'file_path' => 'documents/private.pdf',
             'original_filename' => 'private.pdf',
             'mime_type' => 'application/pdf',
@@ -78,7 +78,7 @@ class SecurityTest extends TestCase
         Storage::fake('local');
 
         $document = Organization::factory()->create()->documents()->create([
-            'document_type' => 'sec_registration',
+            'document_type' => 'accreditation_form',
             'file_path' => 'documents/private.pdf',
             'original_filename' => 'private.pdf',
             'mime_type' => 'application/pdf',
@@ -159,5 +159,37 @@ class SecurityTest extends TestCase
 
         $this->get(route('directory'))->assertOk()->assertDontSee($organization->name);
         $this->get(route('directory.show', $organization))->assertNotFound();
+    }
+
+    public function test_home_ticker_only_shows_activities_from_publicly_listed_organizations(): void
+    {
+        $accredit = function (Organization $organization, string $code) {
+            $organization->accreditations()->create([
+                'application_id' => ApplicationModel::factory()->for($organization)->create()->id,
+                'verification_code' => $code,
+                'status' => 'active',
+                'active_org_marker' => $organization->id,
+                'issued_at' => now()->toDateString(),
+                'expires_at' => now()->addYears(3)->toDateString(),
+            ]);
+        };
+
+        $listed = Organization::factory()->create();
+        $accredit($listed, 'TEST-CODE-0010');
+        $hidden = Organization::factory()->hidden()->create();
+        $accredit($hidden, 'TEST-CODE-0011');
+        $unaccredited = Organization::factory()->create();
+
+        Activity::factory()->for($listed)->verified()->create(['title' => 'Listed org seminar']);
+        Activity::factory()->for($hidden)->verified()->create(['title' => 'Hidden org seminar']);
+        Activity::factory()->for($unaccredited)->verified()->create(['title' => 'Unaccredited org seminar']);
+        Activity::factory()->for($listed)->create(['title' => 'Pending listed seminar']);
+
+        $this->get(route('home'))
+            ->assertOk()
+            ->assertSee('Listed org seminar')
+            ->assertDontSee('Hidden org seminar')
+            ->assertDontSee('Unaccredited org seminar')
+            ->assertDontSee('Pending listed seminar');
     }
 }

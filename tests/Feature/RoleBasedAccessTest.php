@@ -10,19 +10,6 @@ class RoleBasedAccessTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_registration_creates_a_cso_rep_not_an_admin(): void
-    {
-        $response = $this->post('/register', [
-            'name' => 'Test Rep',
-            'email' => 'rep@example.com',
-            'password' => 'password',
-            'password_confirmation' => 'password',
-        ]);
-
-        $response->assertRedirect();
-        $this->assertSame('cso_rep', User::where('email', 'rep@example.com')->first()->role);
-    }
-
     public function test_admin_dashboard_redirects_admin_to_admin_dashboard(): void
     {
         $admin = User::factory()->admin()->create();

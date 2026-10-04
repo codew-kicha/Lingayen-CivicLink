@@ -26,6 +26,17 @@ class ProfileUpdateRequest extends FormRequest
                 'max:255',
                 Rule::unique(User::class)->ignore($this->user()->id),
             ],
+            'phone' => [$this->user()->isCsoRep() ? 'required' : 'nullable', 'regex:/^\+639\d{9}$/'],
         ];
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $this->merge(['phone' => User::normalizePhone($this->input('phone'))]);
+    }
+
+    public function messages(): array
+    {
+        return ['phone.regex' => 'Enter a Philippine mobile number, for example 0917 123 4567.'];
     }
 }

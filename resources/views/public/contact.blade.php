@@ -1,7 +1,7 @@
 <x-layouts.public title="Contact Us">
     <div class="mx-auto grid max-w-5xl gap-12 px-4 py-16 sm:px-6 lg:grid-cols-2 lg:px-8">
         <div>
-            <h1 class="text-2xl font-semibold text-ink">Contact the PESO office</h1>
+            <h1 class="text-2xl font-semibold text-ink">Contact the Civil Society Desk Office</h1>
             <p class="mt-3 max-w-[60ch] text-muted">
                 For questions about accreditation requirements, the status of a filed application, or
                 help encoding a paper form.
@@ -10,11 +10,21 @@
             <dl class="mt-8 space-y-5 text-sm">
                 <div>
                     <dt class="font-semibold text-ink">Office</dt>
-                    <dd class="mt-1 text-muted">Public Employment Service Office, Municipal Hall, Poblacion, Lingayen, Pangasinan</dd>
+                    <dd class="mt-1 text-muted">
+                        {{ config('office.office.name') }}, {{ config('office.office.parent') }}<br>
+                        {{ config('office.office.address') }}
+                    </dd>
                 </div>
                 <div>
                     <dt class="font-semibold text-ink">Office hours</dt>
-                    <dd class="mt-1 text-muted">Monday to Friday, 8:00 AM to 5:00 PM</dd>
+                    <dd class="mt-1 text-muted">{{ config('office.office.hours') }}</dd>
+                </div>
+                <div>
+                    <dt class="font-semibold text-ink">Facebook</dt>
+                    <dd class="mt-1">
+                        <a href="{{ config('office.office.facebook') }}" rel="noopener" target="_blank"
+                           class="text-navy-700 hover:underline">facebook.com/pesolingayen</a>
+                    </dd>
                 </div>
                 <div>
                     <dt class="font-semibold text-ink">Walk-in assistance</dt>
