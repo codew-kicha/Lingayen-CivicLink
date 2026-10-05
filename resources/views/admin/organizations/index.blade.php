@@ -11,11 +11,19 @@
                    class="rounded-sm border-line-strong text-navy-600">
             No login yet
         </label>
+        <label class="mb-2.5 flex items-center gap-2 text-sm text-ink">
+            <input type="checkbox" name="status" value="inactive" @checked(request('status') === 'inactive')
+                   class="rounded-sm border-line-strong text-navy-600">
+            Inactive only
+        </label>
         <button type="submit" class="btn-primary">Search</button>
-        @if (request()->hasAny(['q', 'account']))
+        @if (request()->hasAny(['q', 'account', 'status']))
             <a href="{{ route('admin.organizations.index') }}" class="btn-ghost">Clear</a>
         @endif
-        <a href="{{ route('admin.organizations.create') }}" class="btn-secondary ml-auto">Register organization</a>
+        <div class="ml-auto flex gap-2">
+            <a href="{{ route('admin.organizations.import') }}" class="btn-ghost">Import list</a>
+            <a href="{{ route('admin.organizations.create') }}" class="btn-secondary">Register organization</a>
+        </div>
     </form>
 
     <section class="panel-flat overflow-hidden">
@@ -60,6 +68,9 @@
                                 <td class="table-cell">
                                     @if ($accreditation)
                                         <x-status-badge status="active" />
+                                        @if ($inactiveIds->contains($organization->id))
+                                            <span class="badge-warning" title="No verified activity in {{ \App\Models\Organization::INACTIVE_AFTER_MONTHS }} months">Inactive</span>
+                                        @endif
                                         <p class="mt-1 font-mono text-xs tabular-nums text-muted">
                                             to {{ $accreditation->expires_at->format('d M Y') }}
                                         </p>

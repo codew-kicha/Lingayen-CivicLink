@@ -20,7 +20,7 @@ class AccountSecurityTest extends TestCase
         return array_merge([
             'organization_name' => 'Wawa Fisherfolk Association',
             'sector' => 'Farmers and Fisherfolks',
-            'barangay' => config('barangays')[0],
+            'barangay' => array_values(config('barangays'))[0],
             'name' => 'Maria Santos',
             'email' => 'maria@example.ph',
             'phone' => '0917 123 4567',

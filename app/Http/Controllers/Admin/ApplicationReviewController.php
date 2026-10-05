@@ -53,7 +53,7 @@ class ApplicationReviewController extends Controller
             'status' => $application->status === 'submitted' ? 'under_review' : $application->status,
         ]);
 
-        $application->organization->user->notify(new ApplicationStatusChanged($application));
+        $application->organization->user?->notify(new ApplicationStatusChanged($application));
 
         return back()->with('status', 'Reading stage updated.');
     }
@@ -91,7 +91,7 @@ class ApplicationReviewController extends Controller
             ]);
         });
 
-        $application->organization->user->notify(new ApplicationStatusChanged($application->refresh()));
+        $application->organization->user?->notify(new ApplicationStatusChanged($application->refresh()));
 
         return redirect()
             ->route('admin.applications.show', $application)
@@ -109,7 +109,7 @@ class ApplicationReviewController extends Controller
             'reviewed_at' => now(),
         ]);
 
-        $application->organization->user->notify(new ApplicationStatusChanged($application));
+        $application->organization->user?->notify(new ApplicationStatusChanged($application));
 
         return redirect()
             ->route('admin.applications.show', $application)

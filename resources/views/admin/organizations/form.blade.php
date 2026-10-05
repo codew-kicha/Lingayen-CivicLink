@@ -122,6 +122,15 @@
                 </section>
 
                 <section class="panel p-6">
+                    <h2 class="font-semibold text-ink">Encode on their behalf</h2>
+                    <p class="mt-1 text-sm text-muted">For paper submissions brought to the office.</p>
+                    <div class="mt-4 flex flex-wrap gap-2">
+                        <a href="{{ route('admin.organizations.applications.create', $organization) }}" class="btn-secondary">File an application</a>
+                        <a href="{{ route('admin.organizations.activities.create', $organization) }}" class="btn-secondary">Log an activity</a>
+                    </div>
+                </section>
+
+                <section class="panel p-6">
                     <h2 class="font-semibold text-ink">Accreditation</h2>
                     @php $active = $organization->accreditations->firstWhere('status', 'active'); @endphp
                     @if ($active)

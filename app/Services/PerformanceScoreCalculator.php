@@ -2,9 +2,11 @@
 
 namespace App\Services;
 
+use App\Models\Activity;
 use App\Models\Document;
 use App\Models\Organization;
 use App\Models\PerformanceScore;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
 
 /**
@@ -62,10 +64,7 @@ class PerformanceScoreCalculator
     {
         $years = max($start->diffInDays($end) / 365, 1);
 
-        $verified = $organization->activities()
-            ->where('status', 'verified')
-            ->whereBetween('activity_date', [$start, $end])
-            ->count();
+        $verified = $this->verifiedActivities($organization, $start, $end)->count();
 
         return $this->clamp($verified / (self::TARGET_ACTIVITIES_PER_YEAR * $years));
     }
@@ -74,12 +73,20 @@ class PerformanceScoreCalculator
     {
         $years = max($start->diffInDays($end) / 365, 1);
 
-        $reached = (int) $organization->activities()
-            ->where('status', 'verified')
-            ->whereBetween('activity_date', [$start, $end])
-            ->sum('participants_estimate');
+        $reached = (int) $this->verifiedActivities($organization, $start, $end)->sum('participants_estimate');
 
         return $this->clamp($reached / (self::TARGET_REACH_PER_YEAR * $years));
+    }
+
+    /**
+     * Verified activities the organization logged or was tagged on as a partner. Partners share full
+     * credit: each organization did reach those residents, and tags only count once PESO verifies them.
+     */
+    private function verifiedActivities(Organization $organization, $start, $end): Builder
+    {
+        return Activity::crediting($organization)
+            ->where('status', 'verified')
+            ->whereBetween('activity_date', [$start, $end]);
     }
 
     /**

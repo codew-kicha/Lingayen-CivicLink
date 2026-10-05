@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Models\ApplicationModel;
+use App\Models\Organization;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -10,7 +11,10 @@ class StoreApplicationRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()->can('create', ApplicationModel::class);
+        // PESO files on a CSO's behalf through a route that names the organization (assisted encoding).
+        return $this->route('organization') instanceof Organization
+            ? $this->user()->can('manage', Organization::class)
+            : $this->user()->can('create', ApplicationModel::class);
     }
 
     /**

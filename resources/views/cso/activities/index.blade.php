@@ -14,41 +14,7 @@
                 <form method="POST" action="{{ route('cso.activities.store') }}" class="mt-5 space-y-5">
                     @csrf
 
-                    <div>
-                        <label for="title" class="field-label">Activity title</label>
-                        <input type="text" id="title" name="title" value="{{ old('title') }}"
-                               class="field-input @error('title') field-input-error @enderror"
-                               @error('title') aria-invalid="true" aria-describedby="title-error" @enderror required>
-                        @error('title')<p id="title-error" class="field-error">{{ $message }}</p>@enderror
-                    </div>
-
-                    <div>
-                        <label for="activity_date" class="field-label">Date held</label>
-                        <input type="date" id="activity_date" name="activity_date" value="{{ old('activity_date') }}"
-                               max="{{ now()->toDateString() }}"
-                               class="field-input @error('activity_date') field-input-error @enderror"
-                               @error('activity_date') aria-invalid="true" aria-describedby="activity_date-error" @enderror required>
-                        @error('activity_date')<p id="activity_date-error" class="field-error">{{ $message }}</p>@enderror
-                    </div>
-
-                    <div>
-                        <label for="participants_estimate" class="field-label">
-                            Residents reached <span class="font-normal text-muted">(optional)</span>
-                        </label>
-                        <input type="number" id="participants_estimate" name="participants_estimate"
-                               value="{{ old('participants_estimate') }}" min="0"
-                               class="field-input @error('participants_estimate') field-input-error @enderror">
-                        <p class="field-hint">An estimate is fine.</p>
-                        @error('participants_estimate')<p class="field-error">{{ $message }}</p>@enderror
-                    </div>
-
-                    <div>
-                        <label for="description" class="field-label">What took place</label>
-                        <textarea id="description" name="description" rows="4"
-                                  class="field-input @error('description') field-input-error @enderror"
-                                  @error('description') aria-invalid="true" aria-describedby="description-error" @enderror required>{{ old('description') }}</textarea>
-                        @error('description')<p id="description-error" class="field-error">{{ $message }}</p>@enderror
-                    </div>
+                    @include('activities.fields')
 
                     <button type="submit" class="btn-primary w-full">Log activity</button>
                 </form>
@@ -90,6 +56,12 @@
                                     </p>
                                 @endif
 
+                                @if ($activity->partnerOrganizations->isNotEmpty())
+                                    <p class="mt-2 text-sm text-muted">
+                                        With {{ $activity->partnerOrganizations->pluck('name')->join(', ', ' and ') }}
+                                    </p>
+                                @endif
+
                                 @if ($activity->status === 'rejected' && $activity->rejection_reason)
                                     <p class="mt-3 rounded-sm border border-danger-600 bg-danger-100 px-3 py-2 text-sm text-danger-600">
                                         {{ $activity->rejection_reason }}
@@ -100,6 +72,22 @@
                     </div>
 
                     <div class="mt-4">{{ $activities->links() }}</div>
+                @endif
+
+                @if ($taggedIn->isNotEmpty())
+                    <h2 class="mt-8 font-semibold text-ink">Tagged as a partner</h2>
+                    <p class="mt-0.5 text-sm text-muted">Logged by other organizations. Verified entries count toward your score too.</p>
+                    <ul class="panel mt-4 divide-y divide-line">
+                        @foreach ($taggedIn as $activity)
+                            <li class="flex flex-wrap items-center gap-3 px-5 py-3 text-sm">
+                                <span class="min-w-0">
+                                    <span class="font-medium text-ink">{{ $activity->title }}</span>
+                                    <span class="block text-muted">{{ $activity->organization->name }} &middot; <span class="font-mono tabular-nums">{{ $activity->activity_date->format('d M Y') }}</span></span>
+                                </span>
+                                <span class="ml-auto shrink-0"><x-status-badge :status="$activity->status" /></span>
+                            </li>
+                        @endforeach
+                    </ul>
                 @endif
             </section>
         </div>

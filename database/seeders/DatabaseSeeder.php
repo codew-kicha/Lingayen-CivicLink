@@ -131,8 +131,11 @@ class DatabaseSeeder extends Seeder
             $describe = fn () => 'Organized by members for residents of Barangay '.$barangay
                 .'. Attendance was recorded on the sign-in sheet submitted to the Civil Society Desk Office.';
 
+            // The last organization has gone quiet, so the dashboard's inactive flag has a real case.
+            $quiet = $index === count($profiles) - 1;
+
             foreach (range(1, fake()->numberBetween(3, 9)) as $_) {
-                $heldOn = now()->subDays(fake()->numberBetween(2, 300));
+                $heldOn = now()->subDays($quiet ? fake()->numberBetween(200, 260) : fake()->numberBetween(2, 170));
                 $title = fake()->randomElement($activityTitles);
 
                 Activity::factory()->for($organization)->create([
@@ -147,7 +150,7 @@ class DatabaseSeeder extends Seeder
                 ]);
             }
 
-            foreach (range(1, fake()->numberBetween(1, 3)) as $_) {
+            foreach (range(1, $quiet ? 0 : fake()->numberBetween(1, 3)) as $_) {
                 $title = fake()->randomElement($activityTitles);
 
                 Activity::factory()->for($organization)->create([
@@ -158,6 +161,13 @@ class DatabaseSeeder extends Seeder
                 ]);
             }
         }
+
+        // Cross-CSO tags: one verified joint activity, and one still awaiting verification.
+        $organizations = Organization::whereIn('name', array_column($profiles, 0))->orderBy('id')->get();
+        $joint = $organizations[0]->activities()->where('status', 'verified')->latest('activity_date')->first();
+        $joint->update(['title' => 'Joint coastal clean-up', 'description' => 'Fisherfolk and weavers cleared the Pangapisan shoreline together and handed the waste tally to the environment office.']);
+        $joint->partnerOrganizations()->attach([$organizations[1]->id, $organizations[3]->id]);
+        $organizations[2]->activities()->where('status', 'pending')->first()?->partnerOrganizations()->attach($organizations[0]->id);
     }
 
     /** Applications sitting at each Sangguniang Bayan reading stage. */
@@ -222,7 +232,6 @@ class DatabaseSeeder extends Seeder
         $this->documents($organization, $application);
     }
 
-    /** A rep who has registered but not yet built a profile, for the empty-state walkthrough. */
     /** Registered through the public form but has not filed an application yet (empty-state walkthrough). */
     private function brandNewRegistrant(): void
     {
@@ -244,12 +253,22 @@ class DatabaseSeeder extends Seeder
     private function accountStates(User $admin): void
     {
         // Registered by the office from its paper records; nobody can sign in for it yet.
-        Organization::factory()->create([
+        $paperOnly = Organization::factory()->create([
             'user_id' => null,
-            'name' => 'Bacsay Farmers Association',
+            'name' => 'Aliwekwek Farmers Association',
             'sector' => 'Farmers and Fisherfolks',
-            'barangay' => 'Bacsay',
+            'barangay' => 'Aliwekwek',
         ]);
+
+        // Its paper application, encoded by PESO staff (assisted encoding).
+        $assisted = ApplicationModel::factory()->for($paperOnly)->create([
+            'status' => 'submitted',
+            'submission_channel' => 'assisted',
+            'submitted_by' => $admin->id,
+            'submitted_at' => now()->subDays(3),
+        ]);
+        $this->documents($paperOnly, $assisted);
+        AuditLog::record('application.assisted', $paperOnly, ['application_id' => $assisted->id], $admin);
 
         // Invited by the office; the representative hasn't set a password yet.
         $invited = User::factory()->unverified()->create([

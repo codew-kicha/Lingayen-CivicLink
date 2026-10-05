@@ -128,7 +128,8 @@ class PublicController extends Controller
 
         abort_unless($accreditation !== null, 404);
 
-        $verified = $organization->activities()->where('status', 'verified');
+        // Includes verified activities other organizations logged with this one as a partner.
+        $verified = Activity::crediting($organization)->where('status', 'verified');
 
         return view('public.organization', [
             'organization' => $organization,
@@ -139,6 +140,7 @@ class PublicController extends Controller
                 'since' => (clone $verified)->min('activity_date'),
             ],
             'activities' => (clone $verified)
+                ->with(['organization:id,name', 'partnerOrganizations:id,name'])
                 ->latest('activity_date')
                 ->limit(20)
                 ->get(),

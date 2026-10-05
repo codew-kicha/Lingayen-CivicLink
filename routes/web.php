@@ -56,11 +56,20 @@ Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->name('ad
 
     Route::get('/organizations', [Admin\OrganizationModerationController::class, 'index'])->name('organizations.index');
     Route::get('/organizations/create', [Admin\OrganizationModerationController::class, 'create'])->name('organizations.create');
+    Route::get('/organizations/import', [Admin\OrganizationImportController::class, 'create'])->name('organizations.import');
+    Route::post('/organizations/import', [Admin\OrganizationImportController::class, 'store'])->name('organizations.import.store');
+    Route::get('/organizations/import/template', [Admin\OrganizationImportController::class, 'template'])->name('organizations.import.template');
     Route::post('/organizations', [Admin\OrganizationModerationController::class, 'store'])->name('organizations.store');
     Route::get('/organizations/{organization}/edit', [Admin\OrganizationModerationController::class, 'edit'])->name('organizations.edit');
     Route::patch('/organizations/{organization}', [Admin\OrganizationModerationController::class, 'update'])->name('organizations.update');
     Route::post('/organizations/{organization}/account', [Admin\OrganizationModerationController::class, 'attachAccount'])->name('organizations.account');
     Route::patch('/organizations/{organization}/visibility', [Admin\OrganizationModerationController::class, 'toggleVisibility'])->name('organizations.visibility');
+
+    // Assisted encoding: PESO files paper submissions on an organization's behalf.
+    Route::get('/organizations/{organization}/applications/create', [Admin\AssistedEncodingController::class, 'createApplication'])->name('organizations.applications.create');
+    Route::post('/organizations/{organization}/applications', [Admin\AssistedEncodingController::class, 'storeApplication'])->name('organizations.applications.store');
+    Route::get('/organizations/{organization}/activities/create', [Admin\AssistedEncodingController::class, 'createActivity'])->name('organizations.activities.create');
+    Route::post('/organizations/{organization}/activities', [Admin\AssistedEncodingController::class, 'storeActivity'])->name('organizations.activities.store');
 
     Route::get('/accounts', [Admin\AccountController::class, 'index'])->name('accounts.index');
     Route::post('/accounts/{user}/invitation', [Admin\AccountController::class, 'resendInvitation'])->name('accounts.invitation');

@@ -89,6 +89,15 @@
                             <div>
                                 <h3 class="font-semibold text-ink">{{ $activity->title }}</h3>
                                 <p class="mt-1 max-w-[68ch] text-sm text-muted">{{ $activity->description }}</p>
+                                @php
+                                    $others = $activity->partnerOrganizations->prepend($activity->organization)
+                                        ->reject(fn ($org) => $org->id === $organization->id);
+                                @endphp
+                                @if ($others->isNotEmpty())
+                                    <p class="mt-1 text-sm text-muted">
+                                        With {{ $others->pluck('name')->join(', ', ' and ') }}
+                                    </p>
+                                @endif
                                 <p class="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted">
                                     <span class="inline-flex items-center gap-1.5 text-success-600">
                                         <x-phosphor-seal-check class="h-4 w-4" aria-hidden="true" />

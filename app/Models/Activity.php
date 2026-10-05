@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -22,6 +23,13 @@ class Activity extends Model
             'activity_date' => 'date',
             'verified_at' => 'datetime',
         ];
+    }
+
+    /** Activities an organization logged itself or is tagged on as a partner. */
+    public function scopeCrediting(Builder $query, Organization $organization): void
+    {
+        $query->where(fn ($q) => $q->where('organization_id', $organization->id)
+            ->orWhereHas('partnerOrganizations', fn ($p) => $p->where('organizations.id', $organization->id)));
     }
 
     public function organization(): BelongsTo

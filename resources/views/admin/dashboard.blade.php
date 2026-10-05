@@ -1,15 +1,16 @@
 <x-layouts.admin header="Dashboard" subheader="Everything waiting on the PESO office today.">
-    <section aria-label="Queue summary" class="panel-flat grid grid-cols-2 divide-line md:grid-cols-4 md:divide-x">
+    <section aria-label="Queue summary" class="panel-flat grid grid-cols-2 divide-line md:grid-cols-5 md:divide-x">
         @php
             $tiles = [
-                ['Applications to review', $counts['awaiting_review'], 'admin.applications.index'],
-                ['Activities to verify', $counts['pending_activities'], 'admin.activities.index'],
-                ['Active accreditations', $counts['active_accreditations'], 'admin.organizations.index'],
-                ['Expiring within 90 days', $counts['expiring_soon'], 'admin.organizations.index'],
+                ['Applications to review', $counts['awaiting_review'], route('admin.applications.index')],
+                ['Activities to verify', $counts['pending_activities'], route('admin.activities.index')],
+                ['Active accreditations', $counts['active_accreditations'], route('admin.organizations.index')],
+                ['Expiring within 90 days', $counts['expiring_soon'], route('admin.organizations.index')],
+                ['Inactive CSOs', $counts['inactive'], route('admin.organizations.index', ['status' => 'inactive'])],
             ];
         @endphp
-        @foreach ($tiles as [$label, $value, $route])
-            <a href="{{ route($route) }}"
+        @foreach ($tiles as [$label, $value, $url])
+            <a href="{{ $url }}"
                class="px-5 py-4 transition-colors duration-fast ease-out-strong hover:bg-navy-50">
                 <p class="font-mono text-2xl tabular-nums text-navy-800">{{ $value }}</p>
                 <p class="mt-1 text-sm text-muted">{{ $label }}</p>

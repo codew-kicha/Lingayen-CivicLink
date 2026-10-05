@@ -68,6 +68,13 @@ class ScreenSmokeTest extends TestCase
         foreach ([$application->organization, $withoutLogin, $pending] as $organization) {
             $this->actingAs($admin)->get(route('admin.organizations.edit', $organization))->assertOk();
         }
+
+        // Assisted encoding and import.
+        $this->actingAs($admin)->get(route('admin.organizations.applications.create', $withoutLogin))->assertOk();
+        $this->actingAs($admin)->get(route('admin.organizations.activities.create', $withoutLogin))
+            ->assertOk()->assertSee('Partner organizations');
+        $this->actingAs($admin)->get(route('admin.organizations.import'))->assertOk();
+        $this->actingAs($admin)->get(route('admin.organizations.import.template'))->assertOk();
     }
 
     public function test_auth_screens_render(): void
@@ -132,7 +139,7 @@ class ScreenSmokeTest extends TestCase
             ->patch(route('cso.profile.update'), [
                 'name' => 'Bantayan Coastal Volunteers',
                 'sector' => config('sectors')[0],
-                'barangay' => config('barangays')[0],
+                'barangay' => array_values(config('barangays'))[0],
                 'advocacy' => 'Shoreline protection and clean-up drives.',
                 'members' => [
                     ['name' => 'Ana Reyes', 'position' => 'President'],

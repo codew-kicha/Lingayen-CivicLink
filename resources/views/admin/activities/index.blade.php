@@ -50,6 +50,12 @@
                             <dt class="text-muted">Logged by</dt>
                             <dd class="text-ink">{{ $activity->loggedBy?->name ?? 'Not recorded' }}</dd>
                         </div>
+                        @if ($activity->partnerOrganizations->isNotEmpty())
+                            <div class="flex gap-2">
+                                <dt class="text-muted">Partners</dt>
+                                <dd class="text-ink">{{ $activity->partnerOrganizations->pluck('name')->join(', ') }}</dd>
+                            </div>
+                        @endif
                     </dl>
 
                     @if ($activity->status === 'rejected' && $activity->rejection_reason)

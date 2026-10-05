@@ -18,7 +18,7 @@ class ActivityVerificationController extends Controller
         $this->authorize('viewAny', Activity::class);
 
         return view('admin.activities.index', [
-            'activities' => Activity::with(['organization', 'loggedBy'])
+            'activities' => Activity::with(['organization', 'loggedBy', 'partnerOrganizations:id,name'])
                 ->where('status', $request->input('status', 'pending'))
                 ->latest('activity_date')
                 ->paginate(20)
@@ -40,8 +40,11 @@ class ActivityVerificationController extends Controller
             'verified_at' => now(),
         ]);
 
-        $scores->recalculate($activity->organization);
-        $activity->organization->user->notify(new ActivityVerified($activity));
+        // Verifying an activity also confirms its partner tags, so every credited organization is rescored.
+        foreach ($activity->partnerOrganizations->prepend($activity->organization) as $organization) {
+            $scores->recalculate($organization);
+        }
+        $activity->organization->user?->notify(new ActivityVerified($activity));
 
         return back()->with('status', 'Activity verified and the score has been recalculated.');
     }
@@ -57,7 +60,7 @@ class ActivityVerificationController extends Controller
             'rejection_reason' => $request->validated('rejection_reason'),
         ]);
 
-        $activity->organization->user->notify(new ActivityVerified($activity));
+        $activity->organization->user?->notify(new ActivityVerified($activity));
 
         return back()->with('status', 'Activity rejected and the organization has been notified.');
     }

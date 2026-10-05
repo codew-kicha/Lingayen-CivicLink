@@ -28,9 +28,11 @@ class OrganizationModerationController extends Controller
                 ->withCount(['activities as verified_activities_count' => fn ($q) => $q->where('status', 'verified')])
                 ->when($request->string('q')->trim()->value(), fn ($q, $term) => $q->where('name', 'like', "%{$term}%"))
                 ->when($request->input('account') === 'none', fn ($q) => $q->whereNull('user_id'))
+                ->when($request->input('status') === 'inactive', fn ($q) => $q->inactive())
                 ->orderBy('name')
                 ->paginate(20)
                 ->withQueryString(),
+            'inactiveIds' => Organization::inactive()->pluck('id'),
         ]);
     }
 

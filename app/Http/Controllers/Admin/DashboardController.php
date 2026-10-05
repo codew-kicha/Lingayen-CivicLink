@@ -21,6 +21,8 @@ class DashboardController extends Controller
                 'expiring_soon' => Accreditation::where('status', 'active')
                     ->whereBetween('expires_at', [now(), now()->addDays(90)])
                     ->count(),
+                // Accredited, but no verified activity in Organization::INACTIVE_AFTER_MONTHS (PRD §3).
+                'inactive' => Organization::inactive()->count(),
             ],
             'recentApplications' => ApplicationModel::with('organization')
                 ->whereIn('status', ['submitted', 'under_review'])

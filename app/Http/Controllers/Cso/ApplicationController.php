@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreApplicationRequest;
 use App\Models\ApplicationModel;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class ApplicationController extends Controller
@@ -40,36 +39,13 @@ class ApplicationController extends Controller
 
     public function store(StoreApplicationRequest $request): RedirectResponse
     {
-        $organization = $request->user()->organization;
-
-        $application = DB::transaction(function () use ($request, $organization) {
-            $application = $organization->applications()->create([
-                'type' => $request->validated('type'),
-                'status' => 'submitted',
-                'submission_channel' => 'online',
-                'submitted_by' => $request->user()->id,
-                'submitted_at' => now(),
-            ]);
-
-            foreach (array_keys(config('document_types')) as $type) {
-                $file = $request->file("documents.{$type}");
-
-                if (! $file) {
-                    continue;
-                }
-
-                $organization->documents()->create([
-                    'application_id' => $application->id,
-                    'document_type' => $type,
-                    'file_path' => $file->store("documents/{$organization->id}"),
-                    'original_filename' => $file->getClientOriginalName(),
-                    'mime_type' => $file->getMimeType(),
-                    'expires_at' => $request->input("expires_at.{$type}") ?: null,
-                ]);
-            }
-
-            return $application;
-        });
+        $application = $request->user()->organization->submitApplication(
+            $request->validated('type'),
+            $request->file('documents', []),
+            $request->input('expires_at', []),
+            $request->user(),
+            'online',
+        );
 
         return redirect()
             ->route('cso.applications.show', $application)

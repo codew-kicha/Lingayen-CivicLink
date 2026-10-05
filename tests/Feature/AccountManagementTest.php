@@ -35,7 +35,7 @@ class AccountManagementTest extends TestCase
         $this->actingAs($this->admin())->post(route('admin.organizations.store'), [
             'name' => 'Baay Pedicab Drivers Association',
             'sector' => 'Pedicab Drivers',
-            'barangay' => config('barangays')[1],
+            'barangay' => array_values(config('barangays'))[1],
             'rep_name' => 'Jose Ramos',
             'rep_email' => 'jose@example.ph',
             'rep_phone' => '09181234567',
@@ -54,7 +54,7 @@ class AccountManagementTest extends TestCase
         $this->actingAs($this->admin())->post(route('admin.organizations.store'), [
             'name' => 'Tonton Senior Circle',
             'sector' => 'Senior Citizen',
-            'barangay' => config('barangays')[2],
+            'barangay' => array_values(config('barangays'))[2],
         ])->assertRedirect();
 
         $this->assertNull(Organization::where('name', 'Tonton Senior Circle')->firstOrFail()->user_id);
@@ -122,7 +122,7 @@ class AccountManagementTest extends TestCase
 
         $this->actingAs($rep)->get(route('admin.accounts.index'))->assertForbidden();
         $this->actingAs($rep)->get(route('admin.audit.index'))->assertForbidden();
-        $this->actingAs($rep)->post(route('admin.organizations.store'), ['name' => 'X', 'sector' => 'OFW', 'barangay' => config('barangays')[0]])
+        $this->actingAs($rep)->post(route('admin.organizations.store'), ['name' => 'X', 'sector' => 'OFW', 'barangay' => array_values(config('barangays'))[0]])
             ->assertForbidden();
     }
 
