@@ -5,10 +5,12 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\RejectActivityRequest;
 use App\Models\Activity;
+use App\Models\AuditLog;
 use App\Notifications\ActivityVerified;
 use App\Services\PerformanceScoreCalculator;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class ActivityVerificationController extends Controller
@@ -28,15 +30,26 @@ class ActivityVerificationController extends Controller
         ]);
     }
 
-    public function verify(Activity $activity, PerformanceScoreCalculator $scores): RedirectResponse
+    public function verify(Request $request, Activity $activity, PerformanceScoreCalculator $scores): RedirectResponse
     {
         $this->authorize('verify', $activity);
 
         abort_unless($activity->status === 'pending', 422);
 
+        // The organization's own claim of who organized it is confirmed here, since a CSO has a
+        // reason to call LGU events its own. Corrections are kept in the audit log.
+        $source = $request->validate([
+            'activity_source' => ['required', Rule::in(array_keys(Activity::SOURCES))],
+        ])['activity_source'];
+
+        if ($activity->activity_source !== $source) {
+            AuditLog::record('activity.source_corrected', $activity, ['from' => $activity->activity_source, 'to' => $source]);
+        }
+
         $activity->update([
+            'activity_source' => $source,
             'status' => 'verified',
-            'verified_by' => request()->user()->id,
+            'verified_by' => $request->user()->id,
             'verified_at' => now(),
         ]);
 

@@ -10,6 +10,9 @@ use App\Models\AuditLog;
 use App\Models\Organization;
 use App\Models\User;
 use App\Notifications\AccountInvitation;
+use App\Services\ReportData;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Symfony\Component\HttpFoundation\Response;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -88,6 +91,7 @@ class OrganizationModerationController extends Controller
             'organization' => $organization->load(['user', 'accreditations' => fn ($q) => $q->latest('issued_at')]),
             'sectors' => config('sectors'),
             'barangays' => config('barangays'),
+            'timeline' => ReportData::timeline($organization),
             'history' => AuditLog::with('actor:id,name')
                 ->where('subject_type', 'Organization')
                 ->where('subject_id', $organization->id)
@@ -95,6 +99,20 @@ class OrganizationModerationController extends Controller
                 ->limit(15)
                 ->get(),
         ]);
+    }
+
+    // Member names and contacts are never public (PRD §8), so this printable is admin-only and audited.
+    public function members(Organization $organization): Response
+    {
+        $this->authorize('manage', Organization::class);
+
+        AuditLog::record('organization.members_printed', $organization);
+
+        return Pdf::loadView('pdf.members', [
+            'organization' => $organization->load(['members' => fn ($q) => $q->orderBy('id')]),
+            'printedAt' => now(),
+            'printedBy' => request()->user()->name,
+        ])->download('officers-members-'.Str::slug($organization->name).'.pdf');
     }
 
     public function update(ManageOrganizationRequest $request, Organization $organization): RedirectResponse

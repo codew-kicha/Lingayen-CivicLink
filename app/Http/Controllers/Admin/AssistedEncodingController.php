@@ -35,6 +35,7 @@ class AssistedEncodingController extends Controller
             $request->input('expires_at', []),
             $request->user(),
             'assisted',
+            $request->input('ocr_text', []),
         );
 
         AuditLog::record('application.assisted', $organization, ['application_id' => $application->id]);

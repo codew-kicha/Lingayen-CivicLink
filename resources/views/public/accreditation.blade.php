@@ -63,10 +63,8 @@
                     of each requirement to the Civil Society Desk Office. Staff will encode it into
                     the same system, and you will be able to track it online afterwards.
                 </p>
-                <p class="mt-4 text-sm text-muted">
-                    The downloadable form is being prepared and will be posted here.
-                </p>
-                <a href="{{ route('register') }}" class="btn-primary mt-6 w-full">Start an online application</a>
+                <a href="{{ route('accreditation.form') }}" class="btn-secondary mt-4 w-full">Download the paper form (PDF)</a>
+                <a href="{{ route('register') }}" class="btn-primary mt-2 w-full">Start an online application</a>
                 <a href="{{ route('contact') }}" class="btn-ghost mt-2 w-full">Ask the CSO Desk Office</a>
             </aside>
         </section>

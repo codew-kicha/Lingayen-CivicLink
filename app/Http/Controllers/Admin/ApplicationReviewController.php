@@ -21,6 +21,7 @@ class ApplicationReviewController extends Controller
 
         return view('admin.applications.index', [
             'applications' => ApplicationModel::with('organization')
+                ->withCount(['documents as flagged_documents_count' => fn ($q) => $q->whereIn('ocr_status', ['mismatch', 'unreadable'])])
                 ->when($request->input('status'), fn ($q, $status) => $q->where('status', $status))
                 ->when($request->input('stage'), fn ($q, $stage) => $q->where('sb_stage', $stage))
                 // Unreviewed applications first. CASE rather than MySQL's FIELD() so the same

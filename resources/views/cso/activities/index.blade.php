@@ -39,6 +39,7 @@
                                         <h3 class="font-semibold text-ink">{{ $activity->title }}</h3>
                                         <p class="mt-0.5 font-mono text-sm tabular-nums text-muted">
                                             {{ $activity->activity_date->format('d M Y') }}
+                                            <span class="font-sans">&middot; {{ $activity->sourceLabel() }}</span>
                                         </p>
                                     </div>
                                     <span class="ml-auto shrink-0"><x-status-badge :status="$activity->status" /></span>

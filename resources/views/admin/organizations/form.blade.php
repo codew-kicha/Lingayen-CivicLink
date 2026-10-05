@@ -128,6 +128,8 @@
                         <a href="{{ route('admin.organizations.applications.create', $organization) }}" class="btn-secondary">File an application</a>
                         <a href="{{ route('admin.organizations.activities.create', $organization) }}" class="btn-secondary">Log an activity</a>
                     </div>
+                    <a href="{{ route('admin.organizations.members', $organization) }}" class="btn-ghost mt-3 px-3">Print officers and members (PDF)</a>
+                    <a href="{{ route('accreditation.form') }}" class="btn-ghost mt-1 px-3">Blank paper application form (PDF)</a>
                 </section>
 
                 <section class="panel p-6">
@@ -176,4 +178,27 @@
             </div>
         @endif
     </div>
+
+    @if ($editing)
+        <section class="panel mt-6 p-6">
+            <div class="flex flex-wrap items-end gap-3">
+                <div>
+                    <h2 class="font-semibold text-ink">Activity, last 24 months</h2>
+                    <p class="mt-0.5 text-sm text-muted">Verified activities per month, including those it joined as a partner.</p>
+                </div>
+                <x-source-legend class="ml-auto" with-unknown />
+            </div>
+            @if ($timeline['longestGap'])
+                <p class="mt-3 inline-flex items-center gap-1.5 rounded-sm bg-warning-100 px-3 py-1.5 text-sm text-warning-600">
+                    <x-phosphor-warning class="h-4 w-4" aria-hidden="true" />
+                    No verified activity from {{ $timeline['longestGap']['from']->format('M Y') }}
+                    to {{ $timeline['longestGap']['to']->format('M Y') }} ({{ $timeline['longestGap']['months'] }} months)
+                </p>
+            @endif
+            <div class="mt-4">
+                <x-source-columns :series="$timeline['months']" height="6rem"
+                                  :label="'Verified activities per month for '.$organization->name" />
+            </div>
+        </section>
+    @endif
 </x-layouts.admin>

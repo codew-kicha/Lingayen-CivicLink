@@ -12,10 +12,24 @@ class Activity extends Model
 {
     use HasFactory;
 
+    /**
+     * Who initiated the activity: the organization on its own, or the LGU with the organization
+     * taking part. This is what separates advocacy from attendance in the analytics.
+     */
+    public const SOURCES = [
+        'independent' => 'Self-initiated',
+        'lgu_organized' => 'LGU-organized',
+    ];
+
     protected $fillable = [
         'organization_id', 'logged_by', 'verified_by', 'title', 'description',
-        'activity_date', 'participants_estimate', 'status', 'verified_at', 'rejection_reason',
+        'activity_date', 'participants_estimate', 'activity_source', 'status', 'verified_at', 'rejection_reason',
     ];
+
+    public function sourceLabel(): string
+    {
+        return self::SOURCES[$this->activity_source] ?? 'Not recorded';
+    }
 
     protected function casts(): array
     {

@@ -7,7 +7,9 @@ use App\Models\Activity;
 use App\Models\AnnualReport;
 use App\Models\NewsPost;
 use App\Models\Organization;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 
@@ -85,6 +87,12 @@ class PublicController extends Controller
         return view('public.about', [
             'officials' => config('office.officials'),
         ]);
+    }
+
+    /** Blank paper form for low-literacy or offline applicants, built from the live requirement config. */
+    public function applicationForm(): Response
+    {
+        return Pdf::loadView('pdf.application-form')->download('lingayen-cso-accreditation-form.pdf');
     }
 
     public function accreditation(): View

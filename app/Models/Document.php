@@ -21,13 +21,14 @@ class Document extends Model
 
     protected $fillable = [
         'organization_id', 'application_id', 'document_type', 'file_path',
-        'original_filename', 'mime_type', 'expires_at', 'ocr_status',
+        'original_filename', 'mime_type', 'expires_at', 'ocr_status', 'ocr_details',
     ];
 
     protected function casts(): array
     {
         return [
             'expires_at' => 'date',
+            'ocr_details' => 'array',
         ];
     }
 

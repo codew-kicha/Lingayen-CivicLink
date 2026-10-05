@@ -92,9 +92,7 @@
                                     <td class="table-cell font-mono tabular-nums text-muted">
                                         {{ $document->expires_at?->format('d M Y') ?? '--' }}
                                     </td>
-                                    <td class="table-cell text-muted">
-                                        {{ $document->ocr_status === 'not_checked' ? 'Not checked' : Str::headline($document->ocr_status) }}
-                                    </td>
+                                    <td class="table-cell"><x-ocr-badge :document="$document" /></td>
                                 </tr>
                             @endforeach
                         </tbody>

@@ -35,6 +35,7 @@ class StoreActivityRequest extends FormRequest
             'description' => ['required', 'string', 'max:2000'],
             'activity_date' => ['required', 'date', 'before_or_equal:today'],
             'participants_estimate' => ['nullable', 'integer', 'min:0', 'max:1000000'],
+            'activity_source' => ['required', Rule::in(array_keys(Activity::SOURCES))],
             'partners' => ['nullable', 'array', 'max:10'],
             'partners.*' => [
                 'integer', 'distinct',
@@ -48,7 +49,8 @@ class StoreActivityRequest extends FormRequest
     {
         return [
             'activity_date.before_or_equal' => 'Log activities after they have taken place, not before.',
-            'partners.max' => 'Tag at most 10 partner organizations.',
+            'activity_source.required' => 'Say who organized the activity.',
+            'partners.max' =>'Tag at most 10 partner organizations.',
             'partners.*.not_in' => 'An organization cannot be its own partner.',
         ];
     }

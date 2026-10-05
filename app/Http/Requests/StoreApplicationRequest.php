@@ -30,6 +30,10 @@ class StoreApplicationRequest extends FormRequest
 
             'expires_at' => ['array'],
             'expires_at.*' => ['nullable', 'date', 'after:today'],
+
+            // Text the browser's OCR read from each upload; advisory only (App\Services\DocumentPrecheck).
+            'ocr_text' => ['nullable', 'array'],
+            'ocr_text.*' => ['nullable', 'string', 'max:20000'],
         ] + collect(config('document_types'))
             ->mapWithKeys(fn (array $type, string $key) => [
                 "documents.{$key}" => [$type['optional'] ? 'nullable' : 'required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],

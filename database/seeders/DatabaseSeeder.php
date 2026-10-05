@@ -10,6 +10,7 @@ use App\Models\ApplicationModel;
 use App\Models\NewsPost;
 use App\Models\Organization;
 use App\Models\User;
+use App\Services\DocumentPrecheck;
 use App\Services\PerformanceScoreCalculator;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
@@ -127,21 +128,34 @@ class DatabaseSeeder extends Seeder
 
             $this->documents($organization, $application, expiring: $index === 3);
 
+            // TODA groups mostly turn up at LGU events rather than running their own, the pattern the
+            // client described; the analytics should make that visible.
+            $source = fn () => fake()->boolean($sector === 'TODA' ? 10 : 65) ? 'independent' : 'lgu_organized';
+
             // Real sentences, not lorem ipsum: these print verbatim on the public profile.
-            $describe = fn () => 'Organized by members for residents of Barangay '.$barangay
+            $describe = fn (string $source) => ($source === 'independent'
+                    ? 'Organized by members for residents of Barangay '.$barangay
+                    : 'Members took part in the municipal government\'s event in Barangay '.$barangay)
                 .'. Attendance was recorded on the sign-in sheet submitted to the Civil Society Desk Office.';
 
             // The last organization has gone quiet, so the dashboard's inactive flag has a real case.
             $quiet = $index === count($profiles) - 1;
 
-            foreach (range(1, fake()->numberBetween(3, 9)) as $_) {
-                $heldOn = now()->subDays($quiet ? fake()->numberBetween(200, 260) : fake()->numberBetween(2, 170));
+            foreach (range(1, fake()->numberBetween(4, 10)) as $n) {
+                // Spread across the year, with at least one recent entry for every active organization.
+                $heldOn = now()->subDays(match (true) {
+                    $quiet => fake()->numberBetween(200, 300),
+                    $n === 1 => fake()->numberBetween(2, 60),
+                    default => fake()->numberBetween(2, 340),
+                });
                 $title = fake()->randomElement($activityTitles);
+                $from = $source();
 
                 Activity::factory()->for($organization)->create([
                     'title' => ucfirst($title),
-                    'description' => $describe(),
+                    'description' => $describe($from),
                     'activity_date' => $heldOn->toDateString(),
+                    'activity_source' => $from,
                     'status' => 'verified',
                     // PESO verifies a few days after the activity, never before it.
                     'verified_at' => $heldOn->copy()->addDays(fake()->numberBetween(1, 6))->min(now()),
@@ -150,12 +164,17 @@ class DatabaseSeeder extends Seeder
                 ]);
             }
 
-            foreach (range(1, $quiet ? 0 : fake()->numberBetween(1, 3)) as $_) {
+            foreach (range(1, fake()->numberBetween(1, 3)) as $_) {
+                if ($quiet) {
+                    break;
+                }
                 $title = fake()->randomElement($activityTitles);
+                $from = $source();
 
                 Activity::factory()->for($organization)->create([
                     'title' => ucfirst($title),
-                    'description' => $describe(),
+                    'description' => $describe($from),
+                    'activity_source' => $from,
                     'activity_date' => now()->subDays(fake()->numberBetween(1, 14))->toDateString(),
                     'logged_by' => $user->id,
                 ]);
@@ -165,7 +184,7 @@ class DatabaseSeeder extends Seeder
         // Cross-CSO tags: one verified joint activity, and one still awaiting verification.
         $organizations = Organization::whereIn('name', array_column($profiles, 0))->orderBy('id')->get();
         $joint = $organizations[0]->activities()->where('status', 'verified')->latest('activity_date')->first();
-        $joint->update(['title' => 'Joint coastal clean-up', 'description' => 'Fisherfolk and weavers cleared the Pangapisan shoreline together and handed the waste tally to the environment office.']);
+        $joint->update(['title' => 'Joint coastal clean-up', 'activity_source' => 'independent', 'description' => 'Fisherfolk and weavers cleared the Pangapisan shoreline together and handed the waste tally to the environment office.']);
         $joint->partnerOrganizations()->attach([$organizations[1]->id, $organizations[3]->id]);
         $organizations[2]->activities()->where('status', 'pending')->first()?->partnerOrganizations()->attach($organizations[0]->id);
     }
@@ -207,7 +226,10 @@ class DatabaseSeeder extends Seeder
                     'submitted_at' => now()->subDays(($index + 1) * 9),
                 ]);
 
-            $this->documents($organization, $application);
+            // The second-reading applicant attached its receipt in the by-laws slot; the pre-check flags it.
+            $this->documents($organization, $application, ocr: $stage === 'second_reading' ? [
+                'constitution_bylaws' => 'Official Receipt. Office of the Municipal Treasurer. Amount: PHP 1,000.00.',
+            ] : []);
         }
     }
 
@@ -267,7 +289,8 @@ class DatabaseSeeder extends Seeder
             'submitted_by' => $admin->id,
             'submitted_at' => now()->subDays(3),
         ]);
-        $this->documents($paperOnly, $assisted);
+        // Handwritten paper form, scanned at the office: too little text to read.
+        $this->documents($paperOnly, $assisted, ocr: ['accreditation_form' => 'Aliwekwek  ~ 2026']);
         AuditLog::record('application.assisted', $paperOnly, ['application_id' => $assisted->id], $admin);
 
         // Invited by the office; the representative hasn't set a password yet.
@@ -343,10 +366,26 @@ class DatabaseSeeder extends Seeder
         }
     }
 
-    private function documents(Organization $organization, ApplicationModel $application, bool $expiring = false): void
+    /**
+     * Placeholder uploads with realistic OCR pre-check results. $ocr overrides the text "read" from
+     * a requirement, to show the reviewer's flags (a wrong file, a handwritten scan).
+     */
+    private function documents(Organization $organization, ApplicationModel $application, bool $expiring = false, array $ocr = []): void
     {
+        $readText = [
+            'accreditation_form' => "Application for CSO Accreditation. Name of organization: {$organization->name}. Barangay {$organization->barangay}. Signature of president.",
+            'officers_members_list' => 'List of Officers and Members. Position: President, Secretary, Treasurer, Auditor.',
+            'constitution_bylaws' => "Constitution and By-Laws of {$organization->name}. Article I. Section 1. Membership.",
+            'fee_receipt' => 'Official Receipt. Office of the Municipal Treasurer. Amount: PHP 1,000.00. Payment received.',
+            'dole_sec_certification' => 'Certificate of Registration. Department of Labor and Employment.',
+        ];
+
         foreach (array_keys(config('document_types')) as $index => $type) {
+            $check = DocumentPrecheck::evaluate($type, array_key_exists($type, $ocr) ? $ocr[$type] : $readText[$type], $organization->name);
+
             $organization->documents()->create([
+                'ocr_status' => $check['status'],
+                'ocr_details' => $check['details'],
                 'application_id' => $application->id,
                 'document_type' => $type,
                 'file_path' => "documents/{$organization->id}/placeholder-{$type}.pdf",

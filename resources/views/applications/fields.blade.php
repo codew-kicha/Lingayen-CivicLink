@@ -25,13 +25,14 @@
     <h2 class="font-semibold text-ink">Requirements</h2>
     <p class="mt-0.5 text-sm text-muted">
         Upload each required document. Add an expiry date where the document carries one, so
-        we can remind you before it lapses.
+        PESO can track when it needs replacing. Each file is read in your browser as you choose it, to
+        catch a document attached in the wrong slot.
     </p>
 
     <div class="mt-5 space-y-5">
         @foreach ($documentTypes as $key => $type)
             <div class="grid gap-3 border-t border-line pt-5 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-                <div>
+                <div x-data="documentPrecheck(@js($type['keywords'] ?? []), {{ $type['min_matches'] ?? 1 }})">
                     <label for="doc-{{ $key }}" class="field-label">
                         {{ $type['label'] }}
                         @if ($type['optional'])
@@ -39,11 +40,34 @@
                         @endif
                     </label>
                     <input type="file" id="doc-{{ $key }}" name="documents[{{ $key }}]"
-                           accept=".pdf,.jpg,.jpeg,.png"
+                           accept=".pdf,.jpg,.jpeg,.png" @change="check($event)"
+                           aria-describedby="doc-{{ $key }}-check @error("documents.{$key}") doc-{{ $key }}-error @enderror"
                            class="field-input @error("documents.{$key}") field-input-error @enderror"
-                           @error("documents.{$key}") aria-invalid="true" aria-describedby="doc-{{ $key }}-error" @enderror
+                           @error("documents.{$key}") aria-invalid="true" @enderror
                            @required(! $type['optional'])>
+                    <input type="hidden" name="ocr_text[{{ $key }}]" :value="text">
                     <p class="field-hint">{{ config("office.requirement_notes.{$key}") }}</p>
+
+                    {{-- Advisory only: never blocks submitting. PESO sees the server's own verdict. --}}
+                    <p id="doc-{{ $key }}-check" aria-live="polite" x-cloak x-show="state !== 'idle'"
+                       class="mt-1.5 flex items-start gap-1.5 text-sm"
+                       :class="{
+                           'text-muted': state === 'reading' || state === 'failed',
+                           'text-success-600': state === 'matched',
+                           'text-warning-600': state === 'mismatch' || state === 'unreadable',
+                       }">
+                        <span x-show="state === 'reading'">Reading the document. You can keep filling in the form.</span>
+                        <span x-show="state === 'matched'">This looks like the {{ Str::lower($type['label']) }}.</span>
+                        <span x-show="state === 'mismatch'">
+                            This doesn't look like the {{ Str::lower($type['label']) }}. Check that you chose the right file.
+                            You can still submit it; PESO will review it.
+                        </span>
+                        <span x-show="state === 'unreadable'">
+                            Very little text could be read, which happens with handwriting or blurry photos.
+                            You can still submit it; PESO will review it.
+                        </span>
+                        <span x-show="state === 'failed'">The document could not be checked here. You can still submit it.</span>
+                    </p>
                     @error("documents.{$key}")
                         <p id="doc-{{ $key }}-error" class="field-error">{{ $message }}</p>
                     @enderror

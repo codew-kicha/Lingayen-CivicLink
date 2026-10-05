@@ -35,6 +35,25 @@
     @error('description')<p id="description-error" class="field-error">{{ $message }}</p>@enderror
 </div>
 
+<fieldset>
+    <legend class="field-label">Who organized it?</legend>
+    <div class="space-y-2">
+        @foreach ([
+            'independent' => 'Our organization planned and ran it',
+            'lgu_organized' => 'The LGU organized it, and we took part',
+        ] as $value => $label)
+            <label class="flex items-start gap-3 rounded-sm border border-line-strong p-3
+                          hover:border-navy-300 has-[:checked]:border-navy-600 has-[:checked]:bg-navy-50">
+                <input type="radio" name="activity_source" value="{{ $value }}" class="mt-0.5"
+                       @checked(old('activity_source') === $value) required>
+                <span class="text-sm text-ink">{{ $label }}</span>
+            </label>
+        @endforeach
+    </div>
+    <p class="field-hint">PESO confirms this when verifying the activity.</p>
+    @error('activity_source')<p class="field-error">{{ $message }}</p>@enderror
+</fieldset>
+
 @if ($partnerOptions)
     <fieldset x-data="{ q: '', picked: @js(array_map('intval', old('partners', []))) }">
         <legend class="field-label">Partner organizations <span class="font-normal text-muted">(optional)</span></legend>

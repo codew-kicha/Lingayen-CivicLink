@@ -79,6 +79,7 @@ class AccreditationLoopTest extends TestCase
                 'description' => 'Volunteers cleared debris along the shoreline.',
                 'activity_date' => now()->subDay()->toDateString(),
                 'participants_estimate' => 120,
+                'activity_source' => 'independent',
             ])
             ->assertRedirect();
 
@@ -88,7 +89,7 @@ class AccreditationLoopTest extends TestCase
 
         // Verify: the activity counts and a score is computed.
         $this->actingAs($admin)
-            ->post(route('admin.activities.verify', $activity))
+            ->post(route('admin.activities.verify', $activity), ['activity_source' => 'independent'])
             ->assertRedirect();
 
         $activity->refresh();

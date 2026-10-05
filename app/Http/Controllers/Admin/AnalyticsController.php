@@ -2,85 +2,63 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Exports\AnalyticsWorkbook;
 use App\Http\Controllers\Controller;
-use App\Models\Accreditation;
-use App\Models\Activity;
-use App\Models\ApplicationModel;
 use App\Models\Organization;
+use App\Services\ReportData;
 use Barryvdh\DomPDF\Facade\Pdf;
-use Illuminate\Support\Carbon;
+use Illuminate\Http\Request;
 use Illuminate\View\View;
+use Maatwebsite\Excel\Facades\Excel;
 use Symfony\Component\HttpFoundation\Response;
 
+/**
+ * Page, PDF, and Excel all read one ReportData for one period (?from=&to=), so the exports always
+ * match what PESO saw on screen.
+ */
 class AnalyticsController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
         $this->authorize('viewAny', Organization::class);
 
-        return view('admin.analytics', $this->data());
+        return view('admin.analytics', ReportData::fromRequest($request)->all());
     }
 
-    public function export(): Response
+    public function export(Request $request): Response
     {
         $this->authorize('viewAny', Organization::class);
+
+        $report = ReportData::fromRequest($request);
 
         return Pdf::loadView('admin.analytics-pdf', [
-            ...$this->data(),
+            ...$report->all(),
+            'awards' => $report->awardsRanking(),
             'generatedAt' => now(),
-            'generatedBy' => request()->user()->name,
-        ])->download('civiclink-report-'.now()->format('Y-m-d').'.pdf');
+            'generatedBy' => $request->user()->name,
+        ])->download($this->filename($report, 'pdf'));
     }
 
-    /**
-     * The four charts required by PRD §6.1: sector distribution, activity volume trend,
-     * top contributors, and compliance trend.
-     *
-     * @return array<string, mixed>
-     */
-    private function data(): array
+    public function excel(Request $request): Response
     {
-        $months = collect(range(11, 0))
-            ->map(fn (int $ago) => Carbon::now()->subMonths($ago)->startOfMonth());
+        $this->authorize('viewAny', Organization::class);
 
-        return [
-            'summary' => [
-                'organizations' => Organization::count(),
-                'accredited' => Accreditation::where('status', 'active')->count(),
-                'verifiedActivities' => Activity::where('status', 'verified')->count(),
-                'residentsReached' => (int) Activity::where('status', 'verified')->sum('participants_estimate'),
-            ],
+        $report = ReportData::fromRequest($request);
 
-            'sectorDistribution' => Organization::query()
-                ->whereHas('accreditations', fn ($q) => $q->where('status', 'active'))
-                ->selectRaw('sector, count(*) as total')
-                ->groupBy('sector')
-                ->orderByDesc('total')
-                ->pluck('total', 'sector'),
+        return Excel::download(new AnalyticsWorkbook($report), $this->filename($report, 'xlsx'));
+    }
 
-            'activityTrend' => $months->map(fn (Carbon $month) => [
-                'label' => $month->format('M Y'),
-                'total' => Activity::where('status', 'verified')
-                    ->whereBetween('activity_date', [$month, $month->copy()->endOfMonth()])
-                    ->count(),
-            ]),
+    public function awards(Request $request): Response
+    {
+        $this->authorize('viewAny', Organization::class);
 
-            'topContributors' => Organization::query()
-                ->whereHas('activities', fn ($q) => $q->where('status', 'verified'))
-                ->withCount(['activities as verified_count' => fn ($q) => $q->where('status', 'verified')])
-                ->withSum(['activities as reach' => fn ($q) => $q->where('status', 'verified')], 'participants_estimate')
-                ->orderByDesc('verified_count')
-                ->limit(10)
-                ->get(),
+        $report = ReportData::fromRequest($request);
 
-            'complianceTrend' => $months->map(fn (Carbon $month) => [
-                'label' => $month->format('M Y'),
-                'approved' => ApplicationModel::where('status', 'approved')
-                    ->whereBetween('reviewed_at', [$month, $month->copy()->endOfMonth()])
-                    ->count(),
-                'filed' => ApplicationModel::whereBetween('submitted_at', [$month, $month->copy()->endOfMonth()])
-                    ->count(),
-            ]),
-        ];
+        return Excel::download(AnalyticsWorkbook::awards($report), 'civiclink-awards-ranking-'.$report->to->format('Y-m-d').'.xlsx');
+    }
+
+    private function filename(ReportData $report, string $extension): string
+    {
+        return "civiclink-report-{$report->from->format('Y-m-d')}-to-{$report->to->format('Y-m-d')}.{$extension}";
     }
 }

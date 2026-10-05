@@ -50,6 +50,10 @@
                             <dt class="text-muted">Logged by</dt>
                             <dd class="text-ink">{{ $activity->loggedBy?->name ?? 'Not recorded' }}</dd>
                         </div>
+                        <div class="flex gap-2">
+                            <dt class="text-muted">{{ $activity->status === 'pending' ? 'Claimed source' : 'Source' }}</dt>
+                            <dd class="text-ink">{{ $activity->sourceLabel() }}</dd>
+                        </div>
                         @if ($activity->partnerOrganizations->isNotEmpty())
                             <div class="flex gap-2">
                                 <dt class="text-muted">Partners</dt>
@@ -66,8 +70,17 @@
 
                     @if ($activity->status === 'pending')
                         <div class="mt-4 flex flex-wrap items-start gap-3 border-t border-line pt-4">
-                            <form method="POST" action="{{ route('admin.activities.verify', $activity) }}">
+                            <form method="POST" action="{{ route('admin.activities.verify', $activity) }}" class="flex flex-wrap items-start gap-2">
                                 @csrf
+                                <div>
+                                    <label for="source-{{ $activity->id }}" class="sr-only">Who organized it</label>
+                                    <select id="source-{{ $activity->id }}" name="activity_source" required class="field-input">
+                                        <option value="" disabled @selected(! $activity->activity_source)>Who organized it?</option>
+                                        @foreach (\App\Models\Activity::SOURCES as $value => $label)
+                                            <option value="{{ $value }}" @selected($activity->activity_source === $value)>{{ $label }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
                                 <button type="submit" class="btn-primary">Verify activity</button>
                             </form>
 

@@ -45,6 +45,7 @@ class ApplicationController extends Controller
             $request->input('expires_at', []),
             $request->user(),
             'online',
+            $request->input('ocr_text', []),
         );
 
         return redirect()

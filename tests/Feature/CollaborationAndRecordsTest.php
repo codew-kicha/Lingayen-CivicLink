@@ -38,6 +38,7 @@ class CollaborationAndRecordsTest extends TestCase
             'description' => 'Collected shoreline waste with partner groups.',
             'activity_date' => now()->subWeek()->toDateString(),
             'participants_estimate' => 120,
+            'activity_source' => 'independent',
         ];
     }
 
@@ -80,7 +81,7 @@ class CollaborationAndRecordsTest extends TestCase
         $this->assertEquals(0, $scores->recalculate($partner)->activity_frequency);
 
         Notification::fake();
-        $this->actingAs(User::factory()->admin()->create())->post(route('admin.activities.verify', $activity));
+        $this->actingAs(User::factory()->admin()->create())->post(route('admin.activities.verify', $activity), ['activity_source' => 'independent']);
 
         $this->assertGreaterThan(0, $partner->performanceScores()->first()->fresh()->activity_frequency);
     }
@@ -153,7 +154,7 @@ class CollaborationAndRecordsTest extends TestCase
         $this->assertTrue($activity->partnerOrganizations->contains($partner));
 
         // Verifying it doesn't trip over the missing representative either.
-        $this->actingAs($admin)->post(route('admin.activities.verify', $activity))->assertSessionHasNoErrors();
+        $this->actingAs($admin)->post(route('admin.activities.verify', $activity), ['activity_source' => 'independent'])->assertSessionHasNoErrors();
     }
 
     public function test_a_cso_cannot_use_assisted_encoding(): void

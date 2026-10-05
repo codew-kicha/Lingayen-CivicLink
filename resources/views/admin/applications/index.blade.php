@@ -56,6 +56,9 @@
                                         {{ $application->organization->name }}
                                     </a>
                                     <p class="text-xs text-muted">Brgy. {{ $application->organization->barangay }}</p>
+                                    @if ($application->flagged_documents_count)
+                                        <span class="badge-warning mt-1">{{ $application->flagged_documents_count }} {{ Str::plural('document', $application->flagged_documents_count) }} to check</span>
+                                    @endif
                                 </td>
                                 <td class="table-cell capitalize">{{ $application->type }}</td>
                                 <td class="table-cell capitalize text-muted">{{ $application->submission_channel }}</td>

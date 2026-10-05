@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\DocumentPrecheck;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -59,10 +60,11 @@ class Organization extends Model
      *
      * @param  array<string, UploadedFile|null>  $files  keyed by config('document_types')
      * @param  array<string, string|null>  $expiries
+     * @param  array<string, string|null>  $ocrTexts  text the browser read from each file, for the pre-check
      */
-    public function submitApplication(string $type, array $files, array $expiries, User $submittedBy, string $channel): ApplicationModel
+    public function submitApplication(string $type, array $files, array $expiries, User $submittedBy, string $channel, array $ocrTexts = []): ApplicationModel
     {
-        return DB::transaction(function () use ($type, $files, $expiries, $submittedBy, $channel) {
+        return DB::transaction(function () use ($type, $files, $expiries, $submittedBy, $channel, $ocrTexts) {
             $application = $this->applications()->create([
                 'type' => $type,
                 'status' => 'submitted',
@@ -76,6 +78,8 @@ class Organization extends Model
                     continue;
                 }
 
+                $check = DocumentPrecheck::evaluate($documentType, $ocrTexts[$documentType] ?? null, $this->name);
+
                 $this->documents()->create([
                     'application_id' => $application->id,
                     'document_type' => $documentType,
@@ -83,6 +87,8 @@ class Organization extends Model
                     'original_filename' => $file->getClientOriginalName(),
                     'mime_type' => $file->getMimeType(),
                     'expires_at' => ($expiries[$documentType] ?? null) ?: null,
+                    'ocr_status' => $check['status'],
+                    'ocr_details' => $check['details'],
                 ]);
             }
 

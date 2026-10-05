@@ -13,6 +13,8 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', [PublicController::class, 'home'])->name('home');
 Route::get('/about', [PublicController::class, 'about'])->name('about');
 Route::get('/accreditation', [PublicController::class, 'accreditation'])->name('accreditation');
+Route::get('/accreditation/application-form.pdf', [PublicController::class, 'applicationForm'])
+    ->middleware('throttle:20,1')->name('accreditation.form');
 Route::get('/accredited-csos', [PublicController::class, 'directory'])->name('directory');
 Route::get('/accredited-csos/{organization}', [PublicController::class, 'organization'])->name('directory.show');
 Route::get('/resources', [PublicController::class, 'resources'])->name('resources');
@@ -62,7 +64,8 @@ Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->name('ad
     Route::post('/organizations', [Admin\OrganizationModerationController::class, 'store'])->name('organizations.store');
     Route::get('/organizations/{organization}/edit', [Admin\OrganizationModerationController::class, 'edit'])->name('organizations.edit');
     Route::patch('/organizations/{organization}', [Admin\OrganizationModerationController::class, 'update'])->name('organizations.update');
-    Route::post('/organizations/{organization}/account', [Admin\OrganizationModerationController::class, 'attachAccount'])->name('organizations.account');
+    Route::get('/organizations/{organization}/members.pdf', [Admin\OrganizationModerationController::class, 'members'])->name('organizations.members');
+    Route::post('/organizations/{organization}/account',[Admin\OrganizationModerationController::class, 'attachAccount'])->name('organizations.account');
     Route::patch('/organizations/{organization}/visibility', [Admin\OrganizationModerationController::class, 'toggleVisibility'])->name('organizations.visibility');
 
     // Assisted encoding: PESO files paper submissions on an organization's behalf.
@@ -89,6 +92,8 @@ Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->name('ad
 
     Route::get('/analytics', [Admin\AnalyticsController::class, 'index'])->name('analytics');
     Route::get('/analytics/export', [Admin\AnalyticsController::class, 'export'])->name('analytics.export');
+    Route::get('/analytics/excel', [Admin\AnalyticsController::class, 'excel'])->name('analytics.excel');
+    Route::get('/analytics/awards', [Admin\AnalyticsController::class, 'awards'])->name('analytics.awards');
 
     Route::resource('news', Admin\NewsPostController::class)
         ->parameters(['news' => 'news_post'])

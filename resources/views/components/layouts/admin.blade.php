@@ -73,7 +73,7 @@
 
         <div class="flex min-w-0 flex-1 flex-col">
             <header class="border-b border-line bg-paper">
-                <div class="flex items-center gap-4 px-4 py-3 sm:px-6">
+                <div class="flex flex-wrap items-center gap-x-4 gap-y-3 px-4 py-3 sm:px-6">
                     <div class="min-w-0">
                         <h1 class="truncate text-lg font-semibold text-ink">{{ $header ?? 'Dashboard' }}</h1>
                         @isset($subheader)
@@ -81,7 +81,7 @@
                         @endisset
                     </div>
                     @isset($actions)
-                        <div class="ml-auto flex items-center gap-2">{{ $actions }}</div>
+                        <div class="flex flex-wrap items-center gap-2 sm:ml-auto">{{ $actions }}</div>
                     @endisset
                 </div>
             </header>

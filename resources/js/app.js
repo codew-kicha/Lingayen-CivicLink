@@ -77,6 +77,34 @@ if (document.documentElement.classList.contains('motion-ok')) {
     revealInBatches(document.querySelectorAll('.reveal'));
 }
 
+// Application form: reads each requirement as it is chosen and says whether it looks like the
+// right document. Advisory only; it never blocks submitting (resources/js/ocr.js).
+Alpine.data('documentPrecheck', (keywords, minMatches) => ({
+    state: 'idle', // idle | reading | matched | mismatch | unreadable | failed
+    text: '',
+    found: [],
+
+    async check(event) {
+        const file = event.target.files[0];
+        Object.assign(this, { state: 'idle', text: '', found: [] });
+
+        if (!file || file.size > 5 * 1024 * 1024) return;
+
+        this.state = 'reading';
+        try {
+            const { readDocument, evaluate } = await import('./ocr.js');
+            const text = await readDocument(file);
+
+            if (event.target.files[0] !== file) return; // replaced while reading
+
+            Object.assign(this, { text }, evaluate(text, keywords, minMatches));
+        } catch (error) {
+            console.warn('Document pre-check failed', error);
+            this.state = 'failed';
+        }
+    },
+}));
+
 window.Alpine = Alpine;
 
 Alpine.start();
