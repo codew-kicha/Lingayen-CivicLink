@@ -20,7 +20,7 @@
         <nav aria-label="Reporting period presets" class="flex flex-wrap gap-1">
             @foreach ($presets as $name => $range)
                 <a href="{{ route('admin.analytics', $range) }}"
-                   @class(['rounded-sm px-3 py-2 text-sm font-medium',
+                   @class(['rounded-sm px-3 py-2 text-sm font-semibold',
                            'bg-primary text-on-primary' => $query == $range,
                            'text-ink hover:bg-primary-subtle' => $query != $range])>{{ $name }}</a>
             @endforeach
@@ -94,7 +94,7 @@
         @if ($atRisk->isEmpty())
             <p class="px-4 py-12 text-center text-sm text-muted">No accredited organization is at risk in this period.</p>
         @else
-            <div class="overflow-x-auto">
+            <div class="table-wrap">
                 <table class="w-full">
                     <caption class="sr-only">At-risk organizations</caption>
                     <thead>
@@ -136,7 +136,7 @@
             <h2 class="font-semibold text-ink">Sector comparison</h2>
             <p class="mt-1 text-sm text-muted">Accredited organizations only. Scores are informational and never affect renewal.</p>
         </div>
-        <div class="overflow-x-auto">
+        <div class="table-wrap">
             <table class="w-full">
                 <caption class="sr-only">Sector comparison</caption>
                 <thead>
@@ -152,7 +152,7 @@
                 <tbody>
                     @foreach ($sectorComparison as $row)
                         <tr class="table-row">
-                            <td class="table-cell font-medium">{{ $row['sector'] }}</td>
+                            <td class="table-cell font-semibold">{{ $row['sector'] }}</td>
                             <td class="table-num">{{ $row['accredited'] }}</td>
                             <td class="table-num">{{ $row['verified'] }}</td>
                             <td class="table-num">{{ $row['perOrganization'] }}</td>
@@ -177,6 +177,7 @@
             @if ($topContributors->isEmpty())
                 <p class="px-4 py-12 text-center text-sm text-muted">No verified activities in this period.</p>
             @else
+                <div class="table-wrap">
                 <table class="w-full">
                     <caption class="sr-only">Organizations ranked by verified activities</caption>
                     <thead>
@@ -190,7 +191,7 @@
                     <tbody>
                         @foreach ($topContributors as $row)
                             <tr class="table-row">
-                                <td class="table-cell font-medium">{{ $row['name'] }}</td>
+                                <td class="table-cell font-semibold">{{ $row['name'] }}</td>
                                 <td class="table-num">{{ $row['verified'] }}</td>
                                 <td class="table-num">{{ number_format($row['reach']) }}</td>
                                 <td class="table-num">{{ $percent($row['ratio']) }}</td>
@@ -198,6 +199,7 @@
                         @endforeach
                     </tbody>
                 </table>
+                </div>
             @endif
         </section>
 

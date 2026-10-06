@@ -11,7 +11,7 @@
         @if ($organizations->isEmpty())
             <p class="px-4 py-12 text-center text-sm text-muted">No organizations are registered yet.</p>
         @else
-            <div class="overflow-x-auto">
+            <div class="table-wrap">
                 <table class="w-full">
                     <caption class="sr-only">Performance scores by organization</caption>
                     <thead class="sticky top-0 bg-paper">
@@ -28,7 +28,7 @@
                         @foreach ($organizations as $organization)
                             @php $score = $organization->performanceScores->first(); @endphp
                             <tr class="table-row">
-                                <td class="table-cell font-medium">{{ $organization->name }}</td>
+                                <td class="table-cell font-semibold">{{ $organization->name }}</td>
                                 @if ($score)
                                     <td class="table-num">{{ number_format($score->activity_frequency * 100, 0) }}%</td>
                                     <td class="table-num">{{ number_format($score->community_reach * 100, 0) }}%</td>

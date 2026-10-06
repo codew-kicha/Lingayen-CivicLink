@@ -75,7 +75,7 @@
                 </fieldset>
             @endunless
 
-            <div class="flex gap-3">
+            <div class="flex flex-wrap gap-3">
                 <button type="submit" class="btn-primary">{{ $editing ? 'Save details' : 'Register organization' }}</button>
                 <a href="{{ route('admin.organizations.index') }}" class="btn-ghost">Back to organizations</a>
             </div>
@@ -86,7 +86,7 @@
                 <section class="panel p-6">
                     <h2 class="font-semibold text-ink">Representative account</h2>
                     @if ($organization->user)
-                        <p class="mt-3 font-medium text-ink">{{ $organization->user->name }}</p>
+                        <p class="mt-3 font-semibold text-ink">{{ $organization->user->name }}</p>
                         <p class="text-sm text-muted">{{ $organization->user->email }}{{ $organization->user->phone ? ' · '.$organization->user->phone : '' }}</p>
                         <p class="mt-2">
                             @if (! $organization->user->is_active)

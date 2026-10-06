@@ -40,7 +40,7 @@
         @if ($accounts->isEmpty())
             <p class="px-4 py-12 text-center text-sm text-muted">No accounts match those filters.</p>
         @else
-            <div class="overflow-x-auto">
+            <div class="table-wrap">
                 <table class="w-full">
                     <caption class="sr-only">Accounts</caption>
                     <thead class="sticky top-0 bg-paper">
@@ -57,7 +57,7 @@
                         @foreach ($accounts as $account)
                             <tr class="table-row">
                                 <td class="table-cell">
-                                    <p class="font-medium text-ink">{{ $account->name }}</p>
+                                    <p class="font-semibold text-ink">{{ $account->name }}</p>
                                     <p class="text-xs text-muted">{{ $account->email }}</p>
                                 </td>
                                 <td class="table-cell text-muted">{{ $account->isAdmin() ? 'PESO admin' : 'CSO representative' }}</td>

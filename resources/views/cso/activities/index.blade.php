@@ -2,7 +2,7 @@
                subheader="Log the community work your organization does. PESO verifies each entry before it counts toward your score.">
     @if (! $organization)
         <section class="panel p-8 text-center">
-            <p class="font-medium text-ink">Set up your organization profile first.</p>
+            <p class="font-semibold text-ink">Set up your organization profile first.</p>
             <a href="{{ route('cso.profile.edit') }}" class="btn-primary mt-4">Set up profile</a>
         </section>
     @else
@@ -25,7 +25,7 @@
 
                 @if ($activities->isEmpty())
                     <div class="panel mt-4 p-8 text-center">
-                        <p class="font-medium text-ink">No activities logged yet.</p>
+                        <p class="font-semibold text-ink">No activities logged yet.</p>
                         <p class="mt-1 text-sm text-muted">
                             Logged activities appear here, and on your public listing once verified.
                         </p>
@@ -82,7 +82,7 @@
                         @foreach ($taggedIn as $activity)
                             <li class="flex flex-wrap items-center gap-3 px-4 py-3 text-sm">
                                 <span class="min-w-0">
-                                    <span class="font-medium text-ink">{{ $activity->title }}</span>
+                                    <span class="font-semibold text-ink">{{ $activity->title }}</span>
                                     <span class="block text-muted">{{ $activity->organization->name }} &middot; <span class="tabular-nums">{{ $activity->activity_date->format('d M Y') }}</span></span>
                                 </span>
                                 <span class="ml-auto shrink-0"><x-status-badge :status="$activity->status" /></span>

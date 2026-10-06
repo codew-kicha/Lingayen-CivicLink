@@ -43,6 +43,7 @@
             @if ($reports->isEmpty())
                 <p class="px-4 py-12 text-center text-sm text-muted">No annual reports published yet.</p>
             @else
+                <div class="table-wrap">
                 <table class="w-full">
                     <caption class="sr-only">Published annual reports</caption>
                     <thead>
@@ -73,6 +74,7 @@
                         @endforeach
                     </tbody>
                 </table>
+                </div>
             @endif
         </section>
     </div>

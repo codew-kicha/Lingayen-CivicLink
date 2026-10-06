@@ -25,6 +25,15 @@
     :focus-visible {
         @apply outline-2 outline-offset-2 outline-focus;
     }
+
+    /*
+     * Grid items default to min-width: auto, so one wide table or chart can stretch a single-column
+     * grid past the screen. In the app area every grid child may shrink; tables then scroll inside
+     * their own .table-wrap instead of the page scrolling sideways.
+     */
+    #main :where(.grid) > * {
+        min-width: 0;
+    }
 }
 
 /*
@@ -99,7 +108,8 @@
 
     /* Card: one radius, one border, one shadow. Padding is 24px (p-6), or 16px (p-4) when compact. */
     .card {
-        @apply rounded-lg border border-line bg-paper shadow-panel;
+        /* min-w-0: as a grid or flex item a card must be able to shrink, so wide tables scroll inside it. */
+        @apply min-w-0 rounded-lg border border-line bg-paper shadow-panel;
     }
 
     /* Older names, kept as aliases of .card so both elevations collapse into one. */

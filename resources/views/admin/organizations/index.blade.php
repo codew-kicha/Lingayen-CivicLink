@@ -30,7 +30,7 @@
         @if ($organizations->isEmpty())
             <p class="px-4 py-12 text-center text-sm text-muted">No organizations are registered yet.</p>
         @else
-            <div class="overflow-x-auto">
+            <div class="table-wrap">
                 <table class="w-full">
                     <caption class="sr-only">Registered organizations</caption>
                     <thead class="sticky top-0 bg-paper">

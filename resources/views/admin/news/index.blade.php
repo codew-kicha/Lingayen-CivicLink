@@ -6,10 +6,11 @@
     <section class="panel-flat overflow-hidden">
         @if ($posts->isEmpty())
             <div class="px-4 py-12 text-center">
-                <p class="font-medium text-ink">No posts yet.</p>
+                <p class="font-semibold text-ink">No posts yet.</p>
                 <p class="mt-1 text-sm text-muted">Write a post to share an update on the public site.</p>
             </div>
         @else
+            <div class="table-wrap">
             <table class="w-full">
                 <caption class="sr-only">News posts</caption>
                 <thead class="sticky top-0 bg-paper">
@@ -46,6 +47,7 @@
                     @endforeach
                 </tbody>
             </table>
+            </div>
         @endif
     </section>
 

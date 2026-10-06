@@ -34,7 +34,7 @@
                                class="text-sm font-semibold text-primary hover:underline">View application</a>
                         </div>
                         <div class="mt-4">
-                            <p class="text-sm font-medium text-muted">Sangguniang Bayan reading stage</p>
+                            <p class="text-sm font-semibold text-muted">Sangguniang Bayan reading stage</p>
                             <div class="mt-2"><x-sb-stepper :stage="$latestApplication->sb_stage" /></div>
                         </div>
                     @else
@@ -132,7 +132,7 @@
                         <ul class="mt-3 divide-y divide-line border-y border-line">
                             @foreach ($notifications as $notification)
                                 <li class="py-3">
-                                    <p class="text-sm font-medium text-ink">{{ $notification->data['headline'] ?? 'Update' }}</p>
+                                    <p class="text-sm font-semibold text-ink">{{ $notification->data['headline'] ?? 'Update' }}</p>
                                     <p class="mt-1 text-sm text-muted">{{ $notification->data['body'] ?? '' }}</p>
                                 </li>
                             @endforeach

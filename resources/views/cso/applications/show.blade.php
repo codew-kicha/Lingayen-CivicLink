@@ -8,7 +8,7 @@
             </div>
 
             <div class="mt-4">
-                <p class="text-sm font-medium text-muted">Sangguniang Bayan reading stage</p>
+                <p class="text-sm font-semibold text-muted">Sangguniang Bayan reading stage</p>
                 <div class="mt-2"><x-sb-stepper :stage="$application->sb_stage" /></div>
             </div>
 
@@ -39,6 +39,7 @@
             @if ($application->documents->isEmpty())
                 <p class="px-4 py-12 text-center text-sm text-muted">No documents attached.</p>
             @else
+                <div class="table-wrap">
                 <table class="w-full">
                     <caption class="sr-only">Documents submitted with this application</caption>
                     <thead>
@@ -51,7 +52,7 @@
                     <tbody>
                         @foreach ($application->documents as $document)
                             <tr class="table-row">
-                                <td class="table-cell font-medium">
+                                <td class="table-cell font-semibold">
                                     {{ \App\Models\Document::label($document->document_type) }}
                                 </td>
                                 <td class="table-cell">
@@ -65,6 +66,7 @@
                         @endforeach
                     </tbody>
                 </table>
+                </div>
             @endif
         </section>
     </div>

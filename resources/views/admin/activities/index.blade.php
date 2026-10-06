@@ -4,7 +4,7 @@
         @foreach (['pending' => 'Pending', 'verified' => 'Verified', 'rejected' => 'Rejected'] as $status => $label)
             <a href="{{ route('admin.activities.index', ['status' => $status]) }}"
                @if ($currentStatus === $status) aria-current="page" @endif
-               class="rounded-sm px-3 py-2 text-sm font-medium transition-colors duration-fast ease-out-strong
+               class="rounded-sm px-3 py-2 text-sm font-semibold transition-colors duration-fast ease-out-strong
                       {{ $currentStatus === $status ? 'bg-primary text-on-primary' : 'text-ink hover:bg-primary-subtle' }}">
                 {{ $label }}
                 @if ($status === 'pending' && $pendingCount)
@@ -16,7 +16,7 @@
 
     @if ($activities->isEmpty())
         <div class="panel-flat px-4 py-12 text-center">
-            <p class="font-medium text-ink">Nothing here.</p>
+            <p class="font-semibold text-ink">Nothing here.</p>
             <p class="mt-1 text-sm text-muted">
                 No {{ $currentStatus }} activities. Activities appear here as organizations log them.
             </p>

@@ -8,7 +8,7 @@
 @foreach ($variants as $key => $classes)
     @if (session($key))
         <div role="status"
-             class="mb-4 rounded-sm border px-4 py-3 text-sm font-medium {{ $classes }}">
+             class="mb-4 rounded-sm border px-4 py-3 text-sm font-semibold {{ $classes }}">
             {{ session($key) }}
         </div>
     @endif

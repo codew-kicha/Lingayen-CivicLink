@@ -1,12 +1,12 @@
 <x-layouts.app header="Applications" subheader="Every accreditation application your organization has filed.">
     @if (! $organization)
         <section class="panel p-8 text-center">
-            <p class="font-medium text-ink">Set up your organization profile first.</p>
+            <p class="font-semibold text-ink">Set up your organization profile first.</p>
             <a href="{{ route('cso.profile.edit') }}" class="btn-primary mt-4">Set up profile</a>
         </section>
     @elseif ($applications->isEmpty())
         <section class="panel p-8 text-center">
-            <p class="font-medium text-ink">No applications filed yet.</p>
+            <p class="font-semibold text-ink">No applications filed yet.</p>
             <p class="mt-1 text-sm text-muted">Apply for accreditation to appear in the public directory.</p>
             <a href="{{ route('cso.applications.create') }}" class="btn-primary mt-4">Apply for accreditation</a>
         </section>

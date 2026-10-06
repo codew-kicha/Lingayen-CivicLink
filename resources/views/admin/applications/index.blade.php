@@ -34,13 +34,12 @@
                 No applications match these filters.
             </p>
         @else
-            <div class="overflow-x-auto">
+            <div class="table-wrap">
                 <table class="w-full">
                     <caption class="sr-only">Accreditation applications</caption>
                     <thead class="sticky top-0 bg-paper">
                         <tr>
                             <th scope="col" class="table-head">Organization</th>
-                            <th scope="col" class="table-head">Type</th>
                             <th scope="col" class="table-head">Channel</th>
                             <th scope="col" class="table-head">Status</th>
                             <th scope="col" class="table-head">SB stage</th>
@@ -55,12 +54,12 @@
                                        class="entity-link">
                                         {{ $application->organization->name }}
                                     </a>
+                                    <x-application-type :type="$application->type" />
                                     <p class="text-xs text-muted">Brgy. {{ $application->organization->barangay }}</p>
                                     @if ($application->flagged_documents_count)
                                         <span class="badge-warning mt-1">{{ $application->flagged_documents_count }} {{ Str::plural('document', $application->flagged_documents_count) }} to check</span>
                                     @endif
                                 </td>
-                                <td class="table-cell capitalize">{{ $application->type }}</td>
                                 <td class="table-cell capitalize text-muted">{{ $application->submission_channel }}</td>
                                 <td class="table-cell"><x-status-badge :status="$application->status" /></td>
                                 <td class="table-cell text-muted">{{ Str::headline($application->sb_stage) }}</td>
