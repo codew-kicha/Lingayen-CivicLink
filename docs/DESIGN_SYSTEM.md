@@ -148,37 +148,81 @@ To add a page: add a route, add an item under the right group in `config/navigat
 | `<x-empty-state title icon>` | Empty tables and lists | Optional slot text and `action` slot |
 | `<x-application-type :type>` | Applications | "Renewal" tag in the organization cell; no Type column (New is the default) |
 | `<x-flash>` | Status messages | Rendered by the layout |
+| `<x-pagination>` | Every paginated list | See §4 |
+| `<x-keep-query>` | Filter forms | Carries `per_page` (and chosen keys), never `page` |
+| `table-sticky` | Long tables | Header sticks at `lg`+ only |
 
 All eight states apply to interactive parts: default, hover, focus (visible ring, never removed),
 active, disabled, loading, error, success.
 
 ---
 
-## 4. Pagination (Milestone 2, Phase 3: approved plan, component to be built)
+## 4. Pagination
 
-One server-side component, shared by every paginated list.
+Every long list uses one server-side pagination: `App\Support\ListPagination` in the controller and
+`<x-pagination>` in the view.
 
-- Page and page size in the query string (`?page=2&per_page=25`), so pages are linkable and Back
-  works. `per_page` accepts only 10, 25 or 50.
-- "Showing 1-25 of 48", Previous / Next, numbered pages with ellipses, page-size selector.
-- Filters and sort survive page changes; changing a filter resets to page 1.
-- `aria-label="Pagination"`, `aria-current="page"`, disabled first/last states, keyboard reachable.
-- Below `sm`: Previous / "Page X of Y" / Next only. Sticky table header on long lists. Empty state
-  and the page-load bar for loading.
+```php
+// Controller: wrap the query; the third argument is the list's default page size.
+'organizations' => ListPagination::paginate(Organization::query()->...->orderBy('name'), $request, 25),
+```
 
-| List | Pattern | Default size |
+```blade
+{{-- View: after the table. `target` is the heading that receives focus after a page change. --}}
+<x-pagination :paginator="$organizations" :default="25" />
+<x-pagination :paginator="$activities" :default="10" target="history" />
+```
+
+**Behaviour (enforced by `ListPaginationTest` and `PaginationComponentTest`)**
+- Page and size live in the URL (`?page=2&per_page=25`), so pages are linkable and Back works.
+  `per_page` accepts 10, 25 or 50; anything else quietly falls back to the list default.
+  `per_page` is left out of URLs when it equals the default.
+- A page past the end redirects to the last page.
+- Links keep every filter and sort parameter. Filter forms include `<x-keep-query />` (carries
+  `per_page`, never `page`), so changing a filter returns to page 1 at the same size. Tabs that
+  act as filters (Verify activities) do the same in their links.
+- Changing the page size resets to page 1. The selector has a visible label and works without
+  JavaScript (a `noscript` Apply button); with JavaScript it submits on change.
+- After a page change, focus moves to the target heading (`#page-title` by default).
+- Markup: `aria-label="Pagination"`, `aria-current="page"` on the current page, disabled
+  Previous/Next are `aria-disabled` text (not links), ellipses are plain text.
+- Below `sm`: Previous / "Page X of Y" / Next only. Controls are 36px on desktop, 44px on touch.
+- Look: rectangular, 4px radius (`page-link`), current page solid maroon (`page-link-current`).
+- Long tables use `table-wrap table-sticky`: the header sticks to the viewport at `lg` and up only
+  (below `lg` the table scrolls sideways in its box, where a sticky header can't work). Cards
+  around sticky tables must not use `overflow-hidden`.
+- Empty lists use `<x-empty-state :filtered="…" :clear-url="…" title="…">`: "No results for these
+  filters" with Clear filters, or the list's own "nothing here yet" message.
+- Loading: the app layout's page-load bar.
+
+| List | Default size | Filters kept across pages |
 |---|---|---|
-| Audit log | Numbered, filters kept | 50 |
-| Applications queue | Numbered, tabs and filters kept | 25 |
-| Verify activities | Numbered (tall cards) | 10 |
-| Organizations, Accounts, Scorecards | Numbered, filters kept | 25 |
-| News posts | Numbered | 10 |
-| CSO activities | Numbered | 10 |
-| Annual reports, CSO applications, CSO dashboard | Not paginated (one per year / per 3 years / small) | none |
-| Dashboard widgets | Capped at 5 + "View queue" | 5 |
-| Organization "Recent history" | Capped at 5 + "Full history" (audit log) | 5 |
-| Analytics at-risk list | Capped at 10, "Showing 10 of N at-risk", links to Excel and to the filtered Organizations list | 10 |
-| CSO "Tagged as a partner" | Capped at 10, "Showing latest 10" | 10 |
+| Audit log | 50 | Event type, actor, account, organization |
+| Applications queue | 25 | Status, SB stage |
+| Verify activities | 10 (tall cards) | Status tab |
+| Organizations | 25 | Search, no login, activity (inactive / at-risk with the analytics period) |
+| Accounts | 25 | Search, role, status |
+| Scorecards | 25 | Name search |
+| News posts | 10 | Status |
+| CSO activities | 10 | Status |
+
+**Capped instead of paginated** (the limit is in the query, and the total is named):
+
+| List | Cap | Where the rest is |
+|---|---|---|
+| Admin dashboard widgets | 5 | "View all N" links to the queue |
+| Organization page history | 5 | "Full history": audit log filtered to the organization |
+| Analytics at-risk | 10 | "Showing 10 of N at-risk": filtered Organizations list and the Excel workbook (computed from aggregated rows in `ReportData`, so the cap is applied in the controller) |
+| CSO "Tagged as a partner" | 10 | "Showing the latest 10 of N" |
+
+Not paginated by design: Annual reports (one per year), CSO applications (one per three years),
+the CSO dashboard.
+
+**Audit log performance** (MySQL, 50,000 rows): page 1 about 40 ms, page 500 about 83 ms, event
+filter about 25 ms, organization filter about 19 ms, using the existing `created_at`, `action` and
+`(subject_type, subject_id)` indexes. Optional: adding `created_at` to the subject index would
+remove a small in-memory sort on the organization filter.
+
 
 ---
 
@@ -200,7 +244,7 @@ One server-side component, shared by every paginated list.
 2. Use only token classes and the spacing scale. Run `php artisan test --filter=DesignTokenCompliance`.
 3. Cards `p-6`, tables inside `table-wrap`, dates `table-date`, statuses `<x-status-badge>`.
 4. Names are `entity-link`; one `btn-primary` per area.
-5. Lists over about 10 rows use the pagination component, or are deliberately capped.
+5. Lists over about 10 rows use `ListPagination` + `<x-pagination>` (§4), or are capped in the query.
 6. Check 360, 768 and 1440px: nothing scrolls sideways, nothing wraps that shouldn't.
 
 ---
