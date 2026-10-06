@@ -24,6 +24,7 @@
                     <option value="deactivated" @selected(request('status') === 'deactivated')>Deactivated</option>
                 </select>
             </div>
+            <x-keep-query />
             <button type="submit" class="btn-primary">Filter</button>
             @if (request()->hasAny(['q', 'role', 'status']))
                 <a href="{{ route('admin.accounts.index') }}" class="btn-ghost">Clear</a>
@@ -36,14 +37,15 @@
         </div>
     </div>
 
-    <section class="panel-flat overflow-hidden">
+    <section class="card">
         @if ($accounts->isEmpty())
-            <p class="px-4 py-12 text-center text-sm text-muted">No accounts match those filters.</p>
+            <x-empty-state :filtered="request()->hasAny(['q', 'role', 'status'])" :clear-url="route('admin.accounts.index')"
+                           title="No accounts yet." icon="users" />
         @else
-            <div class="table-wrap">
+            <div class="table-wrap table-sticky">
                 <table class="w-full">
                     <caption class="sr-only">Accounts</caption>
-                    <thead class="sticky top-0 bg-paper">
+                    <thead>
                         <tr>
                             <th scope="col" class="table-head">Name</th>
                             <th scope="col" class="table-head">Role</th>
@@ -129,5 +131,5 @@
         <p class="field-error mt-3">{{ $message }}</p>
     @enderror
 
-    <div class="mt-4">{{ $accounts->links() }}</div>
+    <x-pagination :paginator="$accounts" :default="25" />
 </x-layouts.app>

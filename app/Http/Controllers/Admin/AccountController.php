@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Support\ListPagination;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\InviteAccountRequest;
 use App\Http\Requests\Admin\ReasonRequest;
@@ -19,7 +20,7 @@ class AccountController extends Controller
     {
         $this->authorize('viewAny', User::class);
 
-        $accounts = User::query()
+        $accounts = ListPagination::paginate(User::query()
             ->with('organization:id,user_id,name')
             ->when($request->input('role'), fn ($q, $role) => $q->where('role', $role))
             ->when($request->input('status'), fn ($q, $status) => match ($status) {
@@ -33,9 +34,7 @@ class AccountController extends Controller
                 ->orWhere('email', 'like', "%{$term}%")
                 ->orWhereHas('organization', fn ($q) => $q->where('name', 'like', "%{$term}%"))))
             ->orderBy('role')
-            ->orderBy('name')
-            ->paginate(25)
-            ->withQueryString();
+            ->orderBy('name'), $request, 25);
 
         return view('admin.accounts.index', ['accounts' => $accounts]);
     }
