@@ -18,14 +18,14 @@
         <div class="space-y-3">
             @foreach ($applications as $application)
                 <a href="{{ route('cso.applications.show', $application) }}"
-                   class="panel block p-5 transition-colors duration-fast ease-out-strong hover:border-brand-300">
+                   class="panel block p-5 transition-colors duration-fast ease-out-strong hover:border-primary/40">
                     <div class="flex flex-wrap items-center gap-3">
                         <h2 class="font-semibold capitalize text-ink">{{ $application->type }} application</h2>
                         <span class="ml-auto"><x-status-badge :status="$application->status" /></span>
                     </div>
                     <p class="mt-1 text-sm text-muted">
                         Filed
-                        <span class="font-mono tabular-nums">
+                        <span class="tabular-nums">
                             {{ $application->submitted_at?->format('d M Y') ?? 'not yet' }}
                         </span>
                     </p>

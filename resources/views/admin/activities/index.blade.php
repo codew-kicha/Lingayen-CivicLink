@@ -5,10 +5,10 @@
             <a href="{{ route('admin.activities.index', ['status' => $status]) }}"
                @if ($currentStatus === $status) aria-current="page" @endif
                class="rounded-sm px-3 py-1.5 text-sm font-medium transition-colors duration-fast ease-out-strong
-                      {{ $currentStatus === $status ? 'bg-brand-600 text-paper' : 'text-brand-700 hover:bg-brand-50' }}">
+                      {{ $currentStatus === $status ? 'bg-primary text-on-primary' : 'text-ink hover:bg-primary-subtle' }}">
                 {{ $label }}
                 @if ($status === 'pending' && $pendingCount)
-                    <span class="ml-1 font-mono tabular-nums">{{ $pendingCount }}</span>
+                    <span class="ml-1 tabular-nums">{{ $pendingCount }}</span>
                 @endif
             </a>
         @endforeach
@@ -31,7 +31,7 @@
                             <p class="mt-0.5 text-sm text-muted">
                                 {{ $activity->organization->name }}
                                 &middot; Brgy. {{ $activity->organization->barangay }}
-                                &middot; <span class="font-mono tabular-nums">{{ $activity->activity_date->format('d M Y') }}</span>
+                                &middot; <span class="tabular-nums">{{ $activity->activity_date->format('d M Y') }}</span>
                             </p>
                         </div>
                         <span class="ml-auto shrink-0"><x-status-badge :status="$activity->status" /></span>
@@ -42,7 +42,7 @@
                     <dl class="mt-3 flex flex-wrap gap-x-8 gap-y-1 text-sm">
                         <div class="flex gap-2">
                             <dt class="text-muted">Residents reached</dt>
-                            <dd class="font-mono tabular-nums text-ink">
+                            <dd class="tabular-nums text-ink">
                                 {{ $activity->participants_estimate ? number_format($activity->participants_estimate) : 'Not stated' }}
                             </dd>
                         </div>
@@ -63,7 +63,7 @@
                     </dl>
 
                     @if ($activity->status === 'rejected' && $activity->rejection_reason)
-                        <p class="mt-3 rounded-sm border border-danger-600 bg-danger-100 px-3 py-2 text-sm text-danger-600">
+                        <p class="mt-3 rounded-sm border border-danger bg-danger-subtle px-3 py-2 text-sm text-danger">
                             {{ $activity->rejection_reason }}
                         </p>
                     @endif

@@ -138,11 +138,11 @@
                     @if ($active)
                         <p class="mt-3 flex items-center gap-2">
                             <x-status-badge status="active" />
-                            <span class="font-mono text-sm tabular-nums text-muted">{{ $active->verification_code }}</span>
+                            <span class="font-mono text-sm text-muted">{{ $active->verification_code }}</span>
                         </p>
                         <p class="mt-1 text-sm text-muted">Valid until {{ $active->expires_at->format('d M Y') }}</p>
                         <details class="mt-4">
-                            <summary class="btn-ghost cursor-pointer list-none px-3 text-danger-600">Revoke accreditation</summary>
+                            <summary class="btn-ghost cursor-pointer list-none px-3 text-danger">Revoke accreditation</summary>
                             <form method="POST" action="{{ route('admin.organizations.revoke', $organization) }}" class="mt-3 space-y-3">
                                 @csrf
                                 <label for="revoke-reason" class="field-label">Reason (kept in the audit log)</label>
@@ -189,7 +189,7 @@
                 <x-source-legend class="ml-auto" with-unknown />
             </div>
             @if ($timeline['longestGap'])
-                <p class="mt-3 inline-flex items-center gap-1.5 rounded-sm bg-warning-100 px-3 py-1.5 text-sm text-warning-600">
+                <p class="mt-3 inline-flex items-center gap-1.5 rounded-sm bg-warning-subtle px-3 py-1.5 text-sm text-warning">
                     <x-phosphor-warning class="h-4 w-4" aria-hidden="true" />
                     No verified activity from {{ $timeline['longestGap']['from']->format('M Y') }}
                     to {{ $timeline['longestGap']['to']->format('M Y') }} ({{ $timeline['longestGap']['months'] }} months)

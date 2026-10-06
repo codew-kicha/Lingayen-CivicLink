@@ -22,7 +22,7 @@
 
         {{-- Below lg the sidebar becomes an off-canvas drawer: focus trapped, Esc and the overlay close it. --}}
         <div x-show="drawer" x-cloak class="fixed inset-0 z-dialog lg:hidden" role="dialog" aria-modal="true" aria-label="Navigation">
-            <div x-show="drawer" x-transition.opacity class="absolute inset-0 bg-[oklch(0.27_0.01_50/0.5)]" @click="drawer = false" aria-hidden="true"></div>
+            <div x-show="drawer" x-transition.opacity class="absolute inset-0 bg-ink/50" @click="drawer = false" aria-hidden="true"></div>
             <aside x-show="drawer" x-trap.noscroll.inert="drawer"
                    x-transition:enter="transition duration-base ease-out-strong" x-transition:enter-start="-translate-x-full"
                    x-transition:leave="transition duration-fast ease-out-strong" x-transition:leave-end="-translate-x-full"

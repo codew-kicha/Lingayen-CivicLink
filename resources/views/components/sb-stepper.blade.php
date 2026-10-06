@@ -18,8 +18,8 @@
         <li class="flex items-center gap-1">
             <span @if ($index === $currentIndex) aria-current="step" @endif
                   class="rounded-sm px-2 py-1 font-medium
-                         @if ($index < $currentIndex) text-success-600
-                         @elseif ($index === $currentIndex) text-brand-700 shadow-[inset_0_-2px_0_0_theme(colors.accent.600)]
+                         @if ($index < $currentIndex) text-success
+                         @elseif ($index === $currentIndex) text-primary shadow-[inset_0_-2px_0_0_rgb(var(--color-accent))]
                          @else text-muted @endif">
                 {{ $label }}
             </span>

@@ -21,8 +21,8 @@
             @foreach ($presets as $name => $range)
                 <a href="{{ route('admin.analytics', $range) }}"
                    @class(['rounded-sm px-3 py-1.5 text-sm font-medium',
-                           'bg-brand-600 text-paper' => $query == $range,
-                           'text-brand-700 hover:bg-brand-50' => $query != $range])>{{ $name }}</a>
+                           'bg-primary text-on-primary' => $query == $range,
+                           'text-ink hover:bg-primary-subtle' => $query != $range])>{{ $name }}</a>
             @endforeach
         </nav>
         <div class="flex w-full flex-wrap items-end gap-2 sm:ml-auto sm:w-auto">
@@ -49,7 +49,7 @@
             ['Self-initiated', $percent($summary['selfInitiatedRatio'])],
         ] as [$label, $value])
             <div class="px-5 py-4">
-                <p class="font-mono text-2xl tabular-nums text-brand-800">{{ $value }}</p>
+                <p class="text-2xl tabular-nums text-ink">{{ $value }}</p>
                 <p class="mt-1 text-sm text-muted">{{ $label }}</p>
             </div>
         @endforeach
@@ -110,7 +110,7 @@
                         @foreach ($atRisk as $row)
                             <tr class="table-row">
                                 <td class="table-cell">
-                                    <a href="{{ route('admin.organizations.edit', $row['id']) }}" class="font-medium text-brand-700 hover:underline">{{ $row['name'] }}</a>
+                                    <a href="{{ route('admin.organizations.edit', $row['id']) }}" class="entity-link">{{ $row['name'] }}</a>
                                     <p class="text-xs text-muted">{{ $row['sector'] }} &middot; Brgy. {{ $row['barangay'] }}</p>
                                 </td>
                                 <td class="table-cell text-sm">
@@ -120,7 +120,7 @@
                                 </td>
                                 <td class="table-num">{{ $row['verified'] }}</td>
                                 <td class="table-num">{{ $row['independent'] }}</td>
-                                <td class="table-cell font-mono text-sm tabular-nums text-muted">
+                                <td class="table-date">
                                     {{ $row['lastActivity']?->format('d M Y') ?? 'Never' }}
                                 </td>
                             </tr>

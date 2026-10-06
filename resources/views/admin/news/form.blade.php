@@ -36,7 +36,7 @@
 
             <div class="mt-4 grid max-h-64 gap-1 overflow-y-auto sm:grid-cols-2">
                 @foreach ($organizations as $organization)
-                    <label class="flex items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-brand-50">
+                    <label class="flex items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-primary-subtle">
                         <input type="checkbox" name="organizations[]" value="{{ $organization->id }}"
                                @checked(in_array($organization->id, $selected))>
                         <span class="text-ink">{{ $organization->name }}</span>
@@ -54,7 +54,7 @@
                         'published' => 'Publish now, visible on the Resources page',
                     ] as $value => $label)
                         <label class="flex items-start gap-3 rounded-sm border border-line-strong p-3
-                                      hover:border-brand-300 has-[:checked]:border-brand-600 has-[:checked]:bg-brand-50">
+                                      hover:border-primary/40 has-[:checked]:border-primary has-[:checked]:bg-primary-subtle">
                             <input type="radio" name="status" value="{{ $value }}" class="mt-0.5"
                                    @checked(old('status', $post->status) === $value) required>
                             <span class="text-sm text-ink">{{ $label }}</span>

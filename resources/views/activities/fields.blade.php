@@ -43,7 +43,7 @@
             'lgu_organized' => 'The LGU organized it, and we took part',
         ] as $value => $label)
             <label class="flex items-start gap-3 rounded-sm border border-line-strong p-3
-                          hover:border-brand-300 has-[:checked]:border-brand-600 has-[:checked]:bg-brand-50">
+                          hover:border-primary/40 has-[:checked]:border-primary has-[:checked]:bg-primary-subtle">
                 <input type="radio" name="activity_source" value="{{ $value }}" class="mt-0.5"
                        @checked(old('activity_source') === $value) required>
                 <span class="text-sm text-ink">{{ $label }}</span>
@@ -62,7 +62,7 @@
         <input type="search" id="partner-search" x-model="q" placeholder="Search by name" class="field-input mt-2">
         <div class="mt-2 max-h-48 overflow-y-auto rounded-sm border border-line">
             @foreach ($partnerOptions as $id => $name)
-                <label class="flex cursor-pointer items-center gap-2 px-3 py-2 text-sm text-ink hover:bg-brand-50"
+                <label class="flex cursor-pointer items-center gap-2 px-3 py-2 text-sm text-ink hover:bg-primary-subtle"
                        x-show="! q || @js(mb_strtolower($name)).includes(q.toLowerCase())">
                     <input type="checkbox" name="partners[]" value="{{ $id }}" x-model.number="picked">
                     {{ $name }}

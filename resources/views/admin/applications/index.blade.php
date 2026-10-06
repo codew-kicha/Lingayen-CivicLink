@@ -52,7 +52,7 @@
                             <tr class="table-row">
                                 <td class="table-cell">
                                     <a href="{{ route('admin.applications.show', $application) }}"
-                                       class="font-medium text-brand-700 hover:underline">
+                                       class="entity-link">
                                         {{ $application->organization->name }}
                                     </a>
                                     <p class="text-xs text-muted">Brgy. {{ $application->organization->barangay }}</p>
@@ -64,7 +64,7 @@
                                 <td class="table-cell capitalize text-muted">{{ $application->submission_channel }}</td>
                                 <td class="table-cell"><x-status-badge :status="$application->status" /></td>
                                 <td class="table-cell text-muted">{{ Str::headline($application->sb_stage) }}</td>
-                                <td class="table-cell font-mono tabular-nums text-muted">
+                                <td class="table-date">
                                     {{ $application->submitted_at?->format('d M Y') ?? '--' }}
                                 </td>
                             </tr>

@@ -64,7 +64,7 @@
                                 <td class="table-cell">
                                     @if ($account->organization)
                                         <a href="{{ route('admin.organizations.edit', $account->organization) }}"
-                                           class="text-brand-700 hover:underline">{{ $account->organization->name }}</a>
+                                           class="entity-link">{{ $account->organization->name }}</a>
                                     @else
                                         <span class="text-muted">None</span>
                                     @endif
@@ -79,7 +79,7 @@
                                         <span class="badge-success">Active</span>
                                     @endif
                                 </td>
-                                <td class="table-cell font-mono text-xs tabular-nums text-muted">
+                                <td class="table-date">
                                     {{ $account->last_login_at?->format('d M Y, H:i') ?? 'Never' }}
                                 </td>
                                 <td class="table-cell">
@@ -103,7 +103,7 @@
 
                                         @can('deactivate', $account)
                                             <details class="relative">
-                                                <summary class="btn-ghost cursor-pointer list-none px-3 py-1.5 text-danger-600">Deactivate</summary>
+                                                <summary class="btn-ghost cursor-pointer list-none px-3 py-1.5 text-danger">Deactivate</summary>
                                                 <form method="POST" action="{{ route('admin.accounts.deactivate', $account) }}"
                                                       class="absolute right-0 z-dropdown mt-1 w-72 space-y-2 rounded-lg border border-line bg-paper p-3 shadow-overlay">
                                                     @csrf

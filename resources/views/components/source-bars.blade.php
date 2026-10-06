@@ -21,12 +21,12 @@
                 <th scope="row" class="w-44 py-1.5 pr-3 text-left text-sm font-normal text-ink">{{ $row['label'] }}</th>
                 <td class="py-1.5">
                     <div class="flex h-4 w-full bg-canvas" title="{{ $row['independent'] }} self-initiated, {{ $row['lgu'] }} LGU-organized">
-                        <div class="h-4 bg-brand-600" style="width: {{ round($row['independent'] / $max * 100, 1) }}%"></div>
-                        <div class="h-4 bg-brand-200" style="width: {{ round($row['lgu'] / $max * 100, 1) }}%"></div>
+                        <div class="h-4 bg-chart-self" style="width: {{ round($row['independent'] / $max * 100, 1) }}%"></div>
+                        <div class="h-4 bg-chart-lgu" style="width: {{ round($row['lgu'] / $max * 100, 1) }}%"></div>
                     </div>
                     <span class="sr-only">{{ $row['independent'] }} self-initiated, {{ $row['lgu'] }} LGU-organized</span>
                 </td>
-                <td class="w-20 py-1.5 pl-3 text-right font-mono text-sm tabular-nums text-muted">
+                <td class="w-20 py-1.5 pl-3 text-right text-sm tabular-nums text-muted">
                     {{ $row['ratio'] === null ? 'n/a' : round($row['ratio'] * 100).'%' }}
                 </td>
             </tr>

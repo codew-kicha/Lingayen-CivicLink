@@ -1,7 +1,7 @@
 @php
     $variants = [
-        'status' => 'border-success-600 bg-success-100 text-success-600',
-        'error' => 'border-danger-600 bg-danger-100 text-danger-600',
+        'status' => 'border-success bg-success-subtle text-success',
+        'error' => 'border-danger bg-danger-subtle text-danger',
     ];
 @endphp
 

@@ -8,12 +8,12 @@
         </div>
         <label class="mb-2.5 flex items-center gap-2 text-sm text-ink">
             <input type="checkbox" name="account" value="none" @checked(request('account') === 'none')
-                   class="rounded-sm border-line-strong text-brand-600">
+                   class="rounded-sm border-line-strong text-primary">
             No login yet
         </label>
         <label class="mb-2.5 flex items-center gap-2 text-sm text-ink">
             <input type="checkbox" name="status" value="inactive" @checked(request('status') === 'inactive')
-                   class="rounded-sm border-line-strong text-brand-600">
+                   class="rounded-sm border-line-strong text-primary">
             Inactive only
         </label>
         <button type="submit" class="btn-primary">Search</button>
@@ -50,7 +50,7 @@
                             <tr class="table-row">
                                 <td class="table-cell">
                                     <a href="{{ route('admin.organizations.edit', $organization) }}"
-                                       class="font-medium text-brand-700 hover:underline">{{ $organization->name }}</a>
+                                       class="entity-link">{{ $organization->name }}</a>
                                     <p class="text-xs text-muted">Brgy. {{ $organization->barangay }}</p>
                                 </td>
                                 <td class="table-cell text-muted">{{ $organization->sector }}</td>
@@ -71,7 +71,7 @@
                                         @if ($inactiveIds->contains($organization->id))
                                             <span class="badge-warning" title="No verified activity in {{ \App\Models\Organization::INACTIVE_AFTER_MONTHS }} months">Inactive</span>
                                         @endif
-                                        <p class="mt-1 font-mono text-xs tabular-nums text-muted">
+                                        <p class="mt-1 text-xs tabular-nums text-muted">
                                             to {{ $accreditation->expires_at->format('d M Y') }}
                                         </p>
                                     @else

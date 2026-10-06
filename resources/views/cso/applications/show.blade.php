@@ -13,17 +13,17 @@
             </div>
 
             @if ($application->status === 'rejected' && $application->rejection_reason)
-                <div class="mt-4 rounded-sm border border-danger-600 bg-danger-100 px-4 py-3">
-                    <p class="text-sm font-semibold text-danger-600">What needs correcting</p>
-                    <p class="mt-1 text-sm text-danger-600">{{ $application->rejection_reason }}</p>
+                <div class="mt-4 rounded-sm border border-danger bg-danger-subtle px-4 py-3">
+                    <p class="text-sm font-semibold text-danger">What needs correcting</p>
+                    <p class="mt-1 text-sm text-danger">{{ $application->rejection_reason }}</p>
                 </div>
                 <a href="{{ route('cso.applications.create') }}" class="btn-primary mt-4">File a corrected application</a>
             @endif
 
             @if ($application->accreditation)
-                <div class="mt-4 rounded-sm border border-success-600 bg-success-100 px-4 py-3">
-                    <p class="text-sm font-semibold text-success-600">Accreditation issued</p>
-                    <p class="mt-1 text-sm text-success-600">
+                <div class="mt-4 rounded-sm border border-success bg-success-subtle px-4 py-3">
+                    <p class="text-sm font-semibold text-success">Accreditation issued</p>
+                    <p class="mt-1 text-sm text-success">
                         Valid until {{ $application->accreditation->expires_at->format('d F Y') }}. Reference code
                         <span class="font-mono">{{ $application->accreditation->verification_code }}</span>.
                     </p>
@@ -56,9 +56,9 @@
                                 </td>
                                 <td class="table-cell">
                                     <a href="{{ route('documents.download', $document) }}"
-                                       class="text-brand-700 hover:underline">{{ $document->original_filename }}</a>
+                                       class="entity-link">{{ $document->original_filename }}</a>
                                 </td>
-                                <td class="table-cell font-mono tabular-nums text-muted">
+                                <td class="table-date">
                                     {{ $document->expires_at?->format('d M Y') ?? '--' }}
                                 </td>
                             </tr>

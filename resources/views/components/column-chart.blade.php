@@ -15,10 +15,10 @@
         @foreach ($rows as $row)
             <div class="flex h-full flex-1 items-end justify-center gap-0.5">
                 @if ($secondKey)
-                    <div class="w-1/2 bg-brand-200" style="height: {{ round(($row[$secondKey] / $max) * 100, 1) }}%"
+                    <div class="w-1/2 bg-chart-lgu" style="height: {{ round(($row[$secondKey] / $max) * 100, 1) }}%"
                          title="{{ $row['label'] }}: {{ $row[$secondKey] }}"></div>
                 @endif
-                <div class="{{ $secondKey ? 'w-1/2' : 'w-full' }} bg-brand-500"
+                <div class="{{ $secondKey ? 'w-1/2' : 'w-full' }} bg-chart-bar"
                      style="height: {{ round(($row[$valueKey] / $max) * 100, 1) }}%"
                      title="{{ $row['label'] }}: {{ $row[$valueKey] }}"></div>
             </div>
@@ -27,7 +27,7 @@
 
     <div class="mt-2 flex gap-1.5 border-t border-line pt-2">
         @foreach ($rows as $row)
-            <span class="flex-1 text-center font-mono text-[0.65rem] tabular-nums text-muted">
+            <span class="flex-1 text-center text-xs tabular-nums text-muted">
                 {{ Str::before($row['label'], ' ') }}
             </span>
         @endforeach

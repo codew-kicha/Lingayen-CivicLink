@@ -19,7 +19,7 @@
                             <x-status-badge status="active" />
                             <p class="text-sm text-muted">
                                 Valid until
-                                <span class="font-mono tabular-nums text-ink">{{ $accreditation->expires_at->format('d F Y') }}</span>
+                                <span class="tabular-nums text-ink">{{ $accreditation->expires_at->format('d F Y') }}</span>
                                 ({{ (int) now()->diffInDays($accreditation->expires_at, false) }} days remaining)
                             </p>
                         </div>
@@ -31,7 +31,7 @@
                         <div class="mt-3 flex flex-wrap items-center gap-3">
                             <x-status-badge :status="$latestApplication->status" />
                             <a href="{{ route('cso.applications.show', $latestApplication) }}"
-                               class="text-sm font-semibold text-brand-700 hover:underline">View application</a>
+                               class="text-sm font-semibold text-primary hover:underline">View application</a>
                         </div>
                         <div class="mt-4">
                             <p class="text-sm font-medium text-muted">Sangguniang Bayan reading stage</p>
@@ -80,7 +80,7 @@
                     <h2 class="font-semibold text-ink">Performance score</h2>
 
                     @if ($score)
-                        <p class="mt-3 font-mono text-3xl tabular-nums text-brand-800">
+                        <p class="mt-3 text-3xl tabular-nums text-ink">
                             {{ number_format($score->total_score * 100, 0) }}%
                         </p>
                         <dl class="mt-4 space-y-2 text-sm">
@@ -92,7 +92,7 @@
                             ] as $label => $value)
                                 <div class="flex gap-3">
                                     <dt class="text-muted">{{ $label }}</dt>
-                                    <dd class="ml-auto font-mono tabular-nums text-ink">
+                                    <dd class="ml-auto tabular-nums text-ink">
                                         {{ number_format($value * 100, 0) }}%
                                     </dd>
                                 </div>
@@ -116,11 +116,11 @@
                     <dl class="mt-3 space-y-2 text-sm">
                         <div class="flex gap-3">
                             <dt class="text-muted">Verified</dt>
-                            <dd class="ml-auto font-mono tabular-nums text-ink">{{ $verifiedActivities }}</dd>
+                            <dd class="ml-auto tabular-nums text-ink">{{ $verifiedActivities }}</dd>
                         </div>
                         <div class="flex gap-3">
                             <dt class="text-muted">Awaiting verification</dt>
-                            <dd class="ml-auto font-mono tabular-nums text-ink">{{ $pendingActivities }}</dd>
+                            <dd class="ml-auto tabular-nums text-ink">{{ $pendingActivities }}</dd>
                         </div>
                     </dl>
                     <a href="{{ route('cso.activities.index') }}" class="btn-secondary mt-4 w-full">Log an activity</a>

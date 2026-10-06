@@ -26,20 +26,20 @@
                         <tr class="table-row">
                             <td class="table-cell">
                                 <a href="{{ route('admin.news.edit', $post) }}"
-                                   class="font-medium text-brand-700 hover:underline">{{ $post->title }}</a>
+                                   class="entity-link">{{ $post->title }}</a>
                             </td>
                             <td class="table-cell"><x-status-badge :status="$post->status" /></td>
                             <td class="table-cell text-muted">
                                 {{ $post->organizations->pluck('name')->join(', ') ?: 'No organizations tagged' }}
                             </td>
-                            <td class="table-cell font-mono tabular-nums text-muted">
+                            <td class="table-date">
                                 {{ $post->published_at?->format('d M Y') ?? '--' }}
                             </td>
                             <td class="table-cell text-right">
                                 <form method="POST" action="{{ route('admin.news.destroy', $post) }}">
                                     @csrf
                                     @method('DELETE')
-                                    <button type="submit" class="btn-ghost px-3 py-1.5 text-danger-600">Delete</button>
+                                    <button type="submit" class="btn-ghost px-3 py-1.5 text-danger">Delete</button>
                                 </form>
                             </td>
                         </tr>

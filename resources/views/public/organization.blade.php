@@ -1,5 +1,5 @@
 <x-layouts.public :title="$organization->name">
-    <div class="border-b border-line bg-surface">
+    <div class="border-b border-line bg-band">
         <div class="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
             <a href="{{ route('directory') }}" class="text-sm font-semibold text-brand-700 hover:underline">
                 Back to the directory
@@ -99,7 +99,7 @@
                                     </p>
                                 @endif
                                 <p class="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted">
-                                    <span class="inline-flex items-center gap-1.5 text-success-600">
+                                    <span class="inline-flex items-center gap-1.5 text-success">
                                         <x-phosphor-seal-check class="h-4 w-4" aria-hidden="true" />
                                         Verified {{ $activity->verified_at?->format('d M Y') }}
                                     </span>

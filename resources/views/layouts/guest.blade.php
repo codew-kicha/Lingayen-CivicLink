@@ -51,7 +51,7 @@
                 @endisset
 
                 @if (session('status') && session('status') !== 'verification-link-sent')
-                    <p role="status" class="mt-6 rounded-sm border border-success-600 bg-success-100 px-4 py-3 text-sm font-medium text-success-600">
+                    <p role="status" class="mt-6 rounded-sm border border-success bg-success-subtle px-4 py-3 text-sm font-medium text-success">
                         {{ session('status') }}
                     </p>
                 @endif

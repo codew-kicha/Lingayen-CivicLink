@@ -38,7 +38,7 @@
                     <tbody>
                         @foreach ($entries as $entry)
                             <tr class="table-row">
-                                <td class="table-cell whitespace-nowrap font-mono text-xs tabular-nums text-muted">
+                                <td class="table-date">
                                     {{ $entry->created_at->format('d M Y, H:i:s') }}
                                 </td>
                                 <td class="table-cell">
@@ -53,7 +53,7 @@
                                         <span class="block">{{ str_replace('_', ' ', $key) }}: {{ is_array($value) ? implode(', ', $value) : $value }}</span>
                                     @endforeach
                                 </td>
-                                <td class="table-cell font-mono text-xs tabular-nums text-muted">{{ $entry->ip_address }}</td>
+                                <td class="table-cell whitespace-nowrap tabular-nums text-muted">{{ $entry->ip_address }}</td>
                             </tr>
                         @endforeach
                     </tbody>

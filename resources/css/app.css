@@ -1,4 +1,5 @@
 @import url('https://fonts.bunny.net/css?family=public-sans:400,500,600,700|ibm-plex-mono:400,500|merriweather:400,700,900&display=swap');
+@import './tokens.css';
 
 @tailwind base;
 @tailwind components;
@@ -22,111 +23,151 @@
     }
 
     :focus-visible {
-        @apply outline-2 outline-offset-2 outline-brand-600;
+        @apply outline-2 outline-offset-2 outline-focus;
     }
 }
 
+/*
+ * Shared components (docs/DESIGN_SYSTEM.md §4). Admin and CSO screens use only these and the tokens;
+ * spacing stays on the 4/8/12/16/24/32/48 scale, with `hair` (2px) and `tight` (6px) for badges.
+ */
 @layer components {
-    /* Buttons. Variants share the base; see DESIGN_SYSTEM.md §5.1. */
+    /* Buttons: 40px on desktop, 44px on touch breakpoints (below lg or a coarse pointer). */
     .btn {
-        @apply inline-flex items-center justify-center gap-2 rounded-md px-4 py-2.5
+        @apply inline-flex min-h-10 items-center justify-center gap-2 whitespace-nowrap rounded-md px-4 py-2
                text-sm font-semibold transition-colors duration-fast ease-out-strong
-               active:scale-[0.98] disabled:pointer-events-none;
+               active:scale-[0.98] disabled:pointer-events-none max-lg:min-h-11 touch:min-h-11;
     }
 
     .btn-primary {
-        @apply btn bg-brand-600 text-paper hover:bg-brand-700 active:bg-brand-800
-               disabled:bg-brand-200 disabled:text-muted;
+        @apply btn bg-primary text-on-primary hover:bg-primary-hover active:bg-primary-dark-hover
+               disabled:bg-primary/30;
     }
 
     .btn-secondary {
-        @apply btn border border-line-strong bg-paper text-brand-700
-               hover:border-brand-300 hover:bg-brand-50 active:bg-brand-100
-               disabled:border-line disabled:text-muted;
+        @apply btn border border-line-strong bg-paper text-primary
+               hover:border-primary/40 hover:bg-primary-subtle disabled:border-line disabled:text-muted;
     }
 
     .btn-ghost {
-        @apply btn text-brand-700 hover:bg-brand-50 active:bg-brand-100 disabled:text-muted;
-    }
-
-    /* The one rose call to action per view on the public site (Apply now, hero search). */
-    .btn-accent {
-        @apply btn bg-accent-500 px-5 text-brand-900 hover:bg-accent-400 active:bg-accent-600;
-    }
-
-    /* On photos and navy bands. */
-    .btn-on-dark {
-        @apply btn border border-brand-300 px-5 text-paper hover:bg-brand-800;
+        @apply btn text-primary hover:bg-primary-subtle disabled:text-muted;
     }
 
     .btn-danger {
-        @apply btn bg-danger-600 text-paper hover:brightness-90 active:brightness-75
-               disabled:bg-danger-100 disabled:text-muted;
+        @apply btn bg-danger text-on-primary hover:brightness-90 active:brightness-75
+               disabled:bg-danger-subtle disabled:text-muted;
     }
 
-    /* Forms. Labels above, errors below, see DESIGN_SYSTEM.md §5.2. */
+    /* Compact row action: same height rules, less horizontal padding. */
+    .btn-sm {
+        @apply px-3;
+    }
+
+    /* Public site only: the gold call to action, and buttons on photos and maroon bands. */
+    .btn-accent {
+        @apply btn bg-accent px-6 text-accent-fg hover:bg-accent-400 active:bg-accent-600;
+    }
+
+    .btn-on-dark {
+        @apply btn border border-brand-300 px-6 text-on-primary hover:bg-primary-dark-hover;
+    }
+
+    /* Forms: labels above, errors below and wired with aria-describedby. */
     .field-label {
-        @apply mb-1.5 block text-sm font-semibold text-ink;
+        @apply mb-2 block text-sm font-semibold text-ink;
     }
 
     .field-input {
         @apply w-full rounded-sm border border-line-strong bg-paper px-3 py-2 text-base
                text-ink transition-colors duration-fast ease-out-strong
-               placeholder:text-muted hover:border-brand-300
-               focus:border-brand-600 focus:ring-0
+               placeholder:text-muted hover:border-primary/60
+               focus:border-primary focus:ring-0
                disabled:cursor-not-allowed disabled:bg-canvas disabled:text-muted;
     }
 
     .field-input-error {
-        @apply border-danger-600;
+        @apply border-danger;
     }
 
     .field-error {
-        @apply mt-1.5 text-sm text-danger-600;
+        @apply mt-2 text-sm text-danger;
     }
 
     .field-hint {
-        @apply mt-1.5 text-sm text-muted;
+        @apply mt-2 text-sm text-muted;
     }
 
-    /* Panels. Admin surfaces drop the shadow. */
-    .panel {
+    /* Card: one radius, one border, one shadow. Padding is 24px (p-6), or 16px (p-4) when compact. */
+    .card {
         @apply rounded-lg border border-line bg-paper shadow-panel;
     }
 
+    /* Older names, kept as aliases of .card so both elevations collapse into one. */
+    .panel {
+        @apply card;
+    }
+
     .panel-flat {
-        @apply rounded-lg border border-line bg-paper;
+        @apply card;
     }
 
-    /* Status badges. Word plus color, never color alone. */
+    .card-title {
+        @apply text-card-title font-semibold text-ink;
+    }
+
+    /* Status pill: one height, never wraps, word plus colour (never colour alone). */
     .badge {
-        @apply inline-flex items-center gap-1.5 rounded-sm px-2 py-0.5 text-xs font-semibold;
+        @apply inline-flex h-6 shrink-0 items-center gap-tight whitespace-nowrap rounded-sm px-2
+               text-xs font-semibold;
     }
 
-    .badge-neutral { @apply badge border border-line bg-canvas text-muted; }
-    .badge-info    { @apply badge bg-info-100 text-info-600; }
-    .badge-warning { @apply badge bg-warning-100 text-warning-600; }
-    .badge-success { @apply badge bg-success-100 text-success-600; }
-    .badge-danger  { @apply badge bg-danger-100 text-danger-600; }
+    .badge-neutral { @apply badge border border-line bg-neutral-subtle text-neutral; }
+    .badge-info    { @apply badge bg-info-subtle text-info; }
+    .badge-warning { @apply badge bg-warning-subtle text-warning; }
+    .badge-success { @apply badge bg-success-subtle text-success; }
+    .badge-danger  { @apply badge bg-danger-subtle text-danger; }
 
-    /* Tables, the admin workhorse. See DESIGN_SYSTEM.md §5.5. */
+    /* Navigation count (sidebar, tabs): one style everywhere. */
+    .count-badge {
+        @apply inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-sm bg-accent px-tight
+               text-xs font-semibold tabular-nums text-accent-fg;
+    }
+
+    /* Entity names: text colour, maroon only on hover. Maroon is reserved for actions. */
+    .entity-link {
+        @apply font-semibold text-ink underline-offset-2 hover:text-primary hover:underline;
+    }
+
+    /* Tables. Wrap every table in .table-wrap so it scrolls inside its own box, never the page. */
+    .table-wrap {
+        @apply w-full overflow-x-auto;
+    }
+
     .table-head {
-        @apply border-b border-line-strong px-4 py-2 text-left text-xs font-semibold
+        @apply h-10 whitespace-nowrap border-b border-line-strong px-4 text-left text-xs font-semibold
                uppercase tracking-wide text-muted;
     }
 
     .table-cell {
-        @apply border-b border-line px-4 py-2.5 align-middle text-sm;
+        @apply h-12 border-b border-line px-4 py-2 align-middle text-sm;
     }
 
     .table-num {
-        @apply table-cell text-right font-mono tabular-nums;
+        @apply table-cell whitespace-nowrap text-right tabular-nums;
+    }
+
+    /* Dates: fixed width, one line, same font as the UI with tabular numerals. */
+    .table-date {
+        @apply table-cell w-32 whitespace-nowrap tabular-nums text-muted;
     }
 
     .table-row {
-        @apply transition-colors duration-fast ease-out-strong hover:bg-brand-50;
+        @apply transition-colors duration-fast ease-out-strong hover:bg-primary-subtle;
     }
 
+    .num {
+        @apply tabular-nums;
+    }
     /*
      * Public-site section titles, after pcnc.com.ph: centered serif heading over a short rose rule.
      * Used once per section, with no eyebrow above it.
@@ -159,7 +200,7 @@
         inset: 0;
         z-index: 0;
         pointer-events: none;
-        background: linear-gradient(90deg, oklch(0.27 0.085 20 / 0.92) 0%, oklch(0.27 0.085 20 / 0.7) 45%, oklch(0.27 0.085 20 / 0.25) 100%);
+        background: linear-gradient(90deg, rgb(var(--color-primary-dark) / 0.92) 0%, rgb(var(--color-primary-dark) / 0.7) 45%, rgb(var(--color-primary-dark) / 0.25) 100%);
     }
 
     /* Segmented utility buttons in the public identity bar (pcnc.com.ph's Report / Apply / Contact). */
@@ -169,13 +210,13 @@
     }
 
     .hero-control {
-        @apply inline-flex h-11 w-11 items-center justify-center rounded-md bg-[oklch(0.27_0.085_20/0.6)] text-paper
+        @apply inline-flex h-11 w-11 items-center justify-center rounded-md bg-primary-dark/60 text-paper
                transition-colors duration-fast ease-out-strong hover:bg-brand-900 active:scale-[0.97]
                focus-visible:outline-accent-400;
     }
 
     .photo-wash-even::after {
-        background: oklch(0.27 0.085 20 / 0.82);
+        background: rgb(var(--color-primary-dark) / 0.82);
     }
 
     /*
@@ -198,7 +239,7 @@
         inset: 0;
         z-index: 1;
         pointer-events: none;
-        background: oklch(0.395 0.118 20);
+        background: rgb(var(--color-primary-hover));
         mix-blend-mode: lighten;
     }
 
@@ -208,7 +249,7 @@
         inset: 0;
         z-index: 1;
         pointer-events: none;
-        background: linear-gradient(180deg, oklch(0.27 0.085 20 / 0.55), oklch(0.27 0.085 20 / 0.15));
+        background: linear-gradient(180deg, rgb(var(--color-primary-dark) / 0.55), rgb(var(--color-primary-dark) / 0.15));
         mix-blend-mode: multiply;
     }
 

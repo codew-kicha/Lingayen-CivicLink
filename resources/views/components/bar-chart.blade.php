@@ -18,10 +18,10 @@
                     <th scope="row" class="w-40 py-1.5 pr-3 text-left text-sm font-normal text-ink">{{ $name }}</th>
                     <td class="py-1.5">
                         <div class="h-4 w-full bg-canvas">
-                            <div class="h-4 bg-brand-500" style="width: {{ round(($value / $max) * 100, 1) }}%"></div>
+                            <div class="h-4 bg-chart-bar" style="width: {{ round(($value / $max) * 100, 1) }}%"></div>
                         </div>
                     </td>
-                    <td class="w-16 py-1.5 pl-3 text-right font-mono text-sm tabular-nums text-muted">
+                    <td class="w-16 py-1.5 pl-3 text-right text-sm tabular-nums text-muted">
                         {{ $formatter ? $formatter($value) : $value }}
                     </td>
                 </tr>

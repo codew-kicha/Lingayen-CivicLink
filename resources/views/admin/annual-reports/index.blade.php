@@ -56,17 +56,17 @@
                     <tbody>
                         @foreach ($reports as $report)
                             <tr class="table-row">
-                                <td class="table-cell font-mono tabular-nums">{{ $report->year }}</td>
+                                <td class="table-cell tabular-nums">{{ $report->year }}</td>
                                 <td class="table-cell">
                                     <a href="{{ route('annual-reports.download', $report) }}"
-                                       class="font-medium text-brand-700 hover:underline">{{ $report->title }}</a>
+                                       class="entity-link">{{ $report->title }}</a>
                                 </td>
                                 <td class="table-cell text-muted">{{ $report->uploadedBy?->name ?? 'Unknown' }}</td>
                                 <td class="table-cell text-right">
                                     <form method="POST" action="{{ route('admin.annual-reports.destroy', $report) }}">
                                         @csrf
                                         @method('DELETE')
-                                        <button type="submit" class="btn-ghost px-3 py-1.5 text-danger-600">Remove</button>
+                                        <button type="submit" class="btn-ghost px-3 py-1.5 text-danger">Remove</button>
                                     </form>
                                 </td>
                             </tr>

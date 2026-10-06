@@ -7,7 +7,7 @@
     </x-slot:intro>
 
     @if (session('status') === 'verification-link-sent')
-        <p role="status" class="mb-6 rounded-sm border border-success-600 bg-success-100 px-4 py-3 text-sm font-medium text-success-600">
+        <p role="status" class="mb-6 rounded-sm border border-success bg-success-subtle px-4 py-3 text-sm font-medium text-success">
             A new confirmation link has been sent.
         </p>
     @endif

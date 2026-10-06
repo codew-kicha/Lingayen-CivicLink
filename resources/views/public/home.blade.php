@@ -108,7 +108,7 @@
     </section>
 
     {{-- What is a CSO: text beside a photo. --}}
-    <section class="bg-surface">
+    <section class="bg-band">
         <div class="mx-auto grid max-w-7xl items-center gap-12 px-4 py-20 sm:px-6 lg:grid-cols-2 lg:px-8">
             <div>
                 <h2 class="section-title text-left">What counts as a CSO</h2>
@@ -199,7 +199,7 @@
     </section>
 
     {{-- The legal mandate, quoted from the Local Government Code. --}}
-    <section class="bg-surface">
+    <section class="bg-band">
         <div class="mx-auto max-w-4xl px-4 py-20 sm:px-6 lg:px-8">
         <figure class="rounded-lg bg-paper px-6 py-12 text-center shadow-panel sm:px-14">
             <x-phosphor-quotes class="mx-auto h-9 w-9 text-accent-500" aria-hidden="true" />

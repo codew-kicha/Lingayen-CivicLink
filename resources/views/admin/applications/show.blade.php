@@ -18,9 +18,9 @@
                 </div>
 
                 @if ($application->status === 'rejected' && $application->rejection_reason)
-                    <div class="mt-4 rounded-sm border border-danger-600 bg-danger-100 px-4 py-3">
-                        <p class="text-sm font-semibold text-danger-600">Reason for rejection</p>
-                        <p class="mt-1 text-sm text-danger-600">{{ $application->rejection_reason }}</p>
+                    <div class="mt-4 rounded-sm border border-danger bg-danger-subtle px-4 py-3">
+                        <p class="text-sm font-semibold text-danger">Reason for rejection</p>
+                        <p class="mt-1 text-sm text-danger">{{ $application->rejection_reason }}</p>
                     </div>
                 @endif
 
@@ -87,9 +87,9 @@
                                     </td>
                                     <td class="table-cell">
                                         <a href="{{ route('documents.download', $document) }}"
-                                           class="text-brand-700 hover:underline">{{ $document->original_filename }}</a>
+                                           class="entity-link">{{ $document->original_filename }}</a>
                                     </td>
-                                    <td class="table-cell font-mono tabular-nums text-muted">
+                                    <td class="table-date">
                                         {{ $document->expires_at?->format('d M Y') ?? '--' }}
                                     </td>
                                     <td class="table-cell"><x-ocr-badge :document="$document" /></td>
@@ -113,7 +113,7 @@
                                 <span class="text-sm font-medium text-ink">{{ $member->name }}</span>
                                 <span class="text-sm text-muted">{{ $member->position }}</span>
                                 @if ($member->contact_number)
-                                    <span class="ml-auto font-mono text-sm tabular-nums text-muted">{{ $member->contact_number }}</span>
+                                    <span class="ml-auto text-sm tabular-nums text-muted">{{ $member->contact_number }}</span>
                                 @endif
                             </li>
                         @endforeach
@@ -190,7 +190,7 @@
                     </div>
                     <div class="flex gap-3">
                         <dt class="text-muted">Filed on</dt>
-                        <dd class="ml-auto font-mono tabular-nums text-ink">
+                        <dd class="ml-auto tabular-nums text-ink">
                             {{ $application->submitted_at?->format('d M Y') ?? '--' }}
                         </dd>
                     </div>

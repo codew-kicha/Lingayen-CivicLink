@@ -37,7 +37,7 @@
                                 <div class="flex flex-wrap items-start gap-3">
                                     <div>
                                         <h3 class="font-semibold text-ink">{{ $activity->title }}</h3>
-                                        <p class="mt-0.5 font-mono text-sm tabular-nums text-muted">
+                                        <p class="mt-0.5 text-sm tabular-nums text-muted">
                                             {{ $activity->activity_date->format('d M Y') }}
                                             <span class="font-sans">&middot; {{ $activity->sourceLabel() }}</span>
                                         </p>
@@ -50,7 +50,7 @@
                                 @if ($activity->participants_estimate)
                                     <p class="mt-2 text-sm text-muted">
                                         Reached about
-                                        <span class="font-mono tabular-nums text-ink">
+                                        <span class="tabular-nums text-ink">
                                             {{ number_format($activity->participants_estimate) }}
                                         </span>
                                         residents
@@ -64,7 +64,7 @@
                                 @endif
 
                                 @if ($activity->status === 'rejected' && $activity->rejection_reason)
-                                    <p class="mt-3 rounded-sm border border-danger-600 bg-danger-100 px-3 py-2 text-sm text-danger-600">
+                                    <p class="mt-3 rounded-sm border border-danger bg-danger-subtle px-3 py-2 text-sm text-danger">
                                         {{ $activity->rejection_reason }}
                                     </p>
                                 @endif
@@ -83,7 +83,7 @@
                             <li class="flex flex-wrap items-center gap-3 px-5 py-3 text-sm">
                                 <span class="min-w-0">
                                     <span class="font-medium text-ink">{{ $activity->title }}</span>
-                                    <span class="block text-muted">{{ $activity->organization->name }} &middot; <span class="font-mono tabular-nums">{{ $activity->activity_date->format('d M Y') }}</span></span>
+                                    <span class="block text-muted">{{ $activity->organization->name }} &middot; <span class="tabular-nums">{{ $activity->activity_date->format('d M Y') }}</span></span>
                                 </span>
                                 <span class="ml-auto shrink-0"><x-status-badge :status="$activity->status" /></span>
                             </li>

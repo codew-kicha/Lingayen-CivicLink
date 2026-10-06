@@ -26,7 +26,7 @@
                     @error('email')<p class="field-error">{{ $message }}</p>@enderror
 
                     @unless ($user->hasVerifiedEmail())
-                        <p class="mt-2 text-sm text-warning-600">
+                        <p class="mt-2 text-sm text-warning">
                             This address isn't confirmed yet.
                             <button form="send-verification" class="font-semibold underline">Send the confirmation link again</button>
                         </p>
@@ -45,7 +45,7 @@
                 <div class="flex items-center gap-3">
                     <button type="submit" class="btn-primary">Save details</button>
                     @if (session('status') === 'profile-updated')
-                        <p role="status" class="text-sm text-success-600">Saved.</p>
+                        <p role="status" class="text-sm text-success">Saved.</p>
                     @endif
                 </div>
             </form>
@@ -71,7 +71,7 @@
                 <div class="flex items-center gap-3">
                     <button type="submit" class="btn-primary">Change password</button>
                     @if (session('status') === 'password-updated')
-                        <p role="status" class="text-sm text-success-600">Password changed.</p>
+                        <p role="status" class="text-sm text-success">Password changed.</p>
                     @endif
                 </div>
             </form>

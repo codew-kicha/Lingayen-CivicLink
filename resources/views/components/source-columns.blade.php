@@ -15,16 +15,16 @@
          aria-label="{{ $label }}: {{ $rows->map(fn ($r) => $r['label'].' '.$r['total'])->join(', ') }}">
         @foreach ($rows as $row)
             <div class="flex h-full flex-1 flex-col justify-end" title="{{ $row['label'] }}: {{ $row['independent'] }} self-initiated, {{ $row['lgu'] }} LGU-organized{{ $row['unknown'] ? ', '.$row['unknown'].' not recorded' : '' }}">
-                <div class="bg-line-strong" style="height: {{ round($row['unknown'] / $max * 100, 1) }}%"></div>
-                <div class="bg-brand-200" style="height: {{ round($row['lgu'] / $max * 100, 1) }}%"></div>
-                <div class="bg-brand-600" style="height: {{ round($row['independent'] / $max * 100, 1) }}%"></div>
+                <div class="bg-chart-unknown" style="height: {{ round($row['unknown'] / $max * 100, 1) }}%"></div>
+                <div class="bg-chart-lgu" style="height: {{ round($row['lgu'] / $max * 100, 1) }}%"></div>
+                <div class="bg-chart-self" style="height: {{ round($row['independent'] / $max * 100, 1) }}%"></div>
             </div>
         @endforeach
     </div>
 
     <div class="mt-2 flex gap-1 border-t border-line pt-2" aria-hidden="true">
         @foreach ($rows as $i => $row)
-            <span class="flex-1 text-center font-mono text-[0.6rem] tabular-nums text-muted">
+            <span class="flex-1 text-center text-xs tabular-nums text-muted">
                 {{ $everyOther && $i % 2 ? '' : Str::before($row['label'], ' ') }}
             </span>
         @endforeach

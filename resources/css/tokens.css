@@ -1,0 +1,64 @@
+/*
+ * CivicLink design tokens: the single source of truth for colour (docs/DESIGN_SYSTEM.md).
+ * Values are space-separated sRGB channels so Tailwind can apply opacity:
+ * tailwind.config.js reads each one as rgb(var(--color-x) / <alpha-value>).
+ * Generated from the OKLCH values noted beside each token; contrast ratios are WCAG 2.
+ */
+:root {
+    /* Brand roles (admin and CSO screens use these, never the raw scale) */
+    --color-primary: 143 51 57; /* oklch(0.455 0.125 20) buttons, focus ring on light surfaces, selected state */
+    --color-primary-hover: 121 36 43; /* oklch(0.395 0.118 20) button hover */
+    --color-primary-dark: 71 15 20; /* oklch(0.27 0.085 20) sidebar and top bar surface */
+    --color-primary-dark-hover: 101 23 31; /* oklch(0.3405 0.11 20) sidebar hover and active item; the public menu bar */
+    --color-primary-subtle: 253 243 243; /* oklch(0.972 0.01 20) row hover, selected option background */
+    --color-on-primary: 253 253 253; /* oklch(0.995 0 0) text on primary and primary-dark */
+    --color-on-dark: 239 200 198; /* oklch(0.865 0.045 20) sidebar link text (10.2:1 on primary-dark) */
+    --color-on-dark-muted: 221 158 157; /* oklch(0.76 0.075 20) sidebar captions (7.0:1 on primary-dark) */
+    --color-accent: 237 166 46; /* oklch(0.775 0.15 75) gold: count badges, public call to action */
+    --color-on-accent: 71 15 20; /* oklch(0.27 0.085 20) text on accent (7.5:1) */
+    --color-focus: 143 51 57; /* oklch(0.455 0.125 20) focus ring on light surfaces */
+    --color-focus-on-dark: 245 189 86; /* oklch(0.83 0.135 80) focus ring on primary-dark */
+
+    /* Surfaces, borders, text */
+    --color-surface: 253 253 253; /* oklch(0.995 0 0) cards, inputs, page on the public site */
+    --color-surface-muted: 243 243 243; /* oklch(0.965 0 0) admin and CSO page background, neutral fills */
+    --color-band: 199 199 199; /* oklch(0.8282 0 0) public site alternating grey bands only */
+    --color-border: 217 217 217; /* oklch(0.885 0 0) dividers and card borders */
+    --color-border-strong: 143 143 143; /* oklch(0.65 0 0) input borders (3.18:1 on surface, WCAG 1.4.11) */
+    --color-text: 43 37 34; /* oklch(0.27 0.01 50) body text (14.9:1) */
+    --color-text-muted: 82 76 72; /* oklch(0.42 0.01 50) secondary text (8.4:1 on surface, 5.0:1 on band) */
+
+    /* Status (by meaning only; text on its own subtle background is at least 4.5:1) */
+    --color-info: 41 104 152; /* oklch(0.5 0.1 245) */
+    --color-info-subtle: 222 239 255; /* oklch(0.945 0.028 245) */
+    --color-success: 24 122 59; /* oklch(0.51 0.13 150) was #1d7d3e (4.47:1), now 4.67:1 */
+    --color-success-subtle: 219 245 223; /* oklch(0.945 0.04 150) */
+    --color-warning: 157 89 0; /* oklch(0.53 0.14 70) was #bb7400 (3.21:1), now 4.67:1 */
+    --color-warning-subtle: 255 235 206; /* oklch(0.95 0.045 75) */
+    --color-danger: 182 50 45; /* oklch(0.52 0.17 27) */
+    --color-danger-subtle: 255 229 224; /* oklch(0.945 0.035 27) */
+
+    /* Chart series */
+    --color-chart-self: 143 51 57; /* oklch(0.455 0.125 20) self-initiated activities */
+    --color-chart-lgu: 239 200 198; /* oklch(0.865 0.045 20) LGU-organized activities */
+    --color-chart-unknown: 177 177 177; /* oklch(0.76 0 0) source not recorded */
+    --color-chart-bar: 168 73 77; /* oklch(0.53 0.125 20) single-series bars */
+
+    /* Public-site scale (public pages only; app screens use the roles above) */
+    --color-brand-50: 253 243 243; /* oklch(0.972 0.01 20) */
+    --color-brand-100: 248 228 227; /* oklch(0.935 0.022 20) */
+    --color-brand-200: 239 200 198; /* oklch(0.865 0.045 20) */
+    --color-brand-300: 221 158 157; /* oklch(0.76 0.075 20) */
+    --color-brand-400: 196 113 113; /* oklch(0.64 0.105 20) */
+    --color-brand-500: 168 73 77; /* oklch(0.53 0.125 20) */
+    --color-brand-600: 143 51 57; /* oklch(0.455 0.125 20) */
+    --color-brand-700: 121 36 43; /* oklch(0.395 0.118 20) */
+    --color-brand-800: 101 23 31; /* oklch(0.3405 0.11 20) */
+    --color-brand-900: 71 15 20; /* oklch(0.27 0.085 20) */
+    --color-accent-100: 254 239 207; /* oklch(0.955 0.045 85) */
+    --color-accent-200: 250 220 158; /* oklch(0.905 0.085 85) */
+    --color-accent-400: 245 189 86; /* oklch(0.83 0.135 80) */
+    --color-accent-500: 237 166 46; /* oklch(0.775 0.15 75) */
+    --color-accent-600: 206 135 27; /* oklch(0.68 0.14 70) */
+    --color-accent-700: 155 94 17; /* oklch(0.54 0.115 65) */
+}

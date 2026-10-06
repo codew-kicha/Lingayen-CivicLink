@@ -10,7 +10,7 @@
                 'renewal' => 'Renewal of an existing accreditation',
             ] as $value => $label)
                 <label class="flex items-start gap-3 rounded-sm border border-line-strong p-3
-                              hover:border-brand-300 has-[:checked]:border-brand-600 has-[:checked]:bg-brand-50">
+                              hover:border-primary/40 has-[:checked]:border-primary has-[:checked]:bg-primary-subtle">
                     <input type="radio" name="type" value="{{ $value }}" class="mt-0.5"
                            @checked(old('type', $hasActiveAccreditation ? 'renewal' : 'new') === $value) required>
                     <span class="text-sm text-ink">{{ $label }}</span>
@@ -53,8 +53,8 @@
                        class="mt-1.5 flex items-start gap-1.5 text-sm"
                        :class="{
                            'text-muted': state === 'reading' || state === 'failed',
-                           'text-success-600': state === 'matched',
-                           'text-warning-600': state === 'mismatch' || state === 'unreadable',
+                           'text-success': state === 'matched',
+                           'text-warning': state === 'mismatch' || state === 'unreadable',
                        }">
                         <span x-show="state === 'reading'">Reading the document. You can keep filling in the form.</span>
                         <span x-show="state === 'matched'">This looks like the {{ Str::lower($type['label']) }}.</span>

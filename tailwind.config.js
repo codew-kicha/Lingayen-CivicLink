@@ -1,7 +1,10 @@
 import defaultTheme from 'tailwindcss/defaultTheme';
 import forms from '@tailwindcss/forms';
+import plugin from 'tailwindcss/plugin';
 
-// Token definitions live in docs/DESIGN_SYSTEM.md. Keep the two in sync.
+// Colour values live in resources/css/tokens.css; this file only maps class names to them.
+const token = (name) => `rgb(var(--color-${name}) / <alpha-value>)`;
+const scale = (name, steps) => Object.fromEntries(steps.map((step) => [step, token(`${name}-${step}`)]));
 /** @type {import('tailwindcss').Config} */
 export default {
     content: [
@@ -19,66 +22,70 @@ export default {
                 mono: ['"IBM Plex Mono"', ...defaultTheme.fontFamily.mono],
             },
 
+            // Every colour reads a CSS variable from resources/css/tokens.css (the single source of
+            // truth), so opacity utilities like bg-primary-dark/60 work. See docs/DESIGN_SYSTEM.md.
             colors: {
-                // Palette set by the client team (2026-10-06), after pcnc.com.ph: a maroon brand bar,
-                // white and grey surfaces, warm charcoal text. 800 is the exact header maroon.
-                brand: {
-                    50: 'oklch(0.972 0.010 20)',
-                    100: 'oklch(0.935 0.022 20)',
-                    200: 'oklch(0.865 0.045 20)',
-                    300: 'oklch(0.760 0.075 20)',
-                    400: 'oklch(0.640 0.105 20)',
-                    500: 'oklch(0.530 0.125 20)',
-                    600: 'oklch(0.455 0.125 20)',
-                    700: 'oklch(0.395 0.118 20)',
-                    800: 'oklch(0.3405 0.11 20)',
-                    900: 'oklch(0.270 0.085 20)',
+                primary: {
+                    DEFAULT: token('primary'),
+                    hover: token('primary-hover'),
+                    dark: token('primary-dark'),
+                    'dark-hover': token('primary-dark-hover'),
+                    subtle: token('primary-subtle'),
                 },
-                // Warm gold accent, used sparingly: active menu item, the Apply call to action, rules.
+                'on-primary': token('on-primary'),
+                'on-dark': token('on-dark'),
+                'on-dark-muted': token('on-dark-muted'),
                 accent: {
-                    100: 'oklch(0.955 0.045 85)',
-                    200: 'oklch(0.905 0.085 85)',
-                    400: 'oklch(0.830 0.135 80)',
-                    500: 'oklch(0.775 0.150 75)',
-                    600: 'oklch(0.680 0.140 70)',
-                    700: 'oklch(0.540 0.115 65)',
+                    DEFAULT: token('accent'),
+                    fg: token('on-accent'),
+                    ...scale('accent', [100, 200, 400, 500, 600, 700]),
                 },
-                paper: 'oklch(0.995 0 0)',          // white: page and raised surfaces
-                surface: 'oklch(0.8282 0 0)',       // grey: alternating public bands
-                canvas: 'oklch(0.965 0 0)',         // admin and CSO page background
+                focus: {
+                    DEFAULT: token('focus'),
+                    'on-dark': token('focus-on-dark'),
+                },
+                // Public-site scale; admin and CSO screens use the roles above.
+                brand: scale('brand', [50, 100, 200, 300, 400, 500, 600, 700, 800, 900]),
+                // Spec names in tokens.css; the short class names were kept to avoid renaming ~300 uses.
+                paper: token('surface'),        // --color-surface
+                canvas: token('surface-muted'), // --color-surface-muted
+                band: token('band'),            // public grey bands only
                 line: {
-                    DEFAULT: 'oklch(0.885 0 0)',
-                    strong: 'oklch(0.760 0 0)',
+                    DEFAULT: token('border'),
+                    strong: token('border-strong'),
                 },
-                muted: 'oklch(0.420 0.010 50)',     // 4.5:1 or better on the grey bands too
-                ink: 'oklch(0.270 0.010 50)',
-                success: {
-                    100: 'oklch(0.945 0.040 150)',
-                    600: 'oklch(0.520 0.130 150)',
-                },
-                warning: {
-                    100: 'oklch(0.950 0.045 75)',
-                    600: 'oklch(0.620 0.140 70)',
-                },
-                danger: {
-                    100: 'oklch(0.945 0.035 27)',
-                    600: 'oklch(0.520 0.170 27)',
-                },
-                info: {
-                    100: 'oklch(0.945 0.028 245)',
-                    600: 'oklch(0.500 0.100 245)',
+                ink: token('text'),             // --color-text
+                muted: token('text-muted'),     // --color-text-muted
+                info: { DEFAULT: token('info'), subtle: token('info-subtle') },
+                success: { DEFAULT: token('success'), subtle: token('success-subtle') },
+                warning: { DEFAULT: token('warning'), subtle: token('warning-subtle') },
+                danger: { DEFAULT: token('danger'), subtle: token('danger-subtle') },
+                neutral: { DEFAULT: token('text-muted'), subtle: token('surface-muted') },
+                chart: {
+                    self: token('chart-self'),
+                    lgu: token('chart-lgu'),
+                    unknown: token('chart-unknown'),
+                    bar: token('chart-bar'),
                 },
             },
 
             fontSize: {
                 xs: ['0.75rem', { lineHeight: '1.4' }],
-                sm: ['0.875rem', { lineHeight: '1.45' }],
+                sm: ['0.875rem', { lineHeight: '1.5rem' }],
+                'card-title': ['1.125rem', { lineHeight: '1.5rem' }],  // 18/24
+                'page-title': ['1.5rem', { lineHeight: '2rem' }],      // 24/32
                 base: ['1rem', { lineHeight: '1.55' }],
                 lg: ['1.25rem', { lineHeight: '1.45' }],
                 xl: ['1.5rem', { lineHeight: '1.3' }],
                 '2xl': ['1.95rem', { lineHeight: '1.2', letterSpacing: '-0.02em' }],
                 '3xl': ['2.45rem', { lineHeight: '1.15', letterSpacing: '-0.02em' }],
                 display: ['3.05rem', { lineHeight: '1.1', letterSpacing: '-0.02em' }],
+            },
+
+            // Micro-spacing, named so it's used on purpose: badge padding and small icon gaps only.
+            spacing: {
+                hair: '2px',
+                tight: '6px',
             },
 
             borderRadius: {
@@ -88,8 +95,9 @@ export default {
             },
 
             boxShadow: {
-                panel: '0 1px 2px oklch(0.27 0.085 20 / 0.06)',
-                overlay: '0 8px 24px oklch(0.27 0.085 20 / 0.14)',
+                // One elevation for cards; overlay is for the drawer and dialogs only.
+                panel: '0 1px 2px rgb(var(--color-primary-dark) / 0.06)',
+                overlay: '0 8px 24px rgb(var(--color-primary-dark) / 0.14)',
             },
 
             transitionTimingFunction: {
@@ -112,5 +120,10 @@ export default {
         },
     },
 
-    plugins: [forms],
+    plugins: [
+        forms,
+        // `touch:` targets coarse pointers (phones, tablets) for 44px hit areas. A plugin, not a
+        // `screens` entry, because raw screens switch off Tailwind's max-* variants.
+        plugin(({ addVariant }) => addVariant('touch', '@media (pointer: coarse)')),
+    ],
 };

@@ -12,7 +12,7 @@
             </div>
 
             @if (session('importErrors'))
-                <div role="alert" class="rounded-sm border border-danger-600 bg-danger-100 p-4 text-sm text-danger-600">
+                <div role="alert" class="rounded-sm border border-danger bg-danger-subtle p-4 text-sm text-danger">
                     <p class="font-semibold">Nothing was imported. Fix these rows and upload again:</p>
                     <ul class="mt-2 list-disc space-y-1 pl-5">
                         @foreach (session('importErrors') as $line => $error)
