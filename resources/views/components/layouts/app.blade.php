@@ -27,7 +27,8 @@
     </div>
 
     <div class="flex min-h-screen">
-        <aside class="sticky top-0 hidden h-screen w-64 shrink-0 flex-col self-start overflow-y-auto bg-primary-dark lg:flex">
+        {{-- Locked to the viewport: never scrolls with the page. Only the nav inside may scroll, as a fallback. --}}
+        <aside class="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col self-start bg-primary-dark lg:flex">
             @include('components.layouts.partials.sidebar')
         </aside>
 
@@ -37,7 +38,7 @@
             <aside x-show="drawer" x-trap.noscroll.inert="drawer"
                    x-transition:enter="transition duration-base ease-out-strong" x-transition:enter-start="-translate-x-full"
                    x-transition:leave="transition duration-fast ease-out-strong" x-transition:leave-end="-translate-x-full"
-                   class="relative flex h-full w-72 max-w-[85vw] flex-col overflow-y-auto bg-primary-dark">
+                   class="relative flex h-dvh w-72 max-w-[85vw] flex-col bg-primary-dark">
                 <button type="button" @click="drawer = false"
                         class="absolute right-2 top-3 inline-flex h-11 w-11 items-center justify-center rounded-sm text-on-primary
                                hover:bg-primary-dark-hover focus-visible:outline-focus-on-dark">

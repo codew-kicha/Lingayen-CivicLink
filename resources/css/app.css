@@ -219,6 +219,21 @@
                hover:bg-brand-50 hover:text-brand-800 focus-visible:outline-brand-600;
     }
 
+    /* Sidebar nav fallback scroll for very short windows: thin, maroon, unobtrusive. */
+    .sidebar-scroll {
+        scrollbar-width: thin;
+        scrollbar-color: rgb(var(--color-primary-dark-hover)) transparent;
+    }
+
+    .sidebar-scroll::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .sidebar-scroll::-webkit-scrollbar-thumb {
+        background: rgb(var(--color-primary-dark-hover));
+        border-radius: 3px;
+    }
+
     .hero-control {
         @apply inline-flex h-11 w-11 items-center justify-center rounded-md bg-primary-dark/60 text-paper
                transition-colors duration-fast ease-out-strong hover:bg-brand-900 active:scale-[0.97]
