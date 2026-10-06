@@ -175,6 +175,33 @@
         @apply transition-colors duration-fast ease-out-strong hover:bg-primary-subtle;
     }
 
+    /*
+     * Long lists at lg and up: the table header sticks to the viewport. Below lg the wrapper scrolls
+     * sideways, and a sticky th would only stick inside it, so the header is static there.
+     */
+    .table-sticky {
+        @apply lg:overflow-visible;
+    }
+
+    .table-sticky .table-head {
+        @apply lg:sticky lg:top-0 lg:z-dropdown lg:bg-paper;
+    }
+
+    /* Pagination controls: rectangular, 4px radius, current page in maroon. 36px on desktop. */
+    .page-link {
+        @apply inline-flex min-h-9 min-w-9 items-center justify-center gap-1 rounded-sm border border-line bg-paper px-3
+               text-sm font-semibold tabular-nums text-ink transition-colors duration-fast ease-out-strong
+               hover:border-primary/40 hover:bg-primary-subtle max-lg:min-h-11 max-lg:min-w-11 touch:min-h-11 touch:min-w-11;
+    }
+
+    .page-link-current {
+        @apply border-primary bg-primary text-on-primary hover:border-primary hover:bg-primary;
+    }
+
+    .page-link-disabled {
+        @apply cursor-not-allowed text-muted opacity-60 hover:border-line hover:bg-paper;
+    }
+
     .num {
         @apply tabular-nums;
     }

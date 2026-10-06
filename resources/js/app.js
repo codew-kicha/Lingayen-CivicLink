@@ -51,6 +51,13 @@ Alpine.data('pageProgress', () => ({
     },
 }));
 
+// After a pagination link (…#page-title), move focus to the page heading so keyboard and screen
+// reader users land on the new results rather than at the top of the document.
+window.addEventListener('DOMContentLoaded', () => {
+    const target = location.hash && document.getElementById(location.hash.slice(1));
+    if (target && target.getAttribute('tabindex') === '-1') target.focus();
+});
+
 // Home hero video (public/videos/lingayen_hero.mp4) loops continuously with no controls, by the
 // client's choice. It starts only when the device doesn't ask for reduced motion or data saving;
 // otherwise the poster stays and the file is never fetched (preload="none").

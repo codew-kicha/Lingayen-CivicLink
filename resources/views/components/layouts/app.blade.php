@@ -63,7 +63,8 @@
             <main id="main" class="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
                 <div class="mb-6 flex flex-wrap items-start gap-x-6 gap-y-4">
                     <div class="min-w-0 flex-1 basis-80">
-                        <h1 class="text-page-title font-semibold text-ink">{{ $header }}</h1>
+                        {{-- Pagination links point here (#page-title) so focus lands on the results after a page change. --}}
+                        <h1 id="page-title" tabindex="-1" class="text-page-title font-semibold text-ink">{{ $header }}</h1>
                         @if ($subheader)
                             <p class="mt-1 max-w-[72ch] text-sm text-muted">{{ $subheader }}</p>
                         @endif
