@@ -37,7 +37,7 @@
         <section class="card" aria-labelledby="apps-title">
             <div class="flex items-center gap-3 border-b border-line px-4 py-3">
                 <h2 id="apps-title" class="card-title">Applications awaiting review</h2>
-                <a href="{{ route('admin.applications.index') }}" class="ml-auto whitespace-nowrap text-sm font-semibold text-primary hover:underline">View queue</a>
+                <a href="{{ route('admin.applications.index') }}" class="ml-auto whitespace-nowrap text-sm font-semibold text-primary hover:underline">View all {{ $counts['awaiting_review'] }}</a>
             </div>
 
             @if ($recentApplications->isEmpty())
@@ -73,7 +73,7 @@
         <section class="card" aria-labelledby="acts-title">
             <div class="flex items-center gap-3 border-b border-line px-4 py-3">
                 <h2 id="acts-title" class="card-title">Activities awaiting verification</h2>
-                <a href="{{ route('admin.activities.index') }}" class="ml-auto whitespace-nowrap text-sm font-semibold text-primary hover:underline">View queue</a>
+                <a href="{{ route('admin.activities.index') }}" class="ml-auto whitespace-nowrap text-sm font-semibold text-primary hover:underline">View all {{ $counts['pending_activities'] }}</a>
             </div>
 
             @if ($recentActivities->isEmpty())

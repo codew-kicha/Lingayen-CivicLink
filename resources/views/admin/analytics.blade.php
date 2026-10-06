@@ -89,10 +89,10 @@
                     verified activity in this period, or only LGU-organized activity. Least active first.
                 </p>
             </div>
-            <span class="badge-warning ml-auto">{{ $atRisk->count() }}</span>
+            <span class="badge-warning ml-auto">{{ $atRiskTotal }}</span>
         </div>
         @if ($atRisk->isEmpty())
-            <p class="px-4 py-12 text-center text-sm text-muted">No accredited organization is at risk in this period.</p>
+            <x-empty-state title="No accredited organization is at risk in this period." icon="seal-check" />
         @else
             <div class="table-wrap">
                 <table class="w-full">
@@ -128,6 +128,15 @@
                     </tbody>
                 </table>
             </div>
+        @endif
+        @if ($atRiskTotal > 0)
+            <p class="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-line px-4 py-3 text-sm text-muted">
+                <span class="tabular-nums">Showing {{ $atRisk->count() }} of {{ $atRiskTotal }} at-risk</span>
+                @if ($atRiskTotal > $atRisk->count())
+                    <a href="{{ route('admin.organizations.index', ['status' => 'at-risk'] + $query) }}" class="font-semibold text-primary hover:underline">See all in Organizations</a>
+                @endif
+                <a href="{{ route('admin.analytics.excel', $query) }}" class="font-semibold text-primary hover:underline">Full list in the Excel workbook</a>
+            </p>
         @endif
     </section>
 

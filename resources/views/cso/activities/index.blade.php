@@ -93,7 +93,7 @@
 
                 @if ($taggedIn->isNotEmpty())
                     <h2 class="mt-8 font-semibold text-ink">Tagged as a partner</h2>
-                    <p class="mt-1 text-sm text-muted">Logged by other organizations. Verified entries count toward your score too.</p>
+                    <p class="mt-1 text-sm text-muted">Logged by other organizations. Verified entries count toward your score too.@if ($taggedInTotal > $taggedIn->count()) Showing the latest {{ $taggedIn->count() }} of {{ $taggedInTotal }}.@endif</p>
                     <ul class="panel mt-4 divide-y divide-line">
                         @foreach ($taggedIn as $activity)
                             <li class="flex flex-wrap items-center gap-3 px-4 py-3 text-sm">

@@ -98,7 +98,7 @@ class OrganizationModerationController extends Controller
                 ->where('subject_type', 'Organization')
                 ->where('subject_id', $organization->id)
                 ->latest('created_at')
-                ->limit(15)
+                ->limit(5)
                 ->get(),
         ]);
     }

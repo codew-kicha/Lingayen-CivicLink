@@ -34,6 +34,7 @@ class ActivityController extends Controller
                 ->latest('activity_date')
                 ->limit(10)
                 ->get() ?? collect(),
+            'taggedInTotal' => $organization?->partneredActivities()->count() ?? 0,
         ]);
     }
 

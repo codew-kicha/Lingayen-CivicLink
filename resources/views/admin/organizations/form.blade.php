@@ -162,7 +162,10 @@
                 </section>
 
                 <section class="panel p-6">
-                    <h2 class="font-semibold text-ink">Recent history</h2>
+                    <div class="flex items-center gap-3">
+                        <h2 class="card-title">Recent history</h2>
+                        <a href="{{ route('admin.audit.index', ['organization' => $organization->id]) }}" class="ml-auto whitespace-nowrap text-sm font-semibold text-primary hover:underline">Full history</a>
+                    </div>
                     @forelse ($history as $entry)
                         <div class="border-b border-line py-3 text-sm last:border-0">
                             <p class="text-ink">{{ str_replace(['.', '_'], ' ', ucfirst($entry->action)) }}</p>

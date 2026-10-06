@@ -27,12 +27,12 @@ class DashboardController extends Controller
             'recentApplications' => ApplicationModel::with('organization')
                 ->whereIn('status', ['submitted', 'under_review'])
                 ->latest('submitted_at')
-                ->limit(8)
+                ->limit(5)
                 ->get(),
             'recentActivities' => Activity::with('organization')
                 ->where('status', 'pending')
                 ->latest('created_at')
-                ->limit(8)
+                ->limit(5)
                 ->get(),
             'organizationCount' => Organization::count(),
         ]);
