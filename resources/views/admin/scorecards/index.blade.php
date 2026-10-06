@@ -7,14 +7,27 @@
         </form>
     </x-slot:actions>
 
-    <section class="panel-flat overflow-hidden">
+    <form method="GET" class="mb-4 flex flex-wrap items-end gap-3">
+        <div>
+            <label for="q" class="field-label">Search</label>
+            <input type="search" id="q" name="q" value="{{ request('q') }}" placeholder="Organization name" class="field-input w-72">
+        </div>
+        <x-keep-query />
+        <button type="submit" class="btn-primary">Search</button>
+        @if (request()->filled('q'))
+            <a href="{{ route('admin.scorecards.index') }}" class="btn-ghost">Clear</a>
+        @endif
+    </form>
+
+    <section class="card">
         @if ($organizations->isEmpty())
-            <p class="px-4 py-12 text-center text-sm text-muted">No organizations are registered yet.</p>
+            <x-empty-state :filtered="request()->filled('q')" :clear-url="route('admin.scorecards.index')"
+                           title="No organizations are registered yet." icon="gauge" />
         @else
-            <div class="table-wrap">
+            <div class="table-wrap table-sticky">
                 <table class="w-full">
                     <caption class="sr-only">Performance scores by organization</caption>
-                    <thead class="sticky top-0 bg-paper">
+                    <thead>
                         <tr>
                             <th scope="col" class="table-head">Organization</th>
                             <th scope="col" class="table-head text-right">Activity frequency</th>
@@ -50,5 +63,5 @@
         @endif
     </section>
 
-    <div class="mt-4">{{ $organizations->links() }}</div>
+    <x-pagination :paginator="$organizations" :default="25" />
 </x-layouts.app>
