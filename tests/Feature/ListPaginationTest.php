@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Activity;
 use App\Models\ApplicationModel;
 use App\Models\AuditLog;
 use App\Models\Organization;
@@ -33,6 +34,9 @@ class ListPaginationTest extends TestCase
             }],
             'applications queue' => ['admin.applications.index', 'admin', 25, ['status' => 'submitted'], function (User $viewer, int $rows) {
                 ApplicationModel::factory()->count($rows)->create(['status' => 'submitted']);
+            }],
+            'verify activities' => ['admin.activities.index', 'admin', 10, ['status' => 'verified'], function (User $viewer, int $rows) {
+                Activity::factory()->count($rows)->verified()->create();
             }],
         ];
     }
@@ -66,15 +70,17 @@ class ListPaginationTest extends TestCase
     public function test_per_page_is_whitelisted_and_out_of_range_pages_redirect(string $route, string $role, int $default, array $filters, \Closure $seed): void
     {
         $viewer = $this->viewer($role);
-        $seed($viewer, $default + 1);
+        $other = $default === 10 ? 25 : 10;     // a valid size that isn't this list's default
+        $rows = max($default, $other) + 1;
+        $seed($viewer, $rows);
 
         $this->actingAs($viewer)->get(route($route, $filters + ['per_page' => 7]))
             ->assertOk()->assertSee('Showing 1-'.$default.' of ', false);
-        $this->actingAs($viewer)->get(route($route, $filters + ['per_page' => 10]))
-            ->assertOk()->assertSee('Showing 1-10 of ', false)->assertSee('per_page=10&amp;page=2', false);
+        $this->actingAs($viewer)->get(route($route, $filters + ['per_page' => $other]))
+            ->assertOk()->assertSee('Showing 1-'.$other.' of ', false)->assertSee('per_page='.$other.'&amp;page=2', false);
 
         $this->actingAs($viewer)->get(route($route, $filters + ['page' => 99]))
-            ->assertRedirect(route($route, $filters + ['page' => 2]));
+            ->assertRedirect(route($route, $filters + ['page' => (int) ceil($rows / $default)]));
     }
 
     #[DataProvider('lists')]
@@ -85,13 +91,15 @@ class ListPaginationTest extends TestCase
 
         $html = $this->actingAs($viewer)->get(route($route, $filters + ['page' => 1, 'per_page' => 25]))->assertOk()->getContent();
 
-        // Every GET form on the page (filters, page size) drops `page`; filter forms carry per_page.
+        // Every GET form on the page (filters, page size) drops `page`.
         preg_match_all('/<form method="GET".*?<\/form>/s', $html, $forms);
         $this->assertNotEmpty($forms[0]);
         foreach ($forms[0] as $form) {
             $this->assertStringNotContainsString('name="page"', $form);
         }
-        $this->assertStringContainsString('name="per_page" value="25"', $forms[0][0]);
+        // The filter control keeps the page size: a hidden field in a filter form, or tab links.
+        $this->assertMatchesRegularExpression('/name="per_page" value="25"|href="[^"]*per_page=25[^"]*"/', $html);
+        $this->assertDoesNotMatchRegularExpression('/href="[^"]*[?&]page=1\b/', $html);
     }
 
     #[DataProvider('lists')]

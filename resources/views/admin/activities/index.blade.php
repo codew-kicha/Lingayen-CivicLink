@@ -2,24 +2,25 @@
                  subheader="Logged activities count toward an organization's score only after verification.">
     <nav aria-label="Filter by status" class="mb-4 flex flex-wrap gap-1">
         @foreach (['pending' => 'Pending', 'verified' => 'Verified', 'rejected' => 'Rejected'] as $status => $label)
-            <a href="{{ route('admin.activities.index', ['status' => $status]) }}"
+            {{-- A tab is a filter: it keeps the page size and returns to page 1. --}}
+            <a href="{{ route('admin.activities.index', array_filter(['status' => $status, 'per_page' => request('per_page')])) }}"
                @if ($currentStatus === $status) aria-current="page" @endif
                class="rounded-sm px-3 py-2 text-sm font-semibold transition-colors duration-fast ease-out-strong
                       {{ $currentStatus === $status ? 'bg-primary text-on-primary' : 'text-ink hover:bg-primary-subtle' }}">
                 {{ $label }}
                 @if ($status === 'pending' && $pendingCount)
-                    <span class="ml-1 tabular-nums">{{ $pendingCount }}</span>
+                    <span class="count-badge ml-1">{{ $pendingCount }}</span>
                 @endif
             </a>
         @endforeach
     </nav>
 
     @if ($activities->isEmpty())
-        <div class="panel-flat px-4 py-12 text-center">
-            <p class="font-semibold text-ink">Nothing here.</p>
-            <p class="mt-1 text-sm text-muted">
-                No {{ $currentStatus }} activities. Activities appear here as organizations log them.
-            </p>
+        <div class="card">
+            <x-empty-state :filtered="$currentStatus !== 'pending'" :clear-url="route('admin.activities.index')"
+                           title="No activities are waiting for verification." icon="check-square">
+                Activities appear here as organizations log them.
+            </x-empty-state>
         </div>
     @else
         <div class="space-y-3">
@@ -101,6 +102,6 @@
             @endforeach
         </div>
 
-        <div class="mt-4">{{ $activities->links() }}</div>
+        <x-pagination :paginator="$activities" :default="10" />
     @endif
 </x-layouts.app>

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Support\ListPagination;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\RejectActivityRequest;
 use App\Models\Activity;
@@ -20,11 +21,10 @@ class ActivityVerificationController extends Controller
         $this->authorize('viewAny', Activity::class);
 
         return view('admin.activities.index', [
-            'activities' => Activity::with(['organization', 'loggedBy', 'partnerOrganizations:id,name'])
+            'activities' => ListPagination::paginate(Activity::with(['organization', 'loggedBy', 'partnerOrganizations:id,name'])
                 ->where('status', $request->input('status', 'pending'))
-                ->latest('activity_date')
-                ->paginate(20)
-                ->withQueryString(),
+                ->latest('activity_date'),
+                $request, 10),
             'currentStatus' => $request->input('status', 'pending'),
             'pendingCount' => Activity::where('status', 'pending')->count(),
         ]);
