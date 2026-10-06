@@ -7,7 +7,7 @@
     <link rel="icon" type="image/png" href="{{ asset('images/brand/favicon.png') }}">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="min-h-screen bg-canvas">
+<body class="min-h-screen bg-canvas" x-data="{ drawer: false }" @keydown.escape.window="drawer = false">
     <a href="#main"
        class="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-sticky
               focus:rounded-md focus:bg-brand-900 focus:px-4 focus:py-2 focus:text-sm
@@ -17,62 +17,35 @@
 
     <div class="flex min-h-screen">
         <aside class="sticky top-0 hidden h-screen w-60 shrink-0 flex-col self-start overflow-y-auto bg-brand-900 text-brand-200 lg:flex">
-            <div class="flex items-center gap-2.5 px-4 py-4">
-                <x-civic-mark class="h-10 w-10" />
-                <div>
-                    <p class="text-sm font-semibold text-paper">CivicLink</p>
-                    <p class="text-xs text-brand-300">PESO Admin</p>
-                </div>
-            </div>
-
-            <nav aria-label="Admin" class="flex-1 space-y-0.5 px-2 py-2">
-                @php
-                    $nav = [
-                        ['admin.dashboard', 'Dashboard', null],
-                        ['admin.applications.index', 'Applications', $pendingApplications],
-                        ['admin.activities.index', 'Activity verification', $pendingActivities],
-                        ['admin.organizations.index', 'Organizations', null],
-                        ['admin.scorecards.index', 'Scorecards', null],
-                        ['admin.analytics', 'Analytics & Reports', null],
-                        ['admin.news.index', 'News posts', null],
-                        ['admin.annual-reports.index', 'Annual reports', null],
-                        ['admin.accounts.index', 'Accounts', null],
-                        ['admin.audit.index', 'Audit log', null],
-                    ];
-                @endphp
-                @foreach ($nav as [$route, $label, $count])
-                    <a href="{{ Route::has($route) ? route($route) : '#' }}"
-                       @if (request()->routeIs($route)) aria-current="page" @endif
-                       class="flex items-center gap-2 rounded-sm px-3 py-2 text-sm font-medium
-                              transition-colors duration-fast ease-out-strong
-                              hover:bg-brand-800 hover:text-paper focus-visible:outline-accent-400
-                              {{ request()->routeIs($route) ? 'bg-brand-800 text-paper' : '' }}">
-                        <span>{{ $label }}</span>
-                        @if ($count)
-                            <span class="ml-auto rounded-sm bg-accent-500 px-1.5 py-0.5 text-xs font-semibold text-brand-900">
-                                {{ $count }}
-                            </span>
-                        @endif
-                    </a>
-                @endforeach
-            </nav>
-
-            <div class="border-t border-brand-800 px-2 py-2">
-                <a href="{{ route('profile.edit') }}"
-                   class="block rounded-sm px-3 py-2 text-sm hover:bg-brand-800 hover:text-paper focus-visible:outline-accent-400">
-                    {{ auth()->user()->name }}
-                </a>
-                <form method="POST" action="{{ route('logout') }}">
-                    @csrf
-                    <button type="submit"
-                            class="w-full rounded-sm px-3 py-2 text-left text-sm hover:bg-brand-800 hover:text-paper focus-visible:outline-accent-400">
-                        Log out
-                    </button>
-                </form>
-            </div>
+            @include('components.layouts.partials.admin-sidebar')
         </aside>
 
+        {{-- Below lg the sidebar becomes an off-canvas drawer: focus trapped, Esc and the overlay close it. --}}
+        <div x-show="drawer" x-cloak class="fixed inset-0 z-dialog lg:hidden" role="dialog" aria-modal="true" aria-label="Navigation">
+            <div x-show="drawer" x-transition.opacity class="absolute inset-0 bg-[oklch(0.27_0.01_50/0.5)]" @click="drawer = false" aria-hidden="true"></div>
+            <aside x-show="drawer" x-trap.noscroll.inert="drawer"
+                   x-transition:enter="transition duration-base ease-out-strong" x-transition:enter-start="-translate-x-full"
+                   x-transition:leave="transition duration-fast ease-out-strong" x-transition:leave-end="-translate-x-full"
+                   class="relative flex h-full w-72 max-w-[85vw] flex-col overflow-y-auto bg-brand-900 text-brand-200">
+                <button type="button" @click="drawer = false"
+                        class="absolute right-2 top-3 inline-flex h-11 w-11 items-center justify-center rounded-sm text-paper hover:bg-brand-800 focus-visible:outline-accent-400">
+                    <x-phosphor-x class="h-5 w-5" aria-hidden="true" />
+                    <span class="sr-only">Close navigation</span>
+                </button>
+                @include('components.layouts.partials.admin-sidebar')
+            </aside>
+        </div>
+
         <div class="flex min-w-0 flex-1 flex-col">
+            <div class="sticky top-0 z-sticky flex items-center gap-3 bg-brand-900 px-2 py-2 text-paper lg:hidden">
+                <button type="button" @click="drawer = true" :aria-expanded="drawer.toString()"
+                        class="inline-flex h-11 w-11 items-center justify-center rounded-sm hover:bg-brand-800 focus-visible:outline-accent-400">
+                    <x-phosphor-list class="h-6 w-6" aria-hidden="true" />
+                    <span class="sr-only">Open navigation</span>
+                </button>
+                <x-civic-mark class="h-8 w-8" />
+                <span class="text-sm font-semibold">CivicLink</span>
+            </div>
             <header class="border-b border-line bg-paper">
                 <div class="flex flex-wrap items-center gap-x-4 gap-y-3 px-4 py-3 sm:px-6">
                     <div class="min-w-0">

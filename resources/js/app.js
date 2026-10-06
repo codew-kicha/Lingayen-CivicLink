@@ -1,6 +1,10 @@
 import './bootstrap';
 
 import Alpine from 'alpinejs';
+import focus from '@alpinejs/focus';
+
+// x-trap: focus trapping for the navigation drawer.
+Alpine.plugin(focus);
 
 // Home-page hero: rotates through recently verified activities (DESIGN_SYSTEM.md §0, §4).
 // Every entry is server-rendered, so with JS off the newest one simply stays on screen.

@@ -17,7 +17,7 @@ class NewsPostController extends Controller
         $this->authorize('viewAny', NewsPost::class);
 
         return view('admin.news.index', [
-            'posts' => NewsPost::with('organizations')->latest('id')->paginate(20),
+            'posts' => NewsPost::with('organizations')->latest('id')->paginate(20)->withQueryString(),
         ]);
     }
 

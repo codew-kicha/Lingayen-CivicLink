@@ -17,7 +17,8 @@ class ScorecardController extends Controller
         return view('admin.scorecards.index', [
             'organizations' => Organization::with(['performanceScores' => fn ($q) => $q->latest('computed_at')->limit(1)])
                 ->orderBy('name')
-                ->paginate(25),
+                ->paginate(25)
+                ->withQueryString(),
         ]);
     }
 
