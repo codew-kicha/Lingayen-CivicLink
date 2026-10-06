@@ -27,32 +27,15 @@ Alpine.data('activityTicker', (count) => ({
     },
 }));
 
-// Home hero video (public/videos/lingayen_hero.mp4). It starts only when motion is welcome and the
-// visitor isn't saving data; otherwise the poster stays and the 14 MB file is never fetched
-// (preload="none"). A pause button covers WCAG 2.2.2 for motion longer than five seconds.
+// Home hero video (public/videos/lingayen_hero.mp4) loops continuously with no controls, by the
+// client's choice. It starts only when the device doesn't ask for reduced motion or data saving;
+// otherwise the poster stays and the file is never fetched (preload="none").
 Alpine.data('heroVideo', () => ({
-    playing: false,
-    ready: false,
-
     init() {
         const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
         const saveData = navigator.connection && navigator.connection.saveData;
 
-        this.ready = true;
-        if (!reduceMotion && !saveData) this.play();
-    },
-
-    play() {
-        this.$refs.video.play().then(() => { this.playing = true; }).catch(() => { this.playing = false; });
-    },
-
-    toggle() {
-        if (this.playing) {
-            this.$refs.video.pause();
-            this.playing = false;
-        } else {
-            this.play();
-        }
+        if (!reduceMotion && !saveData) this.$refs.video.play().catch(() => {});
     },
 }));
 

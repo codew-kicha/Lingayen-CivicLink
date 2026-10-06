@@ -56,7 +56,6 @@
                         <span class="sr-only">PESO Lingayen on Facebook</span>
                     </a>
                     <div class="flex divide-x divide-line rounded-sm bg-canvas text-sm">
-                        <a href="{{ route('directory') }}" class="utility-link">Check an organization</a>
                         @auth
                             <a href="{{ route('dashboard') }}" class="utility-link">My dashboard</a>
                         @else

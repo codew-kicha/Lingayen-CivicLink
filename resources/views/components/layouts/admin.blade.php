@@ -16,7 +16,7 @@
     </a>
 
     <div class="flex min-h-screen">
-        <aside class="hidden w-60 shrink-0 flex-col bg-brand-900 text-brand-200 lg:flex">
+        <aside class="sticky top-0 hidden h-screen w-60 shrink-0 flex-col self-start overflow-y-auto bg-brand-900 text-brand-200 lg:flex">
             <div class="flex items-center gap-2.5 px-4 py-4">
                 <x-civic-mark class="h-10 w-10" />
                 <div>

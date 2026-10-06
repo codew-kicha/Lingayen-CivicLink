@@ -8,19 +8,14 @@
 
 <x-layouts.public>
     {{-- Hero: the municipality's own loop (public/videos/lingayen_hero.mp4), shown whole like pcnc.com.ph's
-         hero. Nothing overlays it, since the seal and CSO logos are the content. Reduced-motion and
-         data-saver visitors get the poster frame and the video never downloads. --}}
+         hero. It loops continuously with no controls (client's choice). Visitors whose device asks
+         for reduced motion or data saving get the poster frame and the video never downloads. --}}
     <section x-data="heroVideo" aria-label="Lingayen's civil society organizations" class="relative bg-paper">
         <video x-ref="video" muted loop playsinline preload="none" aria-hidden="true"
                poster="{{ asset('videos/lingayen_hero-poster.jpg') }}"
                class="block aspect-video max-h-[78vh] w-full object-cover">
             <source src="{{ asset('videos/lingayen_hero.mp4') }}" type="video/mp4">
         </video>
-        <button type="button" x-cloak x-show="ready" @click="toggle()" class="hero-control absolute bottom-4 right-4 sm:right-6 lg:right-8"
-                :aria-label="playing ? 'Pause the background video' : 'Play the background video'">
-            <x-phosphor-pause x-show="playing" class="h-5 w-5" aria-hidden="true" />
-            <x-phosphor-play x-show="! playing" class="h-5 w-5" aria-hidden="true" />
-        </button>
     </section>
 
     {{-- Headline and search, in a maroon band directly under the video. --}}
