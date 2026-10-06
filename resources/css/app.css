@@ -149,8 +149,10 @@
     }
 
     /* Tables. Wrap every table in .table-wrap so it scrolls inside its own box, never the page. */
+    /* relative: absolutely positioned children (sr-only labels in headers) stay inside the scroll box
+       instead of escaping it and widening the page. */
     .table-wrap {
-        @apply w-full overflow-x-auto;
+        @apply relative w-full overflow-x-auto;
     }
 
     .table-head {
