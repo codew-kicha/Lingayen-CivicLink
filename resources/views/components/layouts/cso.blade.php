@@ -4,20 +4,21 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ $header ?? 'My organization' }} | Lingayen CivicLink</title>
+    <link rel="icon" type="image/png" href="{{ asset('images/brand/favicon.png') }}">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="min-h-screen bg-surface">
+<body class="min-h-screen bg-canvas">
     <a href="#main"
        class="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-sticky
-              focus:rounded-md focus:bg-navy-900 focus:px-4 focus:py-2 focus:text-sm
+              focus:rounded-md focus:bg-brand-900 focus:px-4 focus:py-2 focus:text-sm
               focus:font-semibold focus:text-paper">
         Skip to main content
     </a>
 
-    <header class="bg-navy-900 text-paper">
+    <header class="bg-brand-900 text-paper">
         <div class="mx-auto flex max-w-5xl items-center gap-4 px-4 py-3 sm:px-6">
-            <a href="{{ route('cso.dashboard') }}" class="flex items-center gap-2.5 rounded-sm focus-visible:outline-rose-400">
-                <x-civic-mark class="h-8 w-8 text-sm" />
+            <a href="{{ route('cso.dashboard') }}" class="flex items-center gap-2.5 rounded-sm focus-visible:outline-accent-400">
+                <x-civic-mark class="h-10 w-10" />
                 <span class="text-sm font-semibold">CivicLink</span>
             </a>
 
@@ -34,11 +35,11 @@
                     <a href="{{ Route::has($route) ? route($route) : '#' }}"
                        @if (request()->routeIs($route)) aria-current="page" @endif
                        class="whitespace-nowrap rounded-sm px-3 py-2 text-sm font-medium
-                              transition-colors duration-fast ease-out-strong hover:bg-navy-800
-                              focus-visible:outline-rose-400
+                              transition-colors duration-fast ease-out-strong hover:bg-brand-800
+                              focus-visible:outline-accent-400
                               {{ request()->routeIs($route)
-                                  ? 'text-paper shadow-[inset_0_-2px_0_0_theme(colors.rose.500)]'
-                                  : 'text-navy-200' }}">
+                                  ? 'text-paper shadow-[inset_0_-2px_0_0_theme(colors.accent.500)]'
+                                  : 'text-brand-200' }}">
                         {{ $label }}
                     </a>
                 @endforeach
@@ -46,14 +47,14 @@
 
             <div class="ml-auto flex items-center gap-2">
                 <a href="{{ route('profile.edit') }}"
-                   class="hidden rounded-sm px-3 py-2 text-sm text-navy-200 hover:bg-navy-800
-                          focus-visible:outline-rose-400 sm:inline-block">
+                   class="hidden rounded-sm px-3 py-2 text-sm text-brand-200 hover:bg-brand-800
+                          focus-visible:outline-accent-400 sm:inline-block">
                     {{ auth()->user()->name }}
                 </a>
                 <form method="POST" action="{{ route('logout') }}">
                     @csrf
                     <button type="submit"
-                            class="rounded-sm px-3 py-2 text-sm text-navy-200 hover:bg-navy-800 focus-visible:outline-rose-400">
+                            class="rounded-sm px-3 py-2 text-sm text-brand-200 hover:bg-brand-800 focus-visible:outline-accent-400">
                         Log out
                     </button>
                 </form>

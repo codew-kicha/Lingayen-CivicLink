@@ -59,7 +59,7 @@
                                 <td class="table-cell font-mono tabular-nums">{{ $report->year }}</td>
                                 <td class="table-cell">
                                     <a href="{{ route('annual-reports.download', $report) }}"
-                                       class="font-medium text-navy-700 hover:underline">{{ $report->title }}</a>
+                                       class="font-medium text-brand-700 hover:underline">{{ $report->title }}</a>
                                 </td>
                                 <td class="table-cell text-muted">{{ $report->uploadedBy?->name ?? 'Unknown' }}</td>
                                 <td class="table-cell text-right">

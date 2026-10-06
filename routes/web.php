@@ -19,7 +19,8 @@ Route::get('/accredited-csos', [PublicController::class, 'directory'])->name('di
 Route::get('/accredited-csos/{organization}', [PublicController::class, 'organization'])->name('directory.show');
 Route::get('/resources', [PublicController::class, 'resources'])->name('resources');
 Route::get('/contact', [PublicController::class, 'contact'])->name('contact');
-Route::post('/contact', [ContactController::class, 'send'])->name('contact.send');
+Route::post('/contact', [ContactController::class, 'send'])
+    ->middleware('throttle:5,1')->name('contact.send');
 Route::get('/annual-reports/{annualReport}/download', [AnnualReportController::class, 'download'])
     ->name('annual-reports.download');
 

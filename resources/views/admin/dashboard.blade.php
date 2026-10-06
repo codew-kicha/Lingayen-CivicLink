@@ -11,8 +11,8 @@
         @endphp
         @foreach ($tiles as [$label, $value, $url])
             <a href="{{ $url }}"
-               class="px-5 py-4 transition-colors duration-fast ease-out-strong hover:bg-navy-50">
-                <p class="font-mono text-2xl tabular-nums text-navy-800">{{ $value }}</p>
+               class="px-5 py-4 transition-colors duration-fast ease-out-strong hover:bg-brand-50">
+                <p class="font-mono text-2xl tabular-nums text-brand-800">{{ $value }}</p>
                 <p class="mt-1 text-sm text-muted">{{ $label }}</p>
             </a>
         @endforeach
@@ -23,7 +23,7 @@
             <div class="flex items-center gap-3 border-b border-line px-4 py-3">
                 <h2 class="font-semibold text-ink">Applications awaiting review</h2>
                 <a href="{{ route('admin.applications.index') }}"
-                   class="ml-auto text-sm font-semibold text-navy-700 hover:underline">View queue</a>
+                   class="ml-auto text-sm font-semibold text-brand-700 hover:underline">View queue</a>
             </div>
 
             @if ($recentApplications->isEmpty())
@@ -46,7 +46,7 @@
                             <tr class="table-row">
                                 <td class="table-cell">
                                     <a href="{{ route('admin.applications.show', $application) }}"
-                                       class="font-medium text-navy-700 hover:underline">
+                                       class="font-medium text-brand-700 hover:underline">
                                         {{ $application->organization->name }}
                                     </a>
                                 </td>
@@ -66,7 +66,7 @@
             <div class="flex items-center gap-3 border-b border-line px-4 py-3">
                 <h2 class="font-semibold text-ink">Activities awaiting verification</h2>
                 <a href="{{ route('admin.activities.index') }}"
-                   class="ml-auto text-sm font-semibold text-navy-700 hover:underline">View queue</a>
+                   class="ml-auto text-sm font-semibold text-brand-700 hover:underline">View queue</a>
             </div>
 
             @if ($recentActivities->isEmpty())
@@ -88,7 +88,7 @@
                             <tr class="table-row">
                                 <td class="table-cell">
                                     <a href="{{ route('admin.activities.index') }}"
-                                       class="font-medium text-navy-700 hover:underline">{{ $activity->title }}</a>
+                                       class="font-medium text-brand-700 hover:underline">{{ $activity->title }}</a>
                                 </td>
                                 <td class="table-cell text-muted">{{ $activity->organization->name }}</td>
                                 <td class="table-cell font-mono tabular-nums text-muted">

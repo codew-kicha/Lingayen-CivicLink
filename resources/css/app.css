@@ -1,4 +1,4 @@
-@import url('https://fonts.bunny.net/css?family=public-sans:400,500,600,700|ibm-plex-mono:400,500&display=swap');
+@import url('https://fonts.bunny.net/css?family=public-sans:400,500,600,700|ibm-plex-mono:400,500|merriweather:400,700,900&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,7 +6,7 @@
 
 @layer base {
     html {
-        @apply bg-surface text-ink;
+        @apply bg-paper text-ink;
     }
 
     body {
@@ -22,7 +22,7 @@
     }
 
     :focus-visible {
-        @apply outline-2 outline-offset-2 outline-navy-600;
+        @apply outline-2 outline-offset-2 outline-brand-600;
     }
 }
 
@@ -35,18 +35,28 @@
     }
 
     .btn-primary {
-        @apply btn bg-navy-600 text-paper hover:bg-navy-700 active:bg-navy-800
-               disabled:bg-navy-200 disabled:text-muted;
+        @apply btn bg-brand-600 text-paper hover:bg-brand-700 active:bg-brand-800
+               disabled:bg-brand-200 disabled:text-muted;
     }
 
     .btn-secondary {
-        @apply btn border border-line-strong bg-paper text-navy-700
-               hover:border-navy-300 hover:bg-navy-50 active:bg-navy-100
+        @apply btn border border-line-strong bg-paper text-brand-700
+               hover:border-brand-300 hover:bg-brand-50 active:bg-brand-100
                disabled:border-line disabled:text-muted;
     }
 
     .btn-ghost {
-        @apply btn text-navy-700 hover:bg-navy-50 active:bg-navy-100 disabled:text-muted;
+        @apply btn text-brand-700 hover:bg-brand-50 active:bg-brand-100 disabled:text-muted;
+    }
+
+    /* The one rose call to action per view on the public site (Apply now, hero search). */
+    .btn-accent {
+        @apply btn bg-accent-500 px-5 text-brand-900 hover:bg-accent-400 active:bg-accent-600;
+    }
+
+    /* On photos and navy bands. */
+    .btn-on-dark {
+        @apply btn border border-brand-300 px-5 text-paper hover:bg-brand-800;
     }
 
     .btn-danger {
@@ -62,9 +72,9 @@
     .field-input {
         @apply w-full rounded-sm border border-line-strong bg-paper px-3 py-2 text-base
                text-ink transition-colors duration-fast ease-out-strong
-               placeholder:text-muted hover:border-navy-300
-               focus:border-navy-600 focus:ring-0
-               disabled:cursor-not-allowed disabled:bg-surface disabled:text-muted;
+               placeholder:text-muted hover:border-brand-300
+               focus:border-brand-600 focus:ring-0
+               disabled:cursor-not-allowed disabled:bg-canvas disabled:text-muted;
     }
 
     .field-input-error {
@@ -93,7 +103,7 @@
         @apply inline-flex items-center gap-1.5 rounded-sm px-2 py-0.5 text-xs font-semibold;
     }
 
-    .badge-neutral { @apply badge border border-line bg-surface text-muted; }
+    .badge-neutral { @apply badge border border-line bg-canvas text-muted; }
     .badge-info    { @apply badge bg-info-100 text-info-600; }
     .badge-warning { @apply badge bg-warning-100 text-warning-600; }
     .badge-success { @apply badge bg-success-100 text-success-600; }
@@ -114,7 +124,58 @@
     }
 
     .table-row {
-        @apply transition-colors duration-fast ease-out-strong hover:bg-navy-50;
+        @apply transition-colors duration-fast ease-out-strong hover:bg-brand-50;
+    }
+
+    /*
+     * Public-site section titles, after pcnc.com.ph: centered serif heading over a short rose rule.
+     * Used once per section, with no eyebrow above it.
+     */
+    .section-title {
+        @apply font-serif text-[clamp(1.6rem,2.6vw,2.125rem)] font-bold leading-tight text-brand-900;
+    }
+
+    .section-title::after {
+        content: '';
+        @apply mx-auto mt-4 block h-[3px] w-14 rounded-full bg-accent-500;
+    }
+
+    .section-title.text-left::after {
+        @apply mx-0;
+    }
+
+    /* Full-colour photo with a navy wash on the text side, for the hero and the statistics band. */
+    .photo-wash {
+        @apply relative isolate overflow-hidden bg-brand-900;
+    }
+
+    .photo-wash > img {
+        @apply absolute inset-0 h-full w-full object-cover;
+    }
+
+    .photo-wash::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+        pointer-events: none;
+        background: linear-gradient(90deg, oklch(0.27 0.085 20 / 0.92) 0%, oklch(0.27 0.085 20 / 0.7) 45%, oklch(0.27 0.085 20 / 0.25) 100%);
+    }
+
+    /* Segmented utility buttons in the public identity bar (pcnc.com.ph's Report / Apply / Contact). */
+    .utility-link {
+        @apply px-5 py-3 text-ink transition-colors duration-fast ease-out-strong first:rounded-l-sm last:rounded-r-sm
+               hover:bg-brand-50 hover:text-brand-800 focus-visible:outline-brand-600;
+    }
+
+    .hero-control {
+        @apply inline-flex h-11 w-11 items-center justify-center rounded-md bg-[oklch(0.27_0.085_20/0.6)] text-paper
+               transition-colors duration-fast ease-out-strong hover:bg-brand-900 active:scale-[0.97]
+               focus-visible:outline-accent-400;
+    }
+
+    .photo-wash-even::after {
+        background: oklch(0.27 0.085 20 / 0.82);
     }
 
     /*
@@ -122,7 +183,7 @@
      * not the wrapper: a filter on the wrapper would also grayscale the navy ::after layer.
      */
     .photo-duotone {
-        @apply relative isolate overflow-hidden bg-navy-900;
+        @apply relative isolate overflow-hidden bg-brand-900;
     }
 
     .photo-duotone > img {
@@ -137,7 +198,7 @@
         inset: 0;
         z-index: 1;
         pointer-events: none;
-        background: oklch(0.36 0.09 254);
+        background: oklch(0.395 0.118 20);
         mix-blend-mode: lighten;
     }
 
@@ -147,7 +208,7 @@
         inset: 0;
         z-index: 1;
         pointer-events: none;
-        background: linear-gradient(180deg, oklch(0.21 0.055 250 / 0.55), oklch(0.21 0.055 250 / 0.15));
+        background: linear-gradient(180deg, oklch(0.27 0.085 20 / 0.55), oklch(0.27 0.085 20 / 0.15));
         mix-blend-mode: multiply;
     }
 

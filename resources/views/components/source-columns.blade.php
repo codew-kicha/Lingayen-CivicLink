@@ -16,8 +16,8 @@
         @foreach ($rows as $row)
             <div class="flex h-full flex-1 flex-col justify-end" title="{{ $row['label'] }}: {{ $row['independent'] }} self-initiated, {{ $row['lgu'] }} LGU-organized{{ $row['unknown'] ? ', '.$row['unknown'].' not recorded' : '' }}">
                 <div class="bg-line-strong" style="height: {{ round($row['unknown'] / $max * 100, 1) }}%"></div>
-                <div class="bg-navy-200" style="height: {{ round($row['lgu'] / $max * 100, 1) }}%"></div>
-                <div class="bg-navy-600" style="height: {{ round($row['independent'] / $max * 100, 1) }}%"></div>
+                <div class="bg-brand-200" style="height: {{ round($row['lgu'] / $max * 100, 1) }}%"></div>
+                <div class="bg-brand-600" style="height: {{ round($row['independent'] / $max * 100, 1) }}%"></div>
             </div>
         @endforeach
     </div>

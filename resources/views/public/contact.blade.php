@@ -1,13 +1,12 @@
 <x-layouts.public title="Contact Us">
+    <x-page-banner title="Contact the Civil Society Desk Office" photo="floating-market.jpg"
+                   lede="For questions about accreditation requirements, the status of a filed application, or help encoding a paper form." />
+
     <div class="mx-auto grid max-w-5xl gap-12 px-4 py-16 sm:px-6 lg:grid-cols-2 lg:px-8">
         <div>
-            <h1 class="text-2xl font-semibold text-ink">Contact the Civil Society Desk Office</h1>
-            <p class="mt-3 max-w-[60ch] text-muted">
-                For questions about accreditation requirements, the status of a filed application, or
-                help encoding a paper form.
-            </p>
+            <h2 class="font-serif text-xl font-bold text-brand-900">Visit or call</h2>
 
-            <dl class="mt-8 space-y-5 text-sm">
+            <dl class="mt-6 space-y-5 text-sm">
                 <div>
                     <dt class="font-semibold text-ink">Office</dt>
                     <dd class="mt-1 text-muted">
@@ -23,7 +22,7 @@
                     <dt class="font-semibold text-ink">Facebook</dt>
                     <dd class="mt-1">
                         <a href="{{ config('office.office.facebook') }}" rel="noopener" target="_blank"
-                           class="text-navy-700 hover:underline">facebook.com/pesolingayen</a>
+                           class="text-brand-700 hover:underline">facebook.com/pesolingayen</a>
                     </dd>
                 </div>
                 <div>
@@ -37,7 +36,7 @@
         </div>
 
         <div class="panel h-fit p-6">
-            <h2 class="font-semibold text-ink">Send a message</h2>
+            <h2 class="font-serif text-xl font-bold text-brand-900">Send a message</h2>
             <p class="mt-1 text-sm text-muted">All fields required unless marked optional.</p>
 
             <form class="mt-6 space-y-5" method="POST" action="{{ route('contact.send') }}">

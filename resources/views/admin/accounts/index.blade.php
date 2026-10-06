@@ -64,7 +64,7 @@
                                 <td class="table-cell">
                                     @if ($account->organization)
                                         <a href="{{ route('admin.organizations.edit', $account->organization) }}"
-                                           class="text-navy-700 hover:underline">{{ $account->organization->name }}</a>
+                                           class="text-brand-700 hover:underline">{{ $account->organization->name }}</a>
                                     @else
                                         <span class="text-muted">None</span>
                                     @endif

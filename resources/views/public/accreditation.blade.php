@@ -1,17 +1,10 @@
 <x-layouts.public title="Accreditation">
-    <div class="border-b border-line bg-surface">
-        <div class="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
-            <h1 class="text-2xl font-semibold text-ink">Accreditation</h1>
-            <p class="mt-3 max-w-[68ch] text-muted">
-                Who can apply, what you need to submit, and how the review runs from filing to
-                Sangguniang Bayan endorsement.
-            </p>
-        </div>
-    </div>
+    <x-page-banner title="Accreditation" photo="crop-rows.jpg"
+                   lede="Who can apply, what you need to submit, and how the review runs from filing to Sangguniang Bayan endorsement." />
 
     <div class="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
         <section>
-            <h2 class="text-xl font-semibold text-ink">Who can apply</h2>
+            <h2 class="font-serif text-xl font-bold text-brand-900">Who can apply</h2>
             <p class="mt-4 max-w-[68ch] text-muted">
                 Any non-government, non-profit organization operating in Lingayen with a verifiable
                 membership base and at least one year of community work: people's organizations,
@@ -21,11 +14,11 @@
         </section>
 
         <section class="mt-14">
-            <h2 class="text-xl font-semibold text-ink">How the review works</h2>
+            <h2 class="font-serif text-xl font-bold text-brand-900">How the review works</h2>
             <ol class="mt-6 grid gap-px overflow-hidden rounded-lg border border-line bg-line md:grid-cols-5">
                 @foreach ($process as $step)
                     <li class="bg-paper p-5">
-                        <p class="font-mono text-xs tabular-nums text-navy-600">Step {{ $loop->iteration }}</p>
+                        <p class="font-mono text-xs tabular-nums text-brand-600">Step {{ $loop->iteration }}</p>
                         <h3 class="mt-2 font-semibold text-ink">{{ $step['title'] }}</h3>
                         <p class="mt-1.5 text-sm text-muted">{{ $step['detail'] }}</p>
                     </li>
@@ -35,7 +28,7 @@
 
         <section class="mt-14 grid gap-12 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
             <div>
-                <h2 class="text-xl font-semibold text-ink">What you need to submit</h2>
+                <h2 class="font-serif text-xl font-bold text-brand-900">What you need to submit</h2>
                 <p class="mt-2 text-sm text-muted">
                     Scans or clear photographs are accepted. PDF, JPG, or PNG, up to 5 MB per file.
                 </p>
@@ -57,7 +50,7 @@
             </div>
 
             <aside class="panel h-fit p-6">
-                <h2 class="font-semibold text-ink">Prefer to file on paper?</h2>
+                <h2 class="font-serif text-lg font-bold text-brand-900">Prefer to file on paper?</h2>
                 <p class="mt-2 text-sm text-muted">
                     Download the application form, fill it in by hand, and bring it with two copies
                     of each requirement to the Civil Society Desk Office. Staff will encode it into

@@ -10,7 +10,7 @@
                 'renewal' => 'Renewal of an existing accreditation',
             ] as $value => $label)
                 <label class="flex items-start gap-3 rounded-sm border border-line-strong p-3
-                              hover:border-navy-300 has-[:checked]:border-navy-600 has-[:checked]:bg-navy-50">
+                              hover:border-brand-300 has-[:checked]:border-brand-600 has-[:checked]:bg-brand-50">
                     <input type="radio" name="type" value="{{ $value }}" class="mt-0.5"
                            @checked(old('type', $hasActiveAccreditation ? 'renewal' : 'new') === $value) required>
                     <span class="text-sm text-ink">{{ $label }}</span>

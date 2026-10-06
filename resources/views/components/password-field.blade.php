@@ -24,7 +24,7 @@
                @class(['field-input pr-20', 'field-input-error' => $error])>
         <button type="button" x-cloak @click="show = ! show" :aria-pressed="show.toString()"
                 class="absolute inset-y-0 right-0 flex min-w-16 items-center justify-center rounded-r-sm px-3 text-sm
-                       font-semibold text-navy-700 hover:bg-navy-50 focus-visible:outline-navy-600">
+                       font-semibold text-brand-700 hover:bg-brand-50 focus-visible:outline-brand-600">
             <span x-text="show ? 'Hide' : 'Show'">Show</span>
             <span class="sr-only"> password</span>
         </button>

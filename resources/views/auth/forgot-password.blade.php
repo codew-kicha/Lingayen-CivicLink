@@ -17,7 +17,7 @@
         <button type="submit" class="btn-primary w-full">Email me a reset link</button>
 
         <p class="text-center text-sm text-muted">
-            Remembered it? <a href="{{ route('login') }}" class="font-semibold text-navy-700 hover:underline">Sign in</a>
+            Remembered it? <a href="{{ route('login') }}" class="font-semibold text-brand-700 hover:underline">Sign in</a>
         </p>
     </form>
 </x-guest-layout>

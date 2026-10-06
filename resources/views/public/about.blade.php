@@ -1,19 +1,11 @@
 <x-layouts.public title="About Us">
-    <div class="border-b border-line bg-surface">
-        <div class="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
-            <h1 class="text-2xl font-semibold text-ink">About Lingayen CivicLink</h1>
-            <p class="mt-3 max-w-[68ch] text-muted">
-                Run by the Civil Society Desk Office of the Public Employment Service Office, Lingayen,
-                Pangasinan, to move CSO accreditation off paper and to keep a continuing public record
-                of what accredited organizations actually do between accreditation cycles.
-            </p>
-        </div>
-    </div>
+    <x-page-banner title="About Lingayen CivicLink" photo="floating-market.jpg"
+                   lede="Run by the Civil Society Desk Office of the Public Employment Service Office, Lingayen, Pangasinan, to move CSO accreditation off paper and to keep a continuing public record of what accredited organizations actually do between accreditation cycles." />
 
     <div class="mx-auto grid max-w-7xl gap-12 px-4 py-16 sm:px-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] lg:px-8">
         <div class="space-y-12">
             <section>
-                <h2 class="text-xl font-semibold text-ink">Why this exists</h2>
+                <h2 class="font-serif text-xl font-bold text-brand-900">Why this exists</h2>
                 <div class="mt-4 max-w-[68ch] space-y-4 text-muted">
                     <p>
                         Accreditation in Lingayen has run on physical visits, printed forms, a logbook
@@ -42,7 +34,7 @@
             </section>
 
             <section>
-                <h2 class="text-xl font-semibold text-ink">Legal basis</h2>
+                <h2 class="font-serif text-xl font-bold text-brand-900">Legal basis</h2>
                 <div class="mt-4 max-w-[68ch] space-y-4 text-muted">
                     <p>
                         The Local Government Code of 1991 (RA 7160) directs local government units to
@@ -61,7 +53,7 @@
             </section>
 
             <section>
-                <h2 class="text-xl font-semibold text-ink">Office officials</h2>
+                <h2 class="font-serif text-xl font-bold text-brand-900">Office officials</h2>
                 <ul class="mt-5 divide-y divide-line border-y border-line">
                     @foreach ($officials as $official)
                         <li class="flex flex-wrap items-baseline gap-x-4 gap-y-1 py-3">
@@ -93,7 +85,7 @@
                     <dt class="text-muted">Facebook</dt>
                     <dd class="mt-0.5">
                         <a href="{{ config('office.office.facebook') }}" rel="noopener" target="_blank"
-                           class="text-navy-700 hover:underline">facebook.com/pesolingayen</a>
+                           class="text-brand-700 hover:underline">facebook.com/pesolingayen</a>
                     </dd>
                 </div>
             </dl>

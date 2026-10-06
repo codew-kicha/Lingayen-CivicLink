@@ -4,23 +4,24 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ $header ?? 'PESO Admin' }} | Lingayen CivicLink</title>
+    <link rel="icon" type="image/png" href="{{ asset('images/brand/favicon.png') }}">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="min-h-screen bg-surface">
+<body class="min-h-screen bg-canvas">
     <a href="#main"
        class="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-sticky
-              focus:rounded-md focus:bg-navy-900 focus:px-4 focus:py-2 focus:text-sm
+              focus:rounded-md focus:bg-brand-900 focus:px-4 focus:py-2 focus:text-sm
               focus:font-semibold focus:text-paper">
         Skip to main content
     </a>
 
     <div class="flex min-h-screen">
-        <aside class="hidden w-60 shrink-0 flex-col bg-navy-900 text-navy-200 lg:flex">
+        <aside class="hidden w-60 shrink-0 flex-col bg-brand-900 text-brand-200 lg:flex">
             <div class="flex items-center gap-2.5 px-4 py-4">
-                <x-civic-mark class="h-8 w-8 text-sm" />
+                <x-civic-mark class="h-10 w-10" />
                 <div>
                     <p class="text-sm font-semibold text-paper">CivicLink</p>
-                    <p class="text-xs text-navy-300">PESO Admin</p>
+                    <p class="text-xs text-brand-300">PESO Admin</p>
                 </div>
             </div>
 
@@ -44,11 +45,11 @@
                        @if (request()->routeIs($route)) aria-current="page" @endif
                        class="flex items-center gap-2 rounded-sm px-3 py-2 text-sm font-medium
                               transition-colors duration-fast ease-out-strong
-                              hover:bg-navy-800 hover:text-paper focus-visible:outline-rose-400
-                              {{ request()->routeIs($route) ? 'bg-navy-800 text-paper' : '' }}">
+                              hover:bg-brand-800 hover:text-paper focus-visible:outline-accent-400
+                              {{ request()->routeIs($route) ? 'bg-brand-800 text-paper' : '' }}">
                         <span>{{ $label }}</span>
                         @if ($count)
-                            <span class="ml-auto rounded-sm bg-rose-500 px-1.5 py-0.5 text-xs font-semibold text-navy-900">
+                            <span class="ml-auto rounded-sm bg-accent-500 px-1.5 py-0.5 text-xs font-semibold text-brand-900">
                                 {{ $count }}
                             </span>
                         @endif
@@ -56,15 +57,15 @@
                 @endforeach
             </nav>
 
-            <div class="border-t border-navy-800 px-2 py-2">
+            <div class="border-t border-brand-800 px-2 py-2">
                 <a href="{{ route('profile.edit') }}"
-                   class="block rounded-sm px-3 py-2 text-sm hover:bg-navy-800 hover:text-paper focus-visible:outline-rose-400">
+                   class="block rounded-sm px-3 py-2 text-sm hover:bg-brand-800 hover:text-paper focus-visible:outline-accent-400">
                     {{ auth()->user()->name }}
                 </a>
                 <form method="POST" action="{{ route('logout') }}">
                     @csrf
                     <button type="submit"
-                            class="w-full rounded-sm px-3 py-2 text-left text-sm hover:bg-navy-800 hover:text-paper focus-visible:outline-rose-400">
+                            class="w-full rounded-sm px-3 py-2 text-left text-sm hover:bg-brand-800 hover:text-paper focus-visible:outline-accent-400">
                         Log out
                     </button>
                 </form>

@@ -19,11 +19,11 @@
         td { padding: 1.5mm 1.2mm; border-bottom: 1px solid #e5e7eb; vertical-align: top; }
         .num { text-align: right; }
         .summary td { border: none; padding: 1.5mm 0; }
-        .summary .val { font-size: 13pt; font-weight: bold; color: #1e2a47; }
+        .summary .val { font-size: 13pt; font-weight: bold; color: #4a1a22; }
         .bar { background: #eef0f4; height: 8px; width: 100%; }
         .bar span { display: inline-block; height: 8px; }
-        .self { background: #2f4a7d; }
-        .lgu { background: #aebbd6; }
+        .self { background: #8a2f3b; }
+        .lgu { background: #e3c3c4; }
         .key span { display: inline-block; width: 8px; height: 8px; margin: 0 1mm 0 3mm; }
         .page { page-break-before: always; }
         .note { color: #6b7280; font-size: 8pt; margin-top: 6mm; }

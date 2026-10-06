@@ -52,7 +52,7 @@
                             <tr class="table-row">
                                 <td class="table-cell">
                                     <a href="{{ route('admin.applications.show', $application) }}"
-                                       class="font-medium text-navy-700 hover:underline">
+                                       class="font-medium text-brand-700 hover:underline">
                                         {{ $application->organization->name }}
                                     </a>
                                     <p class="text-xs text-muted">Brgy. {{ $application->organization->barangay }}</p>

@@ -5,7 +5,7 @@
             <a href="{{ route('admin.activities.index', ['status' => $status]) }}"
                @if ($currentStatus === $status) aria-current="page" @endif
                class="rounded-sm px-3 py-1.5 text-sm font-medium transition-colors duration-fast ease-out-strong
-                      {{ $currentStatus === $status ? 'bg-navy-600 text-paper' : 'text-navy-700 hover:bg-navy-50' }}">
+                      {{ $currentStatus === $status ? 'bg-brand-600 text-paper' : 'text-brand-700 hover:bg-brand-50' }}">
                 {{ $label }}
                 @if ($status === 'pending' && $pendingCount)
                     <span class="ml-1 font-mono tabular-nums">{{ $pendingCount }}</span>

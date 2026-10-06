@@ -26,7 +26,7 @@
                         <tr class="table-row">
                             <td class="table-cell">
                                 <a href="{{ route('admin.news.edit', $post) }}"
-                                   class="font-medium text-navy-700 hover:underline">{{ $post->title }}</a>
+                                   class="font-medium text-brand-700 hover:underline">{{ $post->title }}</a>
                             </td>
                             <td class="table-cell"><x-status-badge :status="$post->status" /></td>
                             <td class="table-cell text-muted">

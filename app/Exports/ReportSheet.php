@@ -5,13 +5,17 @@ namespace App\Exports;
 use Maatwebsite\Excel\Concerns\FromArray;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithColumnFormatting;
+use Maatwebsite\Excel\Concerns\WithCustomValueBinder;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithStyles;
 use Maatwebsite\Excel\Concerns\WithTitle;
+use PhpOffice\PhpSpreadsheet\Cell\Cell;
+use PhpOffice\PhpSpreadsheet\Cell\DataType;
+use PhpOffice\PhpSpreadsheet\Cell\DefaultValueBinder;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
 /** One titled table: a heading row, data rows, and optional number formats by column letter. */
-class ReportSheet implements FromArray, ShouldAutoSize, WithColumnFormatting, WithHeadings, WithStyles, WithTitle
+class ReportSheet extends DefaultValueBinder implements FromArray, ShouldAutoSize, WithColumnFormatting, WithCustomValueBinder, WithHeadings, WithStyles, WithTitle
 {
     public const PERCENT = '0%';
 
@@ -23,6 +27,21 @@ class ReportSheet implements FromArray, ShouldAutoSize, WithColumnFormatting, Wi
         private array $rows,
         private array $formats = [],
     ) {}
+
+    /**
+     * Text is always written as text. Organization names come from the public registration form,
+     * and a name like =HYPERLINK(...) would otherwise become a live formula in PESO's spreadsheet.
+     */
+    public function bindValue(Cell $cell, mixed $value): bool
+    {
+        if (is_string($value)) {
+            $cell->setValueExplicit($value, DataType::TYPE_STRING);
+
+            return true;
+        }
+
+        return parent::bindValue($cell, $value);
+    }
 
     public function array(): array
     {

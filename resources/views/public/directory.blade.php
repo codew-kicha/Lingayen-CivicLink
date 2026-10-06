@@ -1,13 +1,11 @@
 <x-layouts.public title="Accredited CSOs">
-    <div class="border-b border-line bg-surface">
-        <div class="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
-            <h1 class="text-2xl font-semibold text-ink">Accredited CSOs</h1>
-            <p class="mt-3 max-w-[68ch] text-muted">
-                Organizations currently accredited by the Municipality of Lingayen. Member names and
-                contact details are held by PESO and are not shown publicly.
-            </p>
+    <x-page-banner title="Accredited CSOs" photo="canoe-fishers.jpg"
+                   lede="Organizations currently accredited by the Municipality of Lingayen. Member names and contact details are held by PESO and are not shown publicly." />
 
-            <form method="GET" action="{{ route('directory') }}" class="mt-8 grid gap-3 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_auto]">
+    {{-- Filters sit in a raised panel that overlaps the banner edge. --}}
+    <div class="relative z-10 mx-auto -mt-8 max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div class="rounded-lg border border-line bg-paper p-5 shadow-panel">
+            <form method="GET" action="{{ route('directory') }}" class="grid gap-3 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_minmax(0,1fr)_auto]">
                 <div>
                     <label for="q" class="field-label">Search</label>
                     <input type="search" id="q" name="q" value="{{ request('q') }}"
@@ -41,7 +39,7 @@
         </div>
     </div>
 
-    <div class="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+    <div class="mx-auto max-w-7xl px-4 pb-16 pt-10 sm:px-6 lg:px-8">
         <p class="text-sm text-muted">
             {{ $organizations->total() }} {{ Str::plural('organization', $organizations->total()) }} listed
         </p>
@@ -56,9 +54,9 @@
                 @foreach ($organizations as $organization)
                     <div class="reveal">
                         <a href="{{ route('directory.show', $organization) }}"
-                           class="panel block h-full p-5 transition-colors duration-fast ease-out-strong hover:border-navy-300">
+                           class="panel block h-full p-5 transition-colors duration-fast ease-out-strong hover:border-brand-300">
                             <div class="flex items-start gap-3">
-                                <x-sector-icon :sector="$organization->sector" class="mt-0.5 h-6 w-6 shrink-0 text-navy-600" />
+                                <x-sector-icon :sector="$organization->sector" class="mt-0.5 h-6 w-6 shrink-0 text-brand-600" />
                                 <h2 class="font-semibold text-ink">{{ $organization->name }}</h2>
                                 <span class="ml-auto shrink-0"><x-status-badge status="active" /></span>
                             </div>

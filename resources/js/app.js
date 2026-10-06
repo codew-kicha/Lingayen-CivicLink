@@ -27,6 +27,35 @@ Alpine.data('activityTicker', (count) => ({
     },
 }));
 
+// Home hero video (public/videos/lingayen_hero.mp4). It starts only when motion is welcome and the
+// visitor isn't saving data; otherwise the poster stays and the 14 MB file is never fetched
+// (preload="none"). A pause button covers WCAG 2.2.2 for motion longer than five seconds.
+Alpine.data('heroVideo', () => ({
+    playing: false,
+    ready: false,
+
+    init() {
+        const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const saveData = navigator.connection && navigator.connection.saveData;
+
+        this.ready = true;
+        if (!reduceMotion && !saveData) this.play();
+    },
+
+    play() {
+        this.$refs.video.play().then(() => { this.playing = true; }).catch(() => { this.playing = false; });
+    },
+
+    toggle() {
+        if (this.playing) {
+            this.$refs.video.pause();
+            this.playing = false;
+        } else {
+            this.play();
+        }
+    },
+}));
+
 // Transparency stats count up once when scrolled into view (§4). The server renders the final
 // figure, so no-JS and reduced-motion visitors simply see the real number.
 function countUp(element) {

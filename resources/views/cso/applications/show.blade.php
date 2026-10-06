@@ -56,7 +56,7 @@
                                 </td>
                                 <td class="table-cell">
                                     <a href="{{ route('documents.download', $document) }}"
-                                       class="text-navy-700 hover:underline">{{ $document->original_filename }}</a>
+                                       class="text-brand-700 hover:underline">{{ $document->original_filename }}</a>
                                 </td>
                                 <td class="table-cell font-mono tabular-nums text-muted">
                                     {{ $document->expires_at?->format('d M Y') ?? '--' }}

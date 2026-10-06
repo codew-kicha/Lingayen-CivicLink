@@ -4,7 +4,7 @@
     <x-slot:intro>This creates your organization's record and your account as its representative. One account per organization.</x-slot:intro>
 
     <x-slot:aside>
-        <p class="text-sm font-semibold text-rose-400">What happens next</p>
+        <p class="text-sm font-semibold text-accent-400">What happens next</p>
         <ol class="mt-5 space-y-5">
             @foreach ([
                 ['Confirm your email', 'We send a link to the address you register with.'],
@@ -13,15 +13,15 @@
                 ['Track every stage', 'Your dashboard shows each reading as it happens. No phone calls needed.'],
             ] as [$step, $detail])
                 <li class="grid grid-cols-[2rem_minmax(0,1fr)] gap-x-3">
-                    <span class="flex h-8 w-8 items-center justify-center rounded-full border border-navy-600 font-mono text-sm text-navy-200">{{ $loop->iteration }}</span>
+                    <span class="flex h-8 w-8 items-center justify-center rounded-full border border-brand-600 font-mono text-sm text-brand-100">{{ $loop->iteration }}</span>
                     <div>
                         <p class="font-semibold">{{ $step }}</p>
-                        <p class="mt-0.5 text-sm text-navy-200">{{ $detail }}</p>
+                        <p class="mt-0.5 text-sm text-brand-100">{{ $detail }}</p>
                     </div>
                 </li>
             @endforeach
         </ol>
-        <a href="{{ route('accreditation') }}" class="mt-8 inline-block text-sm font-semibold text-paper underline underline-offset-4 hover:text-rose-200">
+        <a href="{{ route('accreditation') }}" class="mt-8 inline-block text-sm font-semibold text-paper underline underline-offset-4 hover:text-accent-200">
             Read the full accreditation guidelines
         </a>
     </x-slot:aside>
@@ -103,7 +103,7 @@
         <button type="submit" class="btn-primary w-full">Register organization</button>
 
         <p class="text-center text-sm text-muted">
-            Already registered? <a href="{{ route('login') }}" class="font-semibold text-navy-700 hover:underline">Sign in</a>
+            Already registered? <a href="{{ route('login') }}" class="font-semibold text-brand-700 hover:underline">Sign in</a>
         </p>
     </form>
 </x-guest-layout>

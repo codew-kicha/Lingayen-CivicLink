@@ -4,7 +4,7 @@
     body { font-family: DejaVu Sans, sans-serif; font-size: 9.5pt; color: #2b2f38; }
     h1 { font-size: 14pt; margin: 0; }
     h2 { font-size: 10.5pt; margin: 6mm 0 2mm; border-bottom: 1px solid #9ca3af; padding-bottom: 1mm; }
-    .head { border-bottom: 2px solid #1e2a47; padding-bottom: 3mm; margin-bottom: 4mm; }
+    .head { border-bottom: 2px solid #4a1a22; padding-bottom: 3mm; margin-bottom: 4mm; }
     .muted { color: #6b7280; font-size: 8.5pt; }
     table { width: 100%; border-collapse: collapse; }
     th { text-align: left; font-size: 7.5pt; text-transform: uppercase; color: #6b7280; border-bottom: 1px solid #9ca3af; padding: 1.5mm; }

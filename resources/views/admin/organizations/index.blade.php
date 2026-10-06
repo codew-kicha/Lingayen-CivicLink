@@ -8,12 +8,12 @@
         </div>
         <label class="mb-2.5 flex items-center gap-2 text-sm text-ink">
             <input type="checkbox" name="account" value="none" @checked(request('account') === 'none')
-                   class="rounded-sm border-line-strong text-navy-600">
+                   class="rounded-sm border-line-strong text-brand-600">
             No login yet
         </label>
         <label class="mb-2.5 flex items-center gap-2 text-sm text-ink">
             <input type="checkbox" name="status" value="inactive" @checked(request('status') === 'inactive')
-                   class="rounded-sm border-line-strong text-navy-600">
+                   class="rounded-sm border-line-strong text-brand-600">
             Inactive only
         </label>
         <button type="submit" class="btn-primary">Search</button>
@@ -50,7 +50,7 @@
                             <tr class="table-row">
                                 <td class="table-cell">
                                     <a href="{{ route('admin.organizations.edit', $organization) }}"
-                                       class="font-medium text-navy-700 hover:underline">{{ $organization->name }}</a>
+                                       class="font-medium text-brand-700 hover:underline">{{ $organization->name }}</a>
                                     <p class="text-xs text-muted">Brgy. {{ $organization->barangay }}</p>
                                 </td>
                                 <td class="table-cell text-muted">{{ $organization->sector }}</td>

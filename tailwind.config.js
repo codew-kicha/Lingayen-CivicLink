@@ -14,38 +14,44 @@ export default {
         extend: {
             fontFamily: {
                 sans: ['"Public Sans"', ...defaultTheme.fontFamily.sans],
+                // Public-site headings only (pcnc.com.ph reference); admin and CSO screens stay sans.
+                serif: ['Merriweather', ...defaultTheme.fontFamily.serif],
                 mono: ['"IBM Plex Mono"', ...defaultTheme.fontFamily.mono],
             },
 
             colors: {
-                navy: {
-                    50: 'oklch(0.972 0.012 252)',
-                    100: 'oklch(0.932 0.022 253)',
-                    200: 'oklch(0.858 0.040 254)',
-                    300: 'oklch(0.755 0.062 255)',
-                    400: 'oklch(0.650 0.090 255)',
-                    500: 'oklch(0.540 0.110 256)',
-                    600: 'oklch(0.450 0.105 256)',
-                    700: 'oklch(0.360 0.090 254)',
-                    800: 'oklch(0.280 0.070 252)',
-                    900: 'oklch(0.210 0.055 250)',
+                // Palette set by the client team (2026-10-06), after pcnc.com.ph: a maroon brand bar,
+                // white and grey surfaces, warm charcoal text. 800 is the exact header maroon.
+                brand: {
+                    50: 'oklch(0.972 0.010 20)',
+                    100: 'oklch(0.935 0.022 20)',
+                    200: 'oklch(0.865 0.045 20)',
+                    300: 'oklch(0.760 0.075 20)',
+                    400: 'oklch(0.640 0.105 20)',
+                    500: 'oklch(0.530 0.125 20)',
+                    600: 'oklch(0.455 0.125 20)',
+                    700: 'oklch(0.395 0.118 20)',
+                    800: 'oklch(0.3405 0.11 20)',
+                    900: 'oklch(0.270 0.085 20)',
                 },
-                rose: {
-                    100: 'oklch(0.950 0.035 005)',
-                    200: 'oklch(0.890 0.065 350)',
-                    400: 'oklch(0.780 0.130 348)',
-                    500: 'oklch(0.680 0.165 346)',
-                    600: 'oklch(0.580 0.155 345)',
-                    700: 'oklch(0.480 0.130 344)',
+                // Warm gold accent, used sparingly: active menu item, the Apply call to action, rules.
+                accent: {
+                    100: 'oklch(0.955 0.045 85)',
+                    200: 'oklch(0.905 0.085 85)',
+                    400: 'oklch(0.830 0.135 80)',
+                    500: 'oklch(0.775 0.150 75)',
+                    600: 'oklch(0.680 0.140 70)',
+                    700: 'oklch(0.540 0.115 65)',
                 },
-                paper: 'oklch(0.990 0.003 252)',
-                surface: 'oklch(0.975 0.006 252)',
+                paper: 'oklch(0.995 0 0)',          // white: page and raised surfaces
+                surface: 'oklch(0.8282 0 0)',       // grey: alternating public bands
+                canvas: 'oklch(0.965 0 0)',         // admin and CSO page background
                 line: {
-                    DEFAULT: 'oklch(0.900 0.008 252)',
-                    strong: 'oklch(0.820 0.010 252)',
+                    DEFAULT: 'oklch(0.885 0 0)',
+                    strong: 'oklch(0.760 0 0)',
                 },
-                muted: 'oklch(0.500 0.012 252)',
-                ink: 'oklch(0.250 0.014 252)',
+                muted: 'oklch(0.420 0.010 50)',     // 4.5:1 or better on the grey bands too
+                ink: 'oklch(0.270 0.010 50)',
                 success: {
                     100: 'oklch(0.945 0.040 150)',
                     600: 'oklch(0.520 0.130 150)',
@@ -82,8 +88,8 @@ export default {
             },
 
             boxShadow: {
-                panel: '0 1px 2px oklch(0.21 0.055 250 / 0.06)',
-                overlay: '0 8px 24px oklch(0.21 0.055 250 / 0.14)',
+                panel: '0 1px 2px oklch(0.27 0.085 20 / 0.06)',
+                overlay: '0 8px 24px oklch(0.27 0.085 20 / 0.14)',
             },
 
             transitionTimingFunction: {

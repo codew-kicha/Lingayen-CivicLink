@@ -31,7 +31,7 @@
                         <div class="mt-3 flex flex-wrap items-center gap-3">
                             <x-status-badge :status="$latestApplication->status" />
                             <a href="{{ route('cso.applications.show', $latestApplication) }}"
-                               class="text-sm font-semibold text-navy-700 hover:underline">View application</a>
+                               class="text-sm font-semibold text-brand-700 hover:underline">View application</a>
                         </div>
                         <div class="mt-4">
                             <p class="text-sm font-medium text-muted">Sangguniang Bayan reading stage</p>
@@ -80,7 +80,7 @@
                     <h2 class="font-semibold text-ink">Performance score</h2>
 
                     @if ($score)
-                        <p class="mt-3 font-mono text-3xl tabular-nums text-navy-800">
+                        <p class="mt-3 font-mono text-3xl tabular-nums text-brand-800">
                             {{ number_format($score->total_score * 100, 0) }}%
                         </p>
                         <dl class="mt-4 space-y-2 text-sm">

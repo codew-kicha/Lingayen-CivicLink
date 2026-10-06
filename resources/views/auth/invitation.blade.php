@@ -15,7 +15,7 @@
             <div>
                 <label for="email" class="field-label">Email</label>
                 <input id="email" type="email" value="{{ $user->email }}" readonly autocomplete="username"
-                       class="field-input bg-surface text-muted">
+                       class="field-input bg-canvas text-muted">
             </div>
 
             <x-password-field autocomplete="new-password" checklist />

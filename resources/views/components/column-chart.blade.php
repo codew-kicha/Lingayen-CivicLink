@@ -15,10 +15,10 @@
         @foreach ($rows as $row)
             <div class="flex h-full flex-1 items-end justify-center gap-0.5">
                 @if ($secondKey)
-                    <div class="w-1/2 bg-navy-200" style="height: {{ round(($row[$secondKey] / $max) * 100, 1) }}%"
+                    <div class="w-1/2 bg-brand-200" style="height: {{ round(($row[$secondKey] / $max) * 100, 1) }}%"
                          title="{{ $row['label'] }}: {{ $row[$secondKey] }}"></div>
                 @endif
-                <div class="{{ $secondKey ? 'w-1/2' : 'w-full' }} bg-navy-500"
+                <div class="{{ $secondKey ? 'w-1/2' : 'w-full' }} bg-brand-500"
                      style="height: {{ round(($row[$valueKey] / $max) * 100, 1) }}%"
                      title="{{ $row['label'] }}: {{ $row[$valueKey] }}"></div>
             </div>

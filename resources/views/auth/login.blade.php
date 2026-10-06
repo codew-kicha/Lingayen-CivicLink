@@ -4,13 +4,13 @@
     <x-slot:intro>For CSO representatives and Civil Society Desk Office staff.</x-slot:intro>
 
     <x-slot:aside>
-        <p class="max-w-[30ch] text-2xl font-semibold leading-snug [text-wrap:balance]">
+        <p class="max-w-[26ch] font-serif text-[1.75rem] font-bold leading-snug">
             Track your application, log your organization's activities, and see your record as residents see it.
         </p>
-        <ul class="mt-8 space-y-3 text-navy-200">
-            <li class="flex gap-3"><x-phosphor-seal-check class="h-5 w-5 shrink-0 text-rose-400" aria-hidden="true" /> Application status through each Sangguniang Bayan reading</li>
-            <li class="flex gap-3"><x-phosphor-seal-check class="h-5 w-5 shrink-0 text-rose-400" aria-hidden="true" /> Activities verified by the Civil Society Desk Office</li>
-            <li class="flex gap-3"><x-phosphor-seal-check class="h-5 w-5 shrink-0 text-rose-400" aria-hidden="true" /> Your organization's public profile and performance score</li>
+        <ul class="mt-8 space-y-3 text-brand-100">
+            <li class="flex gap-3"><x-phosphor-seal-check class="h-5 w-5 shrink-0 text-accent-400" aria-hidden="true" /> Application status through each Sangguniang Bayan reading</li>
+            <li class="flex gap-3"><x-phosphor-seal-check class="h-5 w-5 shrink-0 text-accent-400" aria-hidden="true" /> Activities verified by the Civil Society Desk Office</li>
+            <li class="flex gap-3"><x-phosphor-seal-check class="h-5 w-5 shrink-0 text-accent-400" aria-hidden="true" /> Your organization's public profile and performance score</li>
         </ul>
     </x-slot:aside>
 
@@ -29,10 +29,10 @@
 
         <div class="flex items-center justify-between gap-4">
             <label for="remember_me" class="flex min-h-11 items-center gap-2 text-sm text-ink">
-                <input id="remember_me" name="remember" type="checkbox" class="rounded-sm border-line-strong text-navy-600">
+                <input id="remember_me" name="remember" type="checkbox" class="rounded-sm border-line-strong text-brand-600">
                 Keep me signed in on this device
             </label>
-            <a href="{{ route('password.request') }}" class="text-sm font-semibold text-navy-700 hover:underline">Forgot password?</a>
+            <a href="{{ route('password.request') }}" class="text-sm font-semibold text-brand-700 hover:underline">Forgot password?</a>
         </div>
 
         <button type="submit" class="btn-primary w-full">Sign in</button>
