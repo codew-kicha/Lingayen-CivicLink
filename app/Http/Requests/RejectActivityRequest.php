@@ -21,10 +21,17 @@ class RejectActivityRequest extends FormRequest
         ];
     }
 
+    /** Back to the activity that failed, not the top of a long queue. */
+    protected function getRedirectUrl(): string
+    {
+        return parent::getRedirectUrl().'#activity-'.$this->route('activity')->id;
+    }
+
     public function messages(): array
     {
         return [
             'rejection_reason.required' => 'Give the organization a reason so they know what to correct.',
+            'rejection_reason.min' => 'Write at least 10 characters so the organization knows what to correct.',
         ];
     }
 }

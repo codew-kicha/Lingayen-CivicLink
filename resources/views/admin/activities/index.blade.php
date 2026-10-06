@@ -25,7 +25,7 @@
     @else
         <div class="space-y-3">
             @foreach ($activities as $activity)
-                <article class="panel-flat p-6">
+                <article id="activity-{{ $activity->id }}" class="panel-flat scroll-mt-6 p-6">
                     <div class="flex flex-wrap items-start gap-3">
                         <div class="min-w-0">
                             <h2 class="font-semibold text-ink">{{ $activity->title }}</h2>
@@ -85,14 +85,24 @@
                                 <button type="submit" class="btn-primary">Verify activity</button>
                             </form>
 
+                            {{-- All reject forms share one field name, so the error and the typed reason are only
+                                 shown on the activity that was submitted (old('rejecting')). --}}
+                            @php $rejecting = (int) old('rejecting') === $activity->id; @endphp
                             <form method="POST" action="{{ route('admin.activities.reject', $activity) }}"
                                   class="flex flex-1 flex-wrap items-start gap-2">
                                 @csrf
+                                <input type="hidden" name="rejecting" value="{{ $activity->id }}">
                                 <div class="min-w-[16rem] flex-1">
                                     <label for="reason-{{ $activity->id }}" class="sr-only">Reason for rejection</label>
                                     <input type="text" id="reason-{{ $activity->id }}" name="rejection_reason"
-                                           placeholder="Reason for rejection"
-                                           class="field-input @error('rejection_reason') field-input-error @enderror">
+                                           value="{{ $rejecting ? old('rejection_reason') : '' }}"
+                                           placeholder="Reason for rejection (at least 10 characters)"
+                                           required minlength="10" maxlength="2000"
+                                           @if ($rejecting && $errors->has('rejection_reason')) aria-invalid="true" aria-describedby="reason-{{ $activity->id }}-error" @endif
+                                           @class(['field-input', 'field-input-error' => $rejecting && $errors->has('rejection_reason')])>
+                                    @if ($rejecting && $errors->has('rejection_reason'))
+                                        <p id="reason-{{ $activity->id }}-error" class="field-error">{{ $errors->first('rejection_reason') }}</p>
+                                    @endif
                                 </div>
                                 <button type="submit" class="btn-danger">Reject</button>
                             </form>
