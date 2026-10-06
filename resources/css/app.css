@@ -265,10 +265,22 @@
 
 [x-cloak] { display: none !important; }
 
+/* Page-load progress bar (app layout): a segment sliding across. Reduced motion: a still bar. */
+@keyframes progress {
+    from { transform: translateX(-100%); }
+    to { transform: translateX(300%); }
+}
+
 @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after {
         animation-duration: 0.01ms !important;
         transition-duration: 0.01ms !important;
         scroll-behavior: auto !important;
+    }
+
+    /* The page-load bar becomes a still, full-width line instead of flickering. */
+    [role="progressbar"] > div {
+        animation: none !important;
+        width: 100%;
     }
 }

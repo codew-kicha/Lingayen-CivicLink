@@ -1,4 +1,4 @@
-<x-layouts.admin header="Dashboard" subheader="Everything waiting on the PESO office today.">
+<x-layouts.app header="Dashboard" subheader="Everything waiting on the PESO office today.">
     <section aria-label="Queue summary" class="panel-flat grid grid-cols-2 divide-line md:grid-cols-5 md:divide-x">
         @php
             $tiles = [
@@ -101,4 +101,4 @@
             @endif
         </section>
     </div>
-</x-layouts.admin>
+</x-layouts.app>

@@ -1,4 +1,4 @@
-<x-layouts.admin header="Import organizations"
+<x-layouts.app header="Import organizations"
                  subheader="Load the office's existing list from a spreadsheet. Imported organizations have no login until you invite a representative.">
     <div class="grid max-w-4xl gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
         <form method="POST" action="{{ route('admin.organizations.import.store') }}" enctype="multipart/form-data" class="panel space-y-5 p-6">
@@ -40,4 +40,4 @@
             <a href="{{ route('admin.organizations.import.template') }}" class="btn-secondary mt-4">Download template</a>
         </section>
     </div>
-</x-layouts.admin>
+</x-layouts.app>

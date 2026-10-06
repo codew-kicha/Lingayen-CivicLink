@@ -1,4 +1,4 @@
-<x-layouts.cso header="Dashboard" :subheader="$organization?->name">
+<x-layouts.app header="Dashboard" :subheader="$organization?->name">
     @if (! $organization)
         <section class="panel p-8 text-center">
             <h2 class="text-lg font-semibold text-ink">Set up your organization first</h2>
@@ -142,4 +142,4 @@
             </aside>
         </div>
     @endif
-</x-layouts.cso>
+</x-layouts.app>

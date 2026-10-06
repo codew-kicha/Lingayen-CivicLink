@@ -1,4 +1,4 @@
-<x-layouts.cso :header="Str::headline($application->type) . ' application'"
+<x-layouts.app :header="Str::headline($application->type) . ' application'"
                subheader="Filed {{ $application->submitted_at?->format('d F Y') ?? 'not yet' }}">
     <div class="space-y-6">
         <section class="panel p-5">
@@ -68,4 +68,4 @@
             @endif
         </section>
     </div>
-</x-layouts.cso>
+</x-layouts.app>

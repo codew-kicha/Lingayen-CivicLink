@@ -1,4 +1,4 @@
-<x-layouts.cso header="Organization profile"
+<x-layouts.app header="Organization profile"
                subheader="Member names and contact details are visible to PESO administrators only, never on the public directory.">
     <form method="POST" action="{{ route('cso.profile.update') }}" enctype="multipart/form-data" class="space-y-6">
         @csrf
@@ -120,4 +120,4 @@
             <a href="{{ route('cso.dashboard') }}" class="btn-ghost">Cancel</a>
         </div>
     </form>
-</x-layouts.cso>
+</x-layouts.app>

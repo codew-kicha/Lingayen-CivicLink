@@ -1,4 +1,4 @@
-<x-layouts.admin header="Organizations"
+<x-layouts.app header="Organizations"
                  subheader="Every registered CSO. Hiding an organization removes it from the public directory without touching its record.">
     <form method="GET" class="mb-4 flex flex-wrap items-end gap-3">
         <div>
@@ -104,4 +104,4 @@
     </section>
 
     <div class="mt-4">{{ $organizations->links() }}</div>
-</x-layouts.admin>
+</x-layouts.app>

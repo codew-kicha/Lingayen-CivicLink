@@ -31,6 +31,26 @@ Alpine.data('activityTicker', (count) => ({
     },
 }));
 
+// Signed-in pages: a thin progress bar while the next page loads (link, pagination or filter
+// form). Waits 150 ms so fast loads don't flash it, and resets when the page is restored from the
+// back/forward cache.
+Alpine.data('pageProgress', () => ({
+    loading: false,
+    timer: null,
+
+    init() {
+        const start = () => { this.timer = setTimeout(() => { this.loading = true; }, 150); };
+        document.addEventListener('click', (event) => {
+            const link = event.target.closest('a[href]');
+            if (!link || event.defaultPrevented || event.metaKey || event.ctrlKey || event.shiftKey || link.target
+                || link.hasAttribute('download') || link.origin !== location.origin || link.hash) return;
+            start();
+        });
+        document.addEventListener('submit', (event) => { if (!event.defaultPrevented) start(); });
+        window.addEventListener('pageshow', () => { clearTimeout(this.timer); this.loading = false; });
+    },
+}));
+
 // Home hero video (public/videos/lingayen_hero.mp4) loops continuously with no controls, by the
 // client's choice. It starts only when the device doesn't ask for reduced motion or data saving;
 // otherwise the poster stays and the file is never fetched (preload="none").

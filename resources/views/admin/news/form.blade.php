@@ -1,6 +1,6 @@
 @php $editing = $post->exists; @endphp
 
-<x-layouts.admin :header="$editing ? 'Edit post' : 'Write a post'"
+<x-layouts.app :header="$editing ? 'Edit post' : 'Write a post'"
                  subheader="Tag the organizations a post is about so it appears on their listings too.">
     <form method="POST"
           action="{{ $editing ? route('admin.news.update', $post) : route('admin.news.store') }}"
@@ -70,4 +70,4 @@
             <a href="{{ route('admin.news.index') }}" class="btn-ghost">Cancel</a>
         </div>
     </form>
-</x-layouts.admin>
+</x-layouts.app>

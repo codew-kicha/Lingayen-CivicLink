@@ -1,4 +1,4 @@
-<x-layouts.admin header="Activity verification"
+<x-layouts.app header="Verify activities"
                  subheader="Logged activities count toward an organization's score only after verification.">
     <nav aria-label="Filter by status" class="mb-4 flex flex-wrap gap-1">
         @foreach (['pending' => 'Pending', 'verified' => 'Verified', 'rejected' => 'Rejected'] as $status => $label)
@@ -103,4 +103,4 @@
 
         <div class="mt-4">{{ $activities->links() }}</div>
     @endif
-</x-layouts.admin>
+</x-layouts.app>

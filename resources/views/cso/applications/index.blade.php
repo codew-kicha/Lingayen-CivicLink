@@ -1,4 +1,4 @@
-<x-layouts.cso header="Applications" subheader="Every accreditation application your organization has filed.">
+<x-layouts.app header="Applications" subheader="Every accreditation application your organization has filed.">
     @if (! $organization)
         <section class="panel p-8 text-center">
             <p class="font-medium text-ink">Set up your organization profile first.</p>
@@ -34,4 +34,4 @@
             @endforeach
         </div>
     @endif
-</x-layouts.cso>
+</x-layouts.app>

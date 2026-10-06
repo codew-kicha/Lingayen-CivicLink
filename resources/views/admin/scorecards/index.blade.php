@@ -1,4 +1,4 @@
-<x-layouts.admin header="Performance scorecards"
+<x-layouts.app header="Performance scorecards"
                  subheader="Equal-weighted across four components. Informational only: scores do not affect renewal decisions.">
     <x-slot:actions>
         <form method="POST" action="{{ route('admin.scorecards.recalculate') }}">
@@ -51,4 +51,4 @@
     </section>
 
     <div class="mt-4">{{ $organizations->links() }}</div>
-</x-layouts.admin>
+</x-layouts.app>

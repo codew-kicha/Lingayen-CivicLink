@@ -1,4 +1,4 @@
-<x-layouts.admin header="Audit log"
+<x-layouts.app header="Audit log"
                  subheader="Sign-ins, account changes, and decisions that grant or remove access. Entries cannot be edited.">
     <form method="GET" class="mb-4 flex flex-wrap items-end gap-3">
         <div>
@@ -63,4 +63,4 @@
     </section>
 
     <div class="mt-4">{{ $entries->links() }}</div>
-</x-layouts.admin>
+</x-layouts.app>

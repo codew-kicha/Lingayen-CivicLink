@@ -60,6 +60,7 @@ class User extends Authenticatable implements MustVerifyEmail
     // mass-assignable: only the account-management code may change it.
     protected $fillable = [
         'name',
+        'position',
         'email',
         'phone',
         'password',

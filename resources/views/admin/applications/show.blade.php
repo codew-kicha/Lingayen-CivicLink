@@ -1,4 +1,4 @@
-<x-layouts.admin :header="$application->organization->name"
+<x-layouts.app :header="$application->organization->name"
                  subheader="{{ Str::headline($application->type) }} application filed {{ $application->submitted_at?->format('d F Y') ?? 'not yet' }}">
     <x-slot:actions>
         <a href="{{ route('admin.applications.index') }}" class="btn-secondary">Back to queue</a>
@@ -198,4 +198,4 @@
             </section>
         </aside>
     </div>
-</x-layouts.admin>
+</x-layouts.app>

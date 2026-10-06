@@ -1,4 +1,4 @@
-<x-layouts.admin :header="'Encode application: '.$organization->name"
+<x-layouts.app :header="'Encode application: '.$organization->name"
                  subheader="For organizations filing on paper. Scan each requirement and upload it here; the application joins the review queue marked as assisted.">
     <form method="POST" action="{{ route('admin.organizations.applications.store', $organization) }}"
           enctype="multipart/form-data" class="max-w-3xl space-y-6">
@@ -11,4 +11,4 @@
             <a href="{{ route('admin.organizations.edit', $organization) }}" class="btn-ghost">Cancel</a>
         </div>
     </form>
-</x-layouts.admin>
+</x-layouts.app>

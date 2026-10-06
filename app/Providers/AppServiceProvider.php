@@ -38,12 +38,12 @@ class AppServiceProvider extends ServiceProvider
             ->symbols()
             ->when(app()->isProduction(), fn (Password $rule) => $rule->uncompromised()));
 
-        // Queue counts shown as badges in the admin sidebar.
-        View::composer('components.layouts.admin', function ($view) {
-            $view->with([
+        // Queue counts for the sidebar badges (config/navigation.php `count` keys). Admins only.
+        View::composer('components.layouts.partials.sidebar', function ($view) {
+            $view->with('navCounts', auth()->user()?->isAdmin() ? [
                 'pendingApplications' => ApplicationModel::whereIn('status', ['submitted', 'under_review'])->count(),
                 'pendingActivities' => Activity::where('status', 'pending')->count(),
-            ]);
+            ] : []);
         });
     }
 }

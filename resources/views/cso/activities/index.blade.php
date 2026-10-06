@@ -1,4 +1,4 @@
-<x-layouts.cso header="Activities"
+<x-layouts.app header="Activities"
                subheader="Log the community work your organization does. PESO verifies each entry before it counts toward your score.">
     @if (! $organization)
         <section class="panel p-8 text-center">
@@ -93,4 +93,4 @@
             </section>
         </div>
     @endif
-</x-layouts.cso>
+</x-layouts.app>

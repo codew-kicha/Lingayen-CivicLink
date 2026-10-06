@@ -1,4 +1,4 @@
-<x-layouts.admin header="Accounts"
+<x-layouts.app header="Accounts"
                  subheader="Everyone who can sign in: PESO administrators and CSO representatives.">
     <div class="mb-4 flex flex-wrap items-end gap-3">
         <form method="GET" class="flex flex-wrap items-end gap-3">
@@ -130,4 +130,4 @@
     @enderror
 
     <div class="mt-4">{{ $accounts->links() }}</div>
-</x-layouts.admin>
+</x-layouts.app>

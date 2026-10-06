@@ -1,4 +1,4 @@
-<x-layouts.admin header="News posts" subheader="Published posts appear on the public Resources page and the home page feed.">
+<x-layouts.app header="News posts" subheader="Published posts appear on the public Resources page and the home page feed.">
     <x-slot:actions>
         <a href="{{ route('admin.news.create') }}" class="btn-primary">Write a post</a>
     </x-slot:actions>
@@ -50,4 +50,4 @@
     </section>
 
     <div class="mt-4">{{ $posts->links() }}</div>
-</x-layouts.admin>
+</x-layouts.app>

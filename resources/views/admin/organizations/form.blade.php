@@ -1,6 +1,6 @@
 @php $editing = $organization->exists; @endphp
 
-<x-layouts.admin :header="$editing ? $organization->name : 'Register an organization'"
+<x-layouts.app :header="$editing ? $organization->name : 'Register an organization'"
                  :subheader="$editing ? 'Brgy. '.$organization->barangay.' · '.$organization->sector : 'For walk-in applicants and records the office already holds.'">
     <div class="grid gap-6 xl:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
         <form method="POST" action="{{ $editing ? route('admin.organizations.update', $organization) : route('admin.organizations.store') }}"
@@ -201,4 +201,4 @@
             </div>
         </section>
     @endif
-</x-layouts.admin>
+</x-layouts.app>

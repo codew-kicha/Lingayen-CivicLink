@@ -1,4 +1,4 @@
-<x-layouts.admin :header="'Log activity: '.$organization->name"
+<x-layouts.app :header="'Log activity: '.$organization->name"
                  subheader="For organizations reporting on paper or in person. The entry joins the verification queue like any other.">
     <form method="POST" action="{{ route('admin.organizations.activities.store', $organization) }}"
           class="panel max-w-2xl space-y-5 p-6">
@@ -11,4 +11,4 @@
             <a href="{{ route('admin.organizations.edit', $organization) }}" class="btn-ghost">Cancel</a>
         </div>
     </form>
-</x-layouts.admin>
+</x-layouts.app>

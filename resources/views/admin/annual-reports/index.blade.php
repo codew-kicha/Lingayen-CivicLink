@@ -1,4 +1,4 @@
-<x-layouts.admin header="Annual reports" subheader="Reports listed here are downloadable from the public Resources page.">
+<x-layouts.app header="Annual reports" subheader="Reports listed here are downloadable from the public Resources page.">
     <div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
         <section class="panel-flat h-fit p-5">
             <h2 class="font-semibold text-ink">Upload a report</h2>
@@ -76,4 +76,4 @@
             @endif
         </section>
     </div>
-</x-layouts.admin>
+</x-layouts.app>

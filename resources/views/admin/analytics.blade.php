@@ -8,7 +8,7 @@
     ];
 @endphp
 
-<x-layouts.admin header="Analytics & Reports"
+<x-layouts.app header="Analytics & Reports"
                  subheader="Verified activity only, organization-level figures. No individual member data.">
     <x-slot:actions>
         <a href="{{ route('admin.analytics.export', $query) }}" class="btn-secondary">PDF report</a>
@@ -227,4 +227,4 @@
             </div>
         </section>
     </div>
-</x-layouts.admin>
+</x-layouts.app>

@@ -1,4 +1,4 @@
-<x-layouts.admin header="Add a PESO administrator"
+<x-layouts.app header="Add a PESO administrator"
                  subheader="They receive an email link to set their own password. You never see or choose it.">
     <form method="POST" action="{{ route('admin.accounts.store') }}" class="panel max-w-xl space-y-5 p-6">
         @csrf
@@ -37,4 +37,4 @@
             <a href="{{ route('admin.accounts.index') }}" class="btn-ghost">Cancel</a>
         </div>
     </form>
-</x-layouts.admin>
+</x-layouts.app>

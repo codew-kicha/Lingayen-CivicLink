@@ -1,4 +1,4 @@
-<x-layouts.cso header="Apply for accreditation"
+<x-layouts.app header="Apply for accreditation"
                subheader="Upload each requirement as a PDF, JPG, or PNG file up to 5 MB.">
     <form method="POST" action="{{ route('cso.applications.store') }}" enctype="multipart/form-data" class="space-y-6">
         @csrf
@@ -10,4 +10,4 @@
             <a href="{{ route('cso.dashboard') }}" class="btn-ghost">Cancel</a>
         </div>
     </form>
-</x-layouts.cso>
+</x-layouts.app>

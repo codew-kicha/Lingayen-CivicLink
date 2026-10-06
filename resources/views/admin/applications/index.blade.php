@@ -1,4 +1,4 @@
-<x-layouts.admin header="Applications" subheader="Accreditation applications filed by CSOs, newest first.">
+<x-layouts.app header="Applications" subheader="Accreditation applications filed by CSOs, newest first.">
     <form method="GET" class="mb-4 flex flex-wrap items-end gap-3">
         <div>
             <label for="status" class="field-label">Status</label>
@@ -76,4 +76,4 @@
     </section>
 
     <div class="mt-4">{{ $applications->links() }}</div>
-</x-layouts.admin>
+</x-layouts.app>
