@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Activity;
 use App\Models\ApplicationModel;
 use App\Models\AuditLog;
+use App\Models\NewsPost;
 use App\Models\Organization;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -47,6 +48,9 @@ class ListPaginationTest extends TestCase
                 foreach (range(1, $rows) as $i) {
                     Organization::factory()->create(['name' => sprintf('Coop %03d', $i)]);
                 }
+            }],
+            'news posts' => ['admin.news.index', 'admin', 10, ['status' => 'published'], function (User $viewer, int $rows) {
+                NewsPost::factory()->count($rows)->create(['author_id' => $viewer->id, 'status' => 'published', 'published_at' => now()]);
             }],
             'verify activities' => ['admin.activities.index', 'admin', 10, ['status' => 'verified'], function (User $viewer, int $rows) {
                 Activity::factory()->count($rows)->verified()->create();

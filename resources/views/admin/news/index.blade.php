@@ -3,17 +3,32 @@
         <a href="{{ route('admin.news.create') }}" class="btn-primary">Write a post</a>
     </x-slot:actions>
 
-    <section class="panel-flat overflow-hidden">
+    <form method="GET" class="mb-4 flex flex-wrap items-end gap-3">
+        <div>
+            <label for="status" class="field-label">Status</label>
+            <select id="status" name="status" class="field-input w-48">
+                <option value="">All posts</option>
+                <option value="published" @selected(request('status') === 'published')>Published</option>
+                <option value="draft" @selected(request('status') === 'draft')>Draft</option>
+            </select>
+        </div>
+        <x-keep-query />
+        <button type="submit" class="btn-primary">Filter</button>
+        @if (request()->filled('status'))
+            <a href="{{ route('admin.news.index') }}" class="btn-ghost">Clear</a>
+        @endif
+    </form>
+
+    <section class="card">
         @if ($posts->isEmpty())
-            <div class="px-4 py-12 text-center">
-                <p class="font-semibold text-ink">No posts yet.</p>
-                <p class="mt-1 text-sm text-muted">Write a post to share an update on the public site.</p>
-            </div>
+            <x-empty-state :filtered="request()->filled('status')" :clear-url="route('admin.news.index')" title="No posts yet." icon="newspaper">
+                Write a post to share an update on the public site.
+            </x-empty-state>
         @else
             <div class="table-wrap">
             <table class="w-full">
                 <caption class="sr-only">News posts</caption>
-                <thead class="sticky top-0 bg-paper">
+                <thead>
                     <tr>
                         <th scope="col" class="table-head">Title</th>
                         <th scope="col" class="table-head">Status</th>
@@ -51,5 +66,5 @@
         @endif
     </section>
 
-    <div class="mt-4">{{ $posts->links() }}</div>
+    <x-pagination :paginator="$posts" :default="10" />
 </x-layouts.app>

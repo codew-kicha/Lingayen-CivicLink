@@ -2,22 +2,27 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Support\ListPagination;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreNewsPostRequest;
 use App\Models\NewsPost;
 use App\Models\Organization;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class NewsPostController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
         $this->authorize('viewAny', NewsPost::class);
 
         return view('admin.news.index', [
-            'posts' => NewsPost::with('organizations')->latest('id')->paginate(20)->withQueryString(),
+            'posts' => ListPagination::paginate(NewsPost::with('organizations')
+                ->when(in_array($request->input('status'), ['draft', 'published'], true), fn ($q) => $q->where('status', $request->input('status')))
+                ->latest('id'),
+                $request, 10),
         ]);
     }
 
