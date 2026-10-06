@@ -2,6 +2,8 @@
 
 namespace App\Support;
 
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -25,7 +27,7 @@ final class ListPagination
         return in_array($requested, self::SIZES, true) ? $requested : $default;
     }
 
-    /** @param  \Illuminate\Database\Eloquent\Builder|\Illuminate\Database\Eloquent\Relations\Relation  $query */
+    /** @param  Builder|Relation  $query */
     public static function paginate($query, Request $request, int $default): LengthAwarePaginator
     {
         $paginator = $query->paginate(self::perPage($request, $default))->appends(self::linkQuery($request, $default));

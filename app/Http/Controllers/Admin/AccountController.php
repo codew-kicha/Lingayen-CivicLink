@@ -2,13 +2,13 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Support\ListPagination;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\InviteAccountRequest;
 use App\Http\Requests\Admin\ReasonRequest;
 use App\Models\AuditLog;
 use App\Models\User;
 use App\Notifications\AccountInvitation;
+use App\Support\ListPagination;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;

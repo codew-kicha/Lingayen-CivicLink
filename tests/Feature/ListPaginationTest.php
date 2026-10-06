@@ -8,6 +8,7 @@ use App\Models\AuditLog;
 use App\Models\NewsPost;
 use App\Models\Organization;
 use App\Models\User;
+use App\Services\ReportData;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
@@ -147,7 +148,7 @@ class ListPaginationTest extends TestCase
         }
         Activity::factory()->count(3)->for($busy)->verified()->create(['activity_source' => 'independent', 'activity_date' => now()->subMonth()]);
 
-        $expected = \App\Services\ReportData::fromRequest(request())->atRisk()->pluck('name')->all();
+        $expected = ReportData::fromRequest(request())->atRisk()->pluck('name')->all();
         $this->assertSame(['Quiet Association'], $expected);
 
         $this->actingAs($admin)->get(route('admin.organizations.index', ['status' => 'at-risk']))

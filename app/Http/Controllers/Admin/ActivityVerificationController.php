@@ -2,13 +2,13 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Support\ListPagination;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\RejectActivityRequest;
 use App\Models\Activity;
 use App\Models\AuditLog;
 use App\Notifications\ActivityVerified;
 use App\Services\PerformanceScoreCalculator;
+use App\Support\ListPagination;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;

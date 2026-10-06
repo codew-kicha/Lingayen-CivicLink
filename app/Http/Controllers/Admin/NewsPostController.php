@@ -2,11 +2,11 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Support\ListPagination;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreNewsPostRequest;
 use App\Models\NewsPost;
 use App\Models\Organization;
+use App\Support\ListPagination;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
