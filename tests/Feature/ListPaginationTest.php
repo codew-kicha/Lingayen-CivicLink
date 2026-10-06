@@ -40,7 +40,10 @@ class ListPaginationTest extends TestCase
                     Organization::factory()->create(['name' => sprintf('Coop %03d', $i)]);
                 }
             }],
-            'verify activities' =>['admin.activities.index', 'admin', 10, ['status' => 'verified'], function (User $viewer, int $rows) {
+            'accounts' => ['admin.accounts.index', 'admin', 25, ['role' => 'cso_rep'], function (User $viewer, int $rows) {
+                User::factory()->count($rows)->create();
+            }],
+            'verify activities' => ['admin.activities.index', 'admin', 10, ['status' => 'verified'], function (User $viewer, int $rows) {
                 Activity::factory()->count($rows)->verified()->create();
             }],
         ];
