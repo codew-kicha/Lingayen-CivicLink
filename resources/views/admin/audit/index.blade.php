@@ -10,23 +10,28 @@
                 @endforeach
             </select>
         </div>
-        @if (request('account'))
-            <input type="hidden" name="account" value="{{ request('account') }}">
-        @endif
+        <x-keep-query :only="['account', 'actor', 'organization', 'per_page']" />
         <button type="submit" class="btn-primary">Filter</button>
-        @if (request()->hasAny(['action', 'account', 'actor']))
+        @if (request()->hasAny(['action', 'account', 'actor', 'organization']))
             <a href="{{ route('admin.audit.index') }}" class="btn-ghost">Show everything</a>
         @endif
     </form>
 
-    <section class="panel-flat overflow-hidden">
+    @if ($organization)
+        <p class="mb-4 text-sm text-muted">
+            Full history for <a href="{{ route('admin.organizations.edit', $organization) }}" class="entity-link">{{ $organization->name }}</a>.
+        </p>
+    @endif
+
+    <section class="card">
         @if ($entries->isEmpty())
-            <p class="px-4 py-12 text-center text-sm text-muted">No events recorded for this filter.</p>
+            <x-empty-state :filtered="request()->hasAny(['action', 'account', 'actor', 'organization'])" :clear-url="route('admin.audit.index')"
+                           title="No events recorded yet." icon="list-magnifying-glass" />
         @else
-            <div class="table-wrap">
+            <div class="table-wrap table-sticky">
                 <table class="w-full">
                     <caption class="sr-only">Audit log entries</caption>
-                    <thead class="sticky top-0 bg-paper">
+                    <thead>
                         <tr>
                             <th scope="col" class="table-head">When</th>
                             <th scope="col" class="table-head">Event</th>
@@ -62,5 +67,5 @@
         @endif
     </section>
 
-    <div class="mt-4">{{ $entries->links() }}</div>
+    <x-pagination :paginator="$entries" :default="50" />
 </x-layouts.app>
