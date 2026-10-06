@@ -22,22 +22,22 @@
                 @endforeach
             </select>
         </div>
+        <x-keep-query />
         <button type="submit" class="btn-primary">Filter</button>
         @if (request()->hasAny(['status', 'stage']))
             <a href="{{ route('admin.applications.index') }}" class="btn-ghost">Clear</a>
         @endif
     </form>
 
-    <section class="panel-flat overflow-hidden">
+    <section class="card">
         @if ($applications->isEmpty())
-            <p class="px-4 py-12 text-center text-sm text-muted">
-                No applications match these filters.
-            </p>
+            <x-empty-state :filtered="request()->hasAny(['status', 'stage'])" :clear-url="route('admin.applications.index')"
+                           title="No applications have been filed yet." icon="clipboard-text" />
         @else
-            <div class="table-wrap">
+            <div class="table-wrap table-sticky">
                 <table class="w-full">
                     <caption class="sr-only">Accreditation applications</caption>
-                    <thead class="sticky top-0 bg-paper">
+                    <thead>
                         <tr>
                             <th scope="col" class="table-head">Organization</th>
                             <th scope="col" class="table-head">Channel</th>
@@ -74,5 +74,5 @@
         @endif
     </section>
 
-    <div class="mt-4">{{ $applications->links() }}</div>
+    <x-pagination :paginator="$applications" :default="25" />
 </x-layouts.app>

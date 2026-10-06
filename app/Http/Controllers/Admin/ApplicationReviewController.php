@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Support\ListPagination;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\RejectApplicationRequest;
 use App\Http\Requests\UpdateSbStageRequest;
@@ -20,7 +21,7 @@ class ApplicationReviewController extends Controller
         $this->authorize('viewAny', ApplicationModel::class);
 
         return view('admin.applications.index', [
-            'applications' => ApplicationModel::with('organization')
+            'applications' => ListPagination::paginate(ApplicationModel::with('organization')
                 ->withCount(['documents as flagged_documents_count' => fn ($q) => $q->whereIn('ocr_status', ['mismatch', 'unreadable'])])
                 ->when($request->input('status'), fn ($q, $status) => $q->where('status', $status))
                 ->when($request->input('stage'), fn ($q, $stage) => $q->where('sb_stage', $stage))
@@ -32,9 +33,8 @@ class ApplicationReviewController extends Controller
                     WHEN 'approved' THEN 3
                     WHEN 'rejected' THEN 4
                     ELSE 5 END")
-                ->latest('submitted_at')
-                ->paginate(20)
-                ->withQueryString(),
+                ->latest('submitted_at'),
+                $request, 25),
         ]);
     }
 

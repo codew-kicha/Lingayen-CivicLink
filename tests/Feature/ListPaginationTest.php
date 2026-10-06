@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\ApplicationModel;
 use App\Models\AuditLog;
 use App\Models\Organization;
 use App\Models\User;
@@ -29,6 +30,9 @@ class ListPaginationTest extends TestCase
                 foreach (range(1, $rows) as $i) {
                     AuditLog::create(['actor_id' => $viewer->id, 'action' => 'login', 'subject_type' => 'User', 'subject_id' => $viewer->id]);
                 }
+            }],
+            'applications queue' => ['admin.applications.index', 'admin', 25, ['status' => 'submitted'], function (User $viewer, int $rows) {
+                ApplicationModel::factory()->count($rows)->create(['status' => 'submitted']);
             }],
         ];
     }
