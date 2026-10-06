@@ -3,7 +3,7 @@
 {{-- Inner-page banner (pcnc.com.ph): photo under a navy wash, breadcrumb, serif title. --}}
 <section class="photo-wash photo-wash-even text-paper">
     <img src="{{ asset('images/stock/'.$photo) }}" alt="" width="1600" height="1000">
-    <div class="relative z-10 mx-auto max-w-7xl px-4 py-14 sm:px-6 sm:py-16 lg:px-8">
+    <div class="relative z-10 mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-12 lg:px-8">
         <nav aria-label="Breadcrumb">
             <ol class="flex items-center gap-2 text-sm text-brand-100">
                 <li><a href="{{ route('home') }}" class="hover:text-paper hover:underline">Home</a></li>

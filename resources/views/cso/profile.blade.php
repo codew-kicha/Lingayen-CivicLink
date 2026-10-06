@@ -4,11 +4,11 @@
         @csrf
         @method('PATCH')
 
-        <section class="panel p-5">
+        <section class="panel p-6">
             <h2 class="font-semibold text-ink">Basic details</h2>
-            <p class="mt-0.5 text-sm text-muted">All fields required unless marked optional.</p>
+            <p class="mt-1 text-sm text-muted">All fields required unless marked optional.</p>
 
-            <div class="mt-5 grid gap-5 sm:grid-cols-2">
+            <div class="mt-6 grid gap-6 sm:grid-cols-2">
                 <div class="sm:col-span-2">
                     <label for="name" class="field-label">Organization name</label>
                     <input type="text" id="name" name="name"
@@ -75,9 +75,9 @@
             </div>
         </section>
 
-        <section class="panel p-5">
+        <section class="panel p-6">
             <h2 class="font-semibold text-ink">Officers and members</h2>
-            <p class="mt-0.5 text-sm text-muted">
+            <p class="mt-1 text-sm text-muted">
                 List your current officers. Leave a row blank to skip it.
             </p>
 
@@ -86,7 +86,7 @@
                 $rows = max(count($members), 5);
             @endphp
 
-            <div class="mt-5 space-y-3">
+            <div class="mt-6 space-y-3">
                 @for ($i = 0; $i < $rows; $i++)
                     <fieldset class="grid gap-3 sm:grid-cols-4">
                         <legend class="sr-only">Member {{ $i + 1 }}</legend>

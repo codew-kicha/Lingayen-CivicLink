@@ -1,11 +1,11 @@
 <x-layouts.app header="Annual reports" subheader="Reports listed here are downloadable from the public Resources page.">
     <div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
-        <section class="panel-flat h-fit p-5">
+        <section class="panel-flat h-fit p-6">
             <h2 class="font-semibold text-ink">Upload a report</h2>
-            <p class="mt-0.5 text-sm text-muted">PDF only, up to 10 MB.</p>
+            <p class="mt-1 text-sm text-muted">PDF only, up to 10 MB.</p>
 
             <form method="POST" action="{{ route('admin.annual-reports.store') }}"
-                  enctype="multipart/form-data" class="mt-5 space-y-5">
+                  enctype="multipart/form-data" class="mt-6 space-y-6">
                 @csrf
 
                 <div>
@@ -36,12 +36,12 @@
         </section>
 
         <section class="panel-flat overflow-hidden">
-            <div class="border-b border-line px-5 py-3">
+            <div class="border-b border-line px-4 py-3">
                 <h2 class="font-semibold text-ink">Published reports</h2>
             </div>
 
             @if ($reports->isEmpty())
-                <p class="px-5 py-14 text-center text-sm text-muted">No annual reports published yet.</p>
+                <p class="px-4 py-12 text-center text-sm text-muted">No annual reports published yet.</p>
             @else
                 <table class="w-full">
                     <caption class="sr-only">Published annual reports</caption>
@@ -66,7 +66,7 @@
                                     <form method="POST" action="{{ route('admin.annual-reports.destroy', $report) }}">
                                         @csrf
                                         @method('DELETE')
-                                        <button type="submit" class="btn-ghost px-3 py-1.5 text-danger">Remove</button>
+                                        <button type="submit" class="btn-ghost px-3 py-2 text-danger">Remove</button>
                                     </form>
                                 </td>
                             </tr>

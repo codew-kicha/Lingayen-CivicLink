@@ -9,7 +9,7 @@
 
     <section class="panel-flat overflow-hidden">
         @if ($organizations->isEmpty())
-            <p class="px-4 py-14 text-center text-sm text-muted">No organizations are registered yet.</p>
+            <p class="px-4 py-12 text-center text-sm text-muted">No organizations are registered yet.</p>
         @else
             <div class="overflow-x-auto">
                 <table class="w-full">

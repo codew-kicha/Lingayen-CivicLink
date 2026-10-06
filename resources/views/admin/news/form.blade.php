@@ -8,8 +8,8 @@
         @csrf
         @if ($editing) @method('PUT') @endif
 
-        <section class="panel-flat p-5">
-            <div class="space-y-5">
+        <section class="panel-flat p-6">
+            <div class="space-y-6">
                 <div>
                     <label for="title" class="field-label">Title</label>
                     <input type="text" id="title" name="title" value="{{ old('title', $post->title) }}"
@@ -28,15 +28,15 @@
             </div>
         </section>
 
-        <section class="panel-flat p-5">
+        <section class="panel-flat p-6">
             <h2 class="font-semibold text-ink">Featured organizations</h2>
-            <p class="mt-0.5 text-sm text-muted">Optional. Tag any organizations this post is about.</p>
+            <p class="mt-1 text-sm text-muted">Optional. Tag any organizations this post is about.</p>
 
             @php $selected = old('organizations', $post->organizations->pluck('id')->all()); @endphp
 
             <div class="mt-4 grid max-h-64 gap-1 overflow-y-auto sm:grid-cols-2">
                 @foreach ($organizations as $organization)
-                    <label class="flex items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-primary-subtle">
+                    <label class="flex items-center gap-2 rounded-sm px-2 py-2 text-sm hover:bg-primary-subtle">
                         <input type="checkbox" name="organizations[]" value="{{ $organization->id }}"
                                @checked(in_array($organization->id, $selected))>
                         <span class="text-ink">{{ $organization->name }}</span>
@@ -45,7 +45,7 @@
             </div>
         </section>
 
-        <section class="panel-flat p-5">
+        <section class="panel-flat p-6">
             <fieldset>
                 <legend class="font-semibold text-ink">Visibility</legend>
                 <div class="mt-3 space-y-2">
@@ -55,7 +55,7 @@
                     ] as $value => $label)
                         <label class="flex items-start gap-3 rounded-sm border border-line-strong p-3
                                       hover:border-primary/40 has-[:checked]:border-primary has-[:checked]:bg-primary-subtle">
-                            <input type="radio" name="status" value="{{ $value }}" class="mt-0.5"
+                            <input type="radio" name="status" value="{{ $value }}" class="mt-1"
                                    @checked(old('status', $post->status) === $value) required>
                             <span class="text-sm text-ink">{{ $label }}</span>
                         </label>

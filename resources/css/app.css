@@ -205,7 +205,7 @@
 
     /* Segmented utility buttons in the public identity bar (pcnc.com.ph's Report / Apply / Contact). */
     .utility-link {
-        @apply px-5 py-3 text-ink transition-colors duration-fast ease-out-strong first:rounded-l-sm last:rounded-r-sm
+        @apply px-6 py-3 text-ink transition-colors duration-fast ease-out-strong first:rounded-l-sm last:rounded-r-sm
                hover:bg-brand-50 hover:text-brand-800 focus-visible:outline-brand-600;
     }
 

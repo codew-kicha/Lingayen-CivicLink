@@ -1,7 +1,7 @@
 <x-layouts.app :header="Str::headline($application->type) . ' application'"
                subheader="Filed {{ $application->submitted_at?->format('d F Y') ?? 'not yet' }}">
     <div class="space-y-6">
-        <section class="panel p-5">
+        <section class="panel p-6">
             <div class="flex flex-wrap items-center gap-3">
                 <h2 class="font-semibold text-ink">Current status</h2>
                 <span class="ml-auto"><x-status-badge :status="$application->status" /></span>
@@ -32,12 +32,12 @@
         </section>
 
         <section class="panel">
-            <div class="border-b border-line px-5 py-3">
+            <div class="border-b border-line px-4 py-3">
                 <h2 class="font-semibold text-ink">Documents submitted</h2>
             </div>
 
             @if ($application->documents->isEmpty())
-                <p class="px-5 py-10 text-center text-sm text-muted">No documents attached.</p>
+                <p class="px-4 py-12 text-center text-sm text-muted">No documents attached.</p>
             @else
                 <table class="w-full">
                     <caption class="sr-only">Documents submitted with this application</caption>

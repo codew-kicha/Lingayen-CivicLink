@@ -1,5 +1,5 @@
 {{-- Application type and requirement uploads, shared by the CSO form and PESO assisted encoding. --}}
-<section class="panel p-5">
+<section class="panel p-6">
     <h2 class="font-semibold text-ink">Application type</h2>
 
     <fieldset class="mt-4">
@@ -11,7 +11,7 @@
             ] as $value => $label)
                 <label class="flex items-start gap-3 rounded-sm border border-line-strong p-3
                               hover:border-primary/40 has-[:checked]:border-primary has-[:checked]:bg-primary-subtle">
-                    <input type="radio" name="type" value="{{ $value }}" class="mt-0.5"
+                    <input type="radio" name="type" value="{{ $value }}" class="mt-1"
                            @checked(old('type', $hasActiveAccreditation ? 'renewal' : 'new') === $value) required>
                     <span class="text-sm text-ink">{{ $label }}</span>
                 </label>
@@ -21,17 +21,17 @@
     </fieldset>
 </section>
 
-<section class="panel p-5">
+<section class="panel p-6">
     <h2 class="font-semibold text-ink">Requirements</h2>
-    <p class="mt-0.5 text-sm text-muted">
+    <p class="mt-1 text-sm text-muted">
         Upload each required document. Add an expiry date where the document carries one, so
         PESO can track when it needs replacing. Each file is read in your browser as you choose it, to
         catch a document attached in the wrong slot.
     </p>
 
-    <div class="mt-5 space-y-5">
+    <div class="mt-6 space-y-6">
         @foreach ($documentTypes as $key => $type)
-            <div class="grid gap-3 border-t border-line pt-5 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+            <div class="grid gap-3 border-t border-line pt-6 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
                 <div x-data="documentPrecheck(@js($type['keywords'] ?? []), {{ $type['min_matches'] ?? 1 }})">
                     <label for="doc-{{ $key }}" class="field-label">
                         {{ $type['label'] }}
@@ -50,7 +50,7 @@
 
                     {{-- Advisory only: never blocks submitting. PESO sees the server's own verdict. --}}
                     <p id="doc-{{ $key }}-check" aria-live="polite" x-cloak x-show="state !== 'idle'"
-                       class="mt-1.5 flex items-start gap-1.5 text-sm"
+                       class="mt-2 flex items-start gap-tight text-sm"
                        :class="{
                            'text-muted': state === 'reading' || state === 'failed',
                            'text-success': state === 'matched',

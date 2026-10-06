@@ -4,6 +4,10 @@ import plugin from 'tailwindcss/plugin';
 
 // Colour values live in resources/css/tokens.css; this file only maps class names to them.
 const token = (name) => `rgb(var(--color-${name}) / <alpha-value>)`;
+const stepScale = {
+    0: '0', px: '1px', hair: '2px', 1: '0.25rem', tight: '6px', 2: '0.5rem', 3: '0.75rem', 4: '1rem',
+    6: '1.5rem', 8: '2rem', 12: '3rem', section: '5rem',
+};
 const scale = (name, steps) => Object.fromEntries(steps.map((step) => [step, token(`${name}-${step}`)]));
 /** @type {import('tailwindcss').Config} */
 export default {
@@ -14,6 +18,14 @@ export default {
     ],
 
     theme: {
+        // Padding, margin, gap and space are locked to the 8-pt scale (4/8/12/16/24/32/48). `hair` (2px)
+        // and `tight` (6px) exist only for badges and icon gaps; `section` (80px) is the public site's
+        // band rhythm. Widths and heights keep Tailwind's full scale (h-11 touch targets, w-64 sidebar).
+        padding: stepScale,
+        margin: { ...stepScale, auto: 'auto' },
+        gap: stepScale,
+        space: stepScale,
+
         extend: {
             fontFamily: {
                 sans: ['"Public Sans"', ...defaultTheme.fontFamily.sans],
@@ -82,11 +94,6 @@ export default {
                 display: ['3.05rem', { lineHeight: '1.1', letterSpacing: '-0.02em' }],
             },
 
-            // Micro-spacing, named so it's used on purpose: badge padding and small icon gaps only.
-            spacing: {
-                hair: '2px',
-                tight: '6px',
-            },
 
             borderRadius: {
                 sm: '0.25rem',

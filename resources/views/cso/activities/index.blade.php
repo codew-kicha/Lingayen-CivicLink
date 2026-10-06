@@ -7,11 +7,11 @@
         </section>
     @else
         <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)]">
-            <section class="panel h-fit p-5">
+            <section class="panel h-fit p-6">
                 <h2 class="font-semibold text-ink">Log an activity</h2>
-                <p class="mt-0.5 text-sm text-muted">All fields required unless marked optional.</p>
+                <p class="mt-1 text-sm text-muted">All fields required unless marked optional.</p>
 
-                <form method="POST" action="{{ route('cso.activities.store') }}" class="mt-5 space-y-5">
+                <form method="POST" action="{{ route('cso.activities.store') }}" class="mt-6 space-y-6">
                     @csrf
 
                     @include('activities.fields')
@@ -33,11 +33,11 @@
                 @else
                     <div class="mt-4 space-y-3">
                         @foreach ($activities as $activity)
-                            <article class="panel p-5">
+                            <article class="panel p-6">
                                 <div class="flex flex-wrap items-start gap-3">
                                     <div>
                                         <h3 class="font-semibold text-ink">{{ $activity->title }}</h3>
-                                        <p class="mt-0.5 text-sm tabular-nums text-muted">
+                                        <p class="mt-1 text-sm tabular-nums text-muted">
                                             {{ $activity->activity_date->format('d M Y') }}
                                             <span class="font-sans">&middot; {{ $activity->sourceLabel() }}</span>
                                         </p>
@@ -77,10 +77,10 @@
 
                 @if ($taggedIn->isNotEmpty())
                     <h2 class="mt-8 font-semibold text-ink">Tagged as a partner</h2>
-                    <p class="mt-0.5 text-sm text-muted">Logged by other organizations. Verified entries count toward your score too.</p>
+                    <p class="mt-1 text-sm text-muted">Logged by other organizations. Verified entries count toward your score too.</p>
                     <ul class="panel mt-4 divide-y divide-line">
                         @foreach ($taggedIn as $activity)
-                            <li class="flex flex-wrap items-center gap-3 px-5 py-3 text-sm">
+                            <li class="flex flex-wrap items-center gap-3 px-4 py-3 text-sm">
                                 <span class="min-w-0">
                                     <span class="font-medium text-ink">{{ $activity->title }}</span>
                                     <span class="block text-muted">{{ $activity->organization->name }} &middot; <span class="tabular-nums">{{ $activity->activity_date->format('d M Y') }}</span></span>

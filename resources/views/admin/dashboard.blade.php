@@ -11,7 +11,7 @@
         @endphp
         @foreach ($tiles as [$label, $value, $url])
             <a href="{{ $url }}"
-               class="px-5 py-4 transition-colors duration-fast ease-out-strong hover:bg-primary-subtle">
+               class="px-4 py-4 transition-colors duration-fast ease-out-strong hover:bg-primary-subtle">
                 <p class="text-2xl tabular-nums text-ink">{{ $value }}</p>
                 <p class="mt-1 text-sm text-muted">{{ $label }}</p>
             </a>
@@ -27,7 +27,7 @@
             </div>
 
             @if ($recentApplications->isEmpty())
-                <p class="px-4 py-10 text-center text-sm text-muted">
+                <p class="px-4 py-12 text-center text-sm text-muted">
                     No applications are waiting for review.
                 </p>
             @else
@@ -70,7 +70,7 @@
             </div>
 
             @if ($recentActivities->isEmpty())
-                <p class="px-4 py-10 text-center text-sm text-muted">
+                <p class="px-4 py-12 text-center text-sm text-muted">
                     No activities are waiting for verification.
                 </p>
             @else

@@ -44,7 +44,7 @@
         ] as $value => $label)
             <label class="flex items-start gap-3 rounded-sm border border-line-strong p-3
                           hover:border-primary/40 has-[:checked]:border-primary has-[:checked]:bg-primary-subtle">
-                <input type="radio" name="activity_source" value="{{ $value }}" class="mt-0.5"
+                <input type="radio" name="activity_source" value="{{ $value }}" class="mt-1"
                        @checked(old('activity_source') === $value) required>
                 <span class="text-sm text-ink">{{ $label }}</span>
             </label>

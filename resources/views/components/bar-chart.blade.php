@@ -8,20 +8,20 @@
 @endphp
 
 @if ($rows->isEmpty())
-    <p class="py-10 text-center text-sm text-muted">No data to chart yet.</p>
+    <p class="py-12 text-center text-sm text-muted">No data to chart yet.</p>
 @else
     <table class="w-full">
         <caption class="sr-only">{{ $label }}</caption>
         <tbody>
             @foreach ($rows as $name => $value)
                 <tr>
-                    <th scope="row" class="w-40 py-1.5 pr-3 text-left text-sm font-normal text-ink">{{ $name }}</th>
-                    <td class="py-1.5">
+                    <th scope="row" class="w-40 py-2 pr-3 text-left text-sm font-normal text-ink">{{ $name }}</th>
+                    <td class="py-2">
                         <div class="h-4 w-full bg-canvas">
                             <div class="h-4 bg-chart-bar" style="width: {{ round(($value / $max) * 100, 1) }}%"></div>
                         </div>
                     </td>
-                    <td class="w-16 py-1.5 pl-3 text-right text-sm tabular-nums text-muted">
+                    <td class="w-16 py-2 pl-3 text-right text-sm tabular-nums text-muted">
                         {{ $formatter ? $formatter($value) : $value }}
                     </td>
                 </tr>

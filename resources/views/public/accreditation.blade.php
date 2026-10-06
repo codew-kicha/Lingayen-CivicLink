@@ -2,7 +2,7 @@
     <x-page-banner title="Accreditation" photo="crop-rows.jpg"
                    lede="Who can apply, what you need to submit, and how the review runs from filing to Sangguniang Bayan endorsement." />
 
-    <div class="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
+    <div class="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
         <section>
             <h2 class="font-serif text-xl font-bold text-brand-900">Who can apply</h2>
             <p class="mt-4 max-w-[68ch] text-muted">
@@ -13,28 +13,28 @@
             </p>
         </section>
 
-        <section class="mt-14">
+        <section class="mt-12">
             <h2 class="font-serif text-xl font-bold text-brand-900">How the review works</h2>
             <ol class="mt-6 grid gap-px overflow-hidden rounded-lg border border-line bg-line md:grid-cols-5">
                 @foreach ($process as $step)
-                    <li class="bg-paper p-5">
+                    <li class="bg-paper p-6">
                         <p class="font-mono text-xs tabular-nums text-brand-600">Step {{ $loop->iteration }}</p>
                         <h3 class="mt-2 font-semibold text-ink">{{ $step['title'] }}</h3>
-                        <p class="mt-1.5 text-sm text-muted">{{ $step['detail'] }}</p>
+                        <p class="mt-2 text-sm text-muted">{{ $step['detail'] }}</p>
                     </li>
                 @endforeach
             </ol>
         </section>
 
-        <section class="mt-14 grid gap-12 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
+        <section class="mt-12 grid gap-12 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
             <div>
                 <h2 class="font-serif text-xl font-bold text-brand-900">What you need to submit</h2>
                 <p class="mt-2 text-sm text-muted">
                     Scans or clear photographs are accepted. PDF, JPG, or PNG, up to 5 MB per file.
                 </p>
-                <ul class="mt-5 divide-y divide-line border-y border-line">
+                <ul class="mt-6 divide-y divide-line border-y border-line">
                     @foreach ($requirements as $requirement)
-                        <li class="py-3.5">
+                        <li class="py-4">
                             <p class="font-medium text-ink">
                                 {{ $requirement['label'] }}
                                 @if ($requirement['optional'])
@@ -42,7 +42,7 @@
                                 @endif
                             </p>
                             @if ($requirement['note'])
-                                <p class="mt-0.5 text-sm text-muted">{{ $requirement['note'] }}</p>
+                                <p class="mt-1 text-sm text-muted">{{ $requirement['note'] }}</p>
                             @endif
                         </li>
                     @endforeach

@@ -2,7 +2,7 @@
     <x-page-banner title="About Lingayen CivicLink" photo="floating-market.jpg"
                    lede="Run by the Civil Society Desk Office of the Public Employment Service Office, Lingayen, Pangasinan, to move CSO accreditation off paper and to keep a continuing public record of what accredited organizations actually do between accreditation cycles." />
 
-    <div class="mx-auto grid max-w-7xl gap-12 px-4 py-16 sm:px-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] lg:px-8">
+    <div class="mx-auto grid max-w-7xl gap-12 px-4 py-12 sm:px-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] lg:px-8">
         <div class="space-y-12">
             <section>
                 <h2 class="font-serif text-xl font-bold text-brand-900">Why this exists</h2>
@@ -54,7 +54,7 @@
 
             <section>
                 <h2 class="font-serif text-xl font-bold text-brand-900">Office officials</h2>
-                <ul class="mt-5 divide-y divide-line border-y border-line">
+                <ul class="mt-6 divide-y divide-line border-y border-line">
                     @foreach ($officials as $official)
                         <li class="flex flex-wrap items-baseline gap-x-4 gap-y-1 py-3">
                             <span class="font-medium text-ink">{{ $official['name'] }}</span>
@@ -70,20 +70,20 @@
             <dl class="mt-4 space-y-4 text-sm">
                 <div>
                     <dt class="text-muted">Office</dt>
-                    <dd class="mt-0.5 text-ink">{{ config('office.office.name') }}</dd>
+                    <dd class="mt-1 text-ink">{{ config('office.office.name') }}</dd>
                     <dd class="text-muted">{{ config('office.office.parent') }}</dd>
                 </div>
                 <div>
                     <dt class="text-muted">Address</dt>
-                    <dd class="mt-0.5 text-ink">{{ config('office.office.address') }}</dd>
+                    <dd class="mt-1 text-ink">{{ config('office.office.address') }}</dd>
                 </div>
                 <div>
                     <dt class="text-muted">Office hours</dt>
-                    <dd class="mt-0.5 text-ink">{{ config('office.office.hours') }}</dd>
+                    <dd class="mt-1 text-ink">{{ config('office.office.hours') }}</dd>
                 </div>
                 <div>
                     <dt class="text-muted">Facebook</dt>
-                    <dd class="mt-0.5">
+                    <dd class="mt-1">
                         <a href="{{ config('office.office.facebook') }}" rel="noopener" target="_blank"
                            class="text-brand-700 hover:underline">facebook.com/pesolingayen</a>
                     </dd>

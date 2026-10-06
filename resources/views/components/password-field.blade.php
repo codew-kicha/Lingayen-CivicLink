@@ -21,7 +21,7 @@
                x-model="value" required autocomplete="{{ $autocomplete }}"
                @if ($describedBy) aria-describedby="{{ $describedBy }}" @endif
                @if ($error) aria-invalid="true" @endif
-               @class(['field-input pr-20', 'field-input-error' => $error])>
+               @class(['field-input pr-12', 'field-input-error' => $error])>
         <button type="button" x-cloak @click="show = ! show" :aria-pressed="show.toString()"
                 class="absolute inset-y-0 right-0 flex min-w-16 items-center justify-center rounded-r-sm px-3 text-sm
                        font-semibold text-primary hover:bg-primary-subtle focus-visible:outline-focus">
@@ -38,7 +38,7 @@
                 ['A number', '/[0-9]/.test(value)'],
                 ['A symbol, such as - ! or #', '/[^A-Za-z0-9]/.test(value)'],
             ] as [$rule, $test])
-                <li class="flex items-center gap-1.5 text-muted" :class="{ '!text-success': {{ $test }} }">
+                <li class="flex items-center gap-tight text-muted" :class="{ '!text-success': {{ $test }} }">
                     <x-phosphor-check-circle class="h-4 w-4 shrink-0" x-show="{{ $test }}" aria-hidden="true" />
                     <x-phosphor-circle class="h-4 w-4 shrink-0" x-show="! ({{ $test }})" aria-hidden="true" />
                     <span>{{ $rule }}</span>

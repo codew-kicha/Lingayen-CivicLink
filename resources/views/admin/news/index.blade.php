@@ -5,7 +5,7 @@
 
     <section class="panel-flat overflow-hidden">
         @if ($posts->isEmpty())
-            <div class="px-4 py-14 text-center">
+            <div class="px-4 py-12 text-center">
                 <p class="font-medium text-ink">No posts yet.</p>
                 <p class="mt-1 text-sm text-muted">Write a post to share an update on the public site.</p>
             </div>
@@ -39,7 +39,7 @@
                                 <form method="POST" action="{{ route('admin.news.destroy', $post) }}">
                                     @csrf
                                     @method('DELETE')
-                                    <button type="submit" class="btn-ghost px-3 py-1.5 text-danger">Delete</button>
+                                    <button type="submit" class="btn-ghost px-3 py-2 text-danger">Delete</button>
                                 </form>
                             </td>
                         </tr>

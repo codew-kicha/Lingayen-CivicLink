@@ -38,7 +38,7 @@
 
     <section class="panel-flat overflow-hidden">
         @if ($accounts->isEmpty())
-            <p class="px-4 py-14 text-center text-sm text-muted">No accounts match those filters.</p>
+            <p class="px-4 py-12 text-center text-sm text-muted">No accounts match those filters.</p>
         @else
             <div class="overflow-x-auto">
                 <table class="w-full">
@@ -84,12 +84,12 @@
                                 </td>
                                 <td class="table-cell">
                                     <div class="flex flex-wrap justify-end gap-1">
-                                        <a href="{{ route('admin.audit.index', ['account' => $account->id]) }}" class="btn-ghost px-3 py-1.5">History</a>
+                                        <a href="{{ route('admin.audit.index', ['account' => $account->id]) }}" class="btn-ghost px-3 py-2">History</a>
 
                                         @can('invite', $account)
                                             <form method="POST" action="{{ route('admin.accounts.invitation', $account) }}">
                                                 @csrf
-                                                <button type="submit" class="btn-ghost px-3 py-1.5">Resend invitation</button>
+                                                <button type="submit" class="btn-ghost px-3 py-2">Resend invitation</button>
                                             </form>
                                         @endcan
 
@@ -97,13 +97,13 @@
                                             <form method="POST" action="{{ route('admin.accounts.reactivate', $account) }}">
                                                 @csrf
                                                 @method('PATCH')
-                                                <button type="submit" class="btn-ghost px-3 py-1.5">Reactivate</button>
+                                                <button type="submit" class="btn-ghost px-3 py-2">Reactivate</button>
                                             </form>
                                         @endcan
 
                                         @can('deactivate', $account)
                                             <details class="relative">
-                                                <summary class="btn-ghost cursor-pointer list-none px-3 py-1.5 text-danger">Deactivate</summary>
+                                                <summary class="btn-ghost cursor-pointer list-none px-3 py-2 text-danger">Deactivate</summary>
                                                 <form method="POST" action="{{ route('admin.accounts.deactivate', $account) }}"
                                                       class="absolute right-0 z-dropdown mt-1 w-72 space-y-2 rounded-lg border border-line bg-paper p-3 shadow-overlay">
                                                     @csrf

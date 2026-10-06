@@ -9,7 +9,7 @@
             Choose a password only you know.
         </x-slot:intro>
 
-        <form method="POST" action="{{ request()->fullUrl() }}" class="space-y-5">
+        <form method="POST" action="{{ request()->fullUrl() }}" class="space-y-6">
             @csrf
 
             <div>

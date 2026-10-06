@@ -4,7 +4,7 @@
             <a href="{{ route('directory') }}" class="text-sm font-semibold text-brand-700 hover:underline">
                 Back to the directory
             </a>
-            <div class="mt-5 flex flex-wrap items-start gap-5">
+            <div class="mt-6 flex flex-wrap items-start gap-6">
                 @if ($organization->logo_path)
                     <img src="{{ asset('storage/'.$organization->logo_path) }}" alt="{{ $organization->name }} logo"
                          class="h-16 w-16 shrink-0 rounded-lg border border-line bg-paper object-contain p-1">
@@ -15,7 +15,7 @@
                 @endif
                 <div class="min-w-0 flex-1">
                     <h1 class="font-serif text-[clamp(1.75rem,3vw,2.25rem)] font-bold leading-tight text-brand-900">{{ $organization->name }}</h1>
-                    <p class="mt-1.5 text-muted">
+                    <p class="mt-2 text-muted">
                         Brgy. {{ $organization->barangay }}, Lingayen &middot; {{ $organization->sector }}
                     </p>
                 </div>
@@ -71,14 +71,14 @@
             </p>
 
             @if ($activities->isEmpty())
-                <div class="panel mt-5 p-8 text-center">
+                <div class="panel mt-6 p-8 text-center">
                     <p class="font-medium text-ink">No verified activities yet.</p>
                     <p class="mt-1 text-sm text-muted">
                         Activities appear here once the Civil Society Desk Office has verified them.
                     </p>
                 </div>
             @else
-                <ol class="mt-5">
+                <ol class="mt-6">
                     @foreach ($activities as $activity)
                         <li class="reveal grid gap-x-6 gap-y-1 border-b border-line py-4 sm:grid-cols-[7rem_minmax(0,1fr)]">
                             <p class="font-mono text-sm tabular-nums text-muted">
@@ -98,8 +98,8 @@
                                         With {{ $others->pluck('name')->join(', ', ' and ') }}
                                     </p>
                                 @endif
-                                <p class="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted">
-                                    <span class="inline-flex items-center gap-1.5 text-success">
+                                <p class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted">
+                                    <span class="inline-flex items-center gap-tight text-success">
                                         <x-phosphor-seal-check class="h-4 w-4" aria-hidden="true" />
                                         Verified {{ $activity->verified_at?->format('d M Y') }}
                                     </span>

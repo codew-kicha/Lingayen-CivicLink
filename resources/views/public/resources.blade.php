@@ -2,20 +2,20 @@
     <x-page-banner title="Resources" photo="reading-session.jpg"
                    lede="News from the PESO office, annual accreditation reports, and answers to the questions organizations ask most often." />
 
-    <div class="mx-auto grid max-w-7xl gap-12 px-4 py-16 sm:px-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] lg:px-8">
+    <div class="mx-auto grid max-w-7xl gap-12 px-4 py-12 sm:px-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] lg:px-8">
         <div>
             <section>
                 <h2 class="font-serif text-xl font-bold text-brand-900">News and community updates</h2>
 
                 @if ($posts->isEmpty())
-                    <div class="panel mt-5 p-8 text-center">
+                    <div class="panel mt-6 p-8 text-center">
                         <p class="font-medium text-ink">No updates published yet.</p>
                         <p class="mt-1 text-sm text-muted">PESO announcements will appear here.</p>
                     </div>
                 @else
-                    <ul class="mt-5 divide-y divide-line border-y border-line">
+                    <ul class="mt-6 divide-y divide-line border-y border-line">
                         @foreach ($posts as $post)
-                            <li class="py-5">
+                            <li class="py-6">
                                 <p class="font-mono text-xs uppercase tracking-wide text-muted">
                                     {{ $post->published_at?->format('d M Y') }}
                                 </p>
@@ -27,7 +27,7 @@
                                         <span>Featuring:</span>
                                         @foreach ($post->organizations as $organization)
                                             <a href="{{ route('directory.show', $organization) }}"
-                                               class="rounded-sm bg-canvas px-2 py-0.5 text-brand-700 hover:underline">
+                                               class="rounded-sm bg-canvas px-2 py-1 text-brand-700 hover:underline">
                                                 {{ $organization->name }}
                                             </a>
                                         @endforeach
@@ -41,13 +41,13 @@
                 @endif
             </section>
 
-            <section class="mt-14">
+            <section class="mt-12">
                 <h2 class="font-serif text-xl font-bold text-brand-900">Frequently asked questions</h2>
-                <dl class="mt-5 divide-y divide-line border-y border-line">
+                <dl class="mt-6 divide-y divide-line border-y border-line">
                     @foreach ($faqs as $faq)
                         <div class="py-4">
                             <dt class="font-semibold text-ink">{{ $faq['question'] }}</dt>
-                            <dd class="mt-1.5 max-w-[68ch] text-sm text-muted">{{ $faq['answer'] }}</dd>
+                            <dd class="mt-2 max-w-[68ch] text-sm text-muted">{{ $faq['answer'] }}</dd>
                         </div>
                     @endforeach
                 </dl>
@@ -57,11 +57,11 @@
         <aside>
             <h2 class="font-serif text-xl font-bold text-brand-900">Annual reports</h2>
             @if ($reports->isEmpty())
-                <div class="panel mt-5 p-6 text-center">
+                <div class="panel mt-6 p-6 text-center">
                     <p class="text-sm font-medium text-ink">No reports posted yet.</p>
                 </div>
             @else
-                <ul class="mt-5 space-y-2">
+                <ul class="mt-6 space-y-2">
                     @foreach ($reports as $report)
                         <li>
                             <a href="{{ route('annual-reports.download', $report) }}"
@@ -75,7 +75,7 @@
             @endif
 
             <h2 class="mt-12 font-serif text-xl font-bold text-brand-900">Regulations</h2>
-            <ul class="mt-5 space-y-3 text-sm text-muted">
+            <ul class="mt-6 space-y-3 text-sm text-muted">
                 <li>RA 7160, Local Government Code of 1991, on the role of NGOs and people's organizations</li>
                 <li>DILG Memorandum Circular 2022-083, CSO accreditation for Local Special Bodies</li>
             </ul>

@@ -30,7 +30,7 @@
 
     <section class="panel-flat overflow-hidden">
         @if ($applications->isEmpty())
-            <p class="px-4 py-14 text-center text-sm text-muted">
+            <p class="px-4 py-12 text-center text-sm text-muted">
                 No applications match these filters.
             </p>
         @else

@@ -9,13 +9,13 @@
 </head>
 <body class="flex min-h-screen flex-col bg-paper">
     <header class="bg-brand-900 text-paper">
-        <div class="mx-auto flex max-w-7xl items-center gap-2.5 px-4 py-3 sm:px-6 lg:px-8">
+        <div class="mx-auto flex max-w-7xl items-center gap-3 px-4 py-3 sm:px-6 lg:px-8">
             <x-civic-mark class="h-10 w-10" />
             <span class="text-base font-semibold tracking-tight">Lingayen CivicLink</span>
         </div>
     </header>
 
-    <main class="mx-auto flex w-full max-w-2xl flex-1 flex-col justify-center px-4 py-20 sm:px-6">
+    <main class="mx-auto flex w-full max-w-2xl flex-1 flex-col justify-center px-4 py-section sm:px-6">
         <p class="font-mono text-sm tabular-nums text-brand-600">@yield('code')</p>
         <h1 class="mt-2 text-2xl font-semibold text-ink">@yield('title')</h1>
         <p class="mt-3 max-w-[60ch] text-muted">@yield('message')</p>

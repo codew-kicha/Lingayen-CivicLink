@@ -20,7 +20,7 @@
         <nav aria-label="Reporting period presets" class="flex flex-wrap gap-1">
             @foreach ($presets as $name => $range)
                 <a href="{{ route('admin.analytics', $range) }}"
-                   @class(['rounded-sm px-3 py-1.5 text-sm font-medium',
+                   @class(['rounded-sm px-3 py-2 text-sm font-medium',
                            'bg-primary text-on-primary' => $query == $range,
                            'text-ink hover:bg-primary-subtle' => $query != $range])>{{ $name }}</a>
             @endforeach
@@ -48,7 +48,7 @@
             ['Residents reached', number_format($summary['residentsReached'])],
             ['Self-initiated', $percent($summary['selfInitiatedRatio'])],
         ] as [$label, $value])
-            <div class="px-5 py-4">
+            <div class="px-4 py-4">
                 <p class="text-2xl tabular-nums text-ink">{{ $value }}</p>
                 <p class="mt-1 text-sm text-muted">{{ $label }}</p>
             </div>
@@ -56,9 +56,9 @@
     </section>
 
     <div class="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-2">
-        <section class="panel-flat p-5">
+        <section class="panel-flat p-6">
             <h2 class="font-semibold text-ink">Self-initiated or LGU-organized, by sector</h2>
-            <p class="mt-0.5 text-sm text-muted">
+            <p class="mt-1 text-sm text-muted">
                 Does the sector run its own community work, or mostly attend LGU events? The share is shown
                 once a sector has {{ \App\Services\ReportData::MIN_FOR_RATIO }} or more activities with a known source.
             </p>
@@ -69,9 +69,9 @@
             </div>
         </section>
 
-        <section class="panel-flat p-5">
+        <section class="panel-flat p-6">
             <h2 class="font-semibold text-ink">Activity volume</h2>
-            <p class="mt-0.5 text-sm text-muted">Verified activities per month, by who organized them.</p>
+            <p class="mt-1 text-sm text-muted">Verified activities per month, by who organized them.</p>
             <x-source-legend class="mt-3" with-unknown />
             <div class="mt-3">
                 <x-source-columns :series="$activityTrend" label="Verified activities per month" />
@@ -81,10 +81,10 @@
 
     {{-- The inverse of Top contributors: who PESO should follow up with. --}}
     <section class="panel-flat mt-6">
-        <div class="flex flex-wrap items-end gap-3 border-b border-line p-5 pb-3">
+        <div class="flex flex-wrap items-end gap-3 border-b border-line p-6 pb-3">
             <div>
                 <h2 class="font-semibold text-ink">At-risk organizations</h2>
-                <p class="mt-0.5 text-sm text-muted">
+                <p class="mt-1 text-sm text-muted">
                     Accredited for at least {{ \App\Models\Organization::INACTIVE_AFTER_MONTHS }} months, with little or no
                     verified activity in this period, or only LGU-organized activity. Least active first.
                 </p>
@@ -92,7 +92,7 @@
             <span class="badge-warning ml-auto">{{ $atRisk->count() }}</span>
         </div>
         @if ($atRisk->isEmpty())
-            <p class="px-5 py-10 text-center text-sm text-muted">No accredited organization is at risk in this period.</p>
+            <p class="px-4 py-12 text-center text-sm text-muted">No accredited organization is at risk in this period.</p>
         @else
             <div class="overflow-x-auto">
                 <table class="w-full">
@@ -132,9 +132,9 @@
     </section>
 
     <section class="panel-flat mt-6">
-        <div class="border-b border-line p-5 pb-3">
+        <div class="border-b border-line p-6 pb-3">
             <h2 class="font-semibold text-ink">Sector comparison</h2>
-            <p class="mt-0.5 text-sm text-muted">Accredited organizations only. Scores are informational and never affect renewal.</p>
+            <p class="mt-1 text-sm text-muted">Accredited organizations only. Scores are informational and never affect renewal.</p>
         </div>
         <div class="overflow-x-auto">
             <table class="w-full">
@@ -167,15 +167,15 @@
 
     <div class="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-2">
         <section class="panel-flat">
-            <div class="flex flex-wrap items-end gap-3 border-b border-line p-5 pb-3">
+            <div class="flex flex-wrap items-end gap-3 border-b border-line p-6 pb-3">
                 <div>
                     <h2 class="font-semibold text-ink">Top contributors</h2>
-                    <p class="mt-0.5 text-sm text-muted">By verified activities, including partner credit.</p>
+                    <p class="mt-1 text-sm text-muted">By verified activities, including partner credit.</p>
                 </div>
                 <a href="{{ route('admin.analytics.awards', $query) }}" class="btn-ghost ml-auto px-3">Awards ranking (Excel)</a>
             </div>
             @if ($topContributors->isEmpty())
-                <p class="px-5 py-10 text-center text-sm text-muted">No verified activities in this period.</p>
+                <p class="px-4 py-12 text-center text-sm text-muted">No verified activities in this period.</p>
             @else
                 <table class="w-full">
                     <caption class="sr-only">Organizations ranked by verified activities</caption>
@@ -201,26 +201,26 @@
             @endif
         </section>
 
-        <section class="panel-flat p-5">
+        <section class="panel-flat p-6">
             <h2 class="font-semibold text-ink">By barangay</h2>
-            <p class="mt-0.5 text-sm text-muted">Verified activities led by organizations based in each barangay. Barangays with none are listed last.</p>
+            <p class="mt-1 text-sm text-muted">Verified activities led by organizations based in each barangay. Barangays with none are listed last.</p>
             <div class="mt-4 max-h-[28rem] overflow-y-auto pr-1">
                 <x-bar-chart label="Verified activities by barangay"
                              :data="$barangays->pluck('activities', 'barangay')" />
             </div>
         </section>
 
-        <section class="panel-flat p-5">
+        <section class="panel-flat p-6">
             <h2 class="font-semibold text-ink">Sector distribution</h2>
-            <p class="mt-0.5 text-sm text-muted">Accredited organizations by sector, as of today.</p>
+            <p class="mt-1 text-sm text-muted">Accredited organizations by sector, as of today.</p>
             <div class="mt-4">
                 <x-bar-chart :data="$sectorDistribution" label="Accredited organizations by sector" />
             </div>
         </section>
 
-        <section class="panel-flat p-5">
+        <section class="panel-flat p-6">
             <h2 class="font-semibold text-ink">Compliance trend</h2>
-            <p class="mt-0.5 text-sm text-muted">Applications filed (light) against applications approved (dark), per month.</p>
+            <p class="mt-1 text-sm text-muted">Applications filed (light) against applications approved (dark), per month.</p>
             <div class="mt-4">
                 <x-column-chart :series="$complianceTrend" value-key="approved" second-key="filed"
                                 label="Applications filed and approved" />

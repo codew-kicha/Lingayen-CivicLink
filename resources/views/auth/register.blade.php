@@ -5,7 +5,7 @@
 
     <x-slot:aside>
         <p class="text-sm font-semibold text-accent-400">What happens next</p>
-        <ol class="mt-5 space-y-5">
+        <ol class="mt-6 space-y-6">
             @foreach ([
                 ['Confirm your email', 'We send a link to the address you register with.'],
                 ['Upload your requirements', 'Accreditation form, officers list, constitution and by-laws, and fee receipt.'],
@@ -16,7 +16,7 @@
                     <span class="flex h-8 w-8 items-center justify-center rounded-full border border-brand-600 font-mono text-sm text-brand-100">{{ $loop->iteration }}</span>
                     <div>
                         <p class="font-semibold">{{ $step }}</p>
-                        <p class="mt-0.5 text-sm text-brand-100">{{ $detail }}</p>
+                        <p class="mt-1 text-sm text-brand-100">{{ $detail }}</p>
                     </div>
                 </li>
             @endforeach
@@ -29,7 +29,7 @@
     <form method="POST" action="{{ route('register') }}" class="space-y-8">
         @csrf
 
-        <fieldset class="space-y-5">
+        <fieldset class="space-y-6">
             <legend class="font-semibold text-ink">Your organization</legend>
 
             <div>
@@ -40,7 +40,7 @@
                 @error('organization_name')<p id="organization_name-error" class="field-error">{{ $message }}</p>@enderror
             </div>
 
-            <div class="grid gap-5 sm:grid-cols-2">
+            <div class="grid gap-6 sm:grid-cols-2">
                 <div>
                     <label for="barangay" class="field-label">Barangay</label>
                     <select id="barangay" name="barangay" required class="field-input @error('barangay') field-input-error @enderror">
@@ -65,7 +65,7 @@
         </fieldset>
 
         <div class="border-t border-line pt-8">
-        <fieldset class="space-y-5">
+        <fieldset class="space-y-6">
             <legend class="font-semibold text-ink">You, as its representative</legend>
 
             <div>
@@ -76,7 +76,7 @@
                 @error('name')<p id="name-error" class="field-error">{{ $message }}</p>@enderror
             </div>
 
-            <div class="grid gap-5 sm:grid-cols-2">
+            <div class="grid gap-6 sm:grid-cols-2">
                 <div>
                     <label for="email" class="field-label">Email</label>
                     <input id="email" name="email" type="email" value="{{ old('email') }}" required autocomplete="email"

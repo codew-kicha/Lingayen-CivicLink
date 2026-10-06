@@ -16,10 +16,10 @@
     </a>
 
     <div class="grid min-h-screen lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
-        <aside class="photo-wash photo-wash-even flex flex-col px-6 py-5 text-paper sm:px-10 lg:py-10">
+        <aside class="photo-wash photo-wash-even flex flex-col px-6 py-6 text-paper sm:px-12 lg:py-12">
             {{-- Placeholder stock photo (images/stock/SOURCES.txt). --}}
             <img src="{{ asset('images/stock/floating-market.jpg') }}" alt="" width="1600" height="1000" class="hidden lg:block">
-            <a href="{{ route('home') }}" class="relative z-10 flex items-center gap-2.5 self-start rounded-sm focus-visible:outline-accent-400">
+            <a href="{{ route('home') }}" class="relative z-10 flex items-center gap-3 self-start rounded-sm focus-visible:outline-accent-400">
                 <x-civic-mark class="h-11 w-11" />
                 <span class="font-serif text-lg font-bold">Lingayen CivicLink</span>
             </a>
@@ -41,7 +41,7 @@
             </p>
         </aside>
 
-        <main id="main" class="flex items-start justify-center px-6 py-10 sm:px-10 lg:items-center lg:py-16">
+        <main id="main" class="flex items-start justify-center px-6 py-12 sm:px-12 lg:items-center lg:py-12">
             <div class="w-full max-w-md">
                 @isset($heading)
                     <h1 class="font-serif text-[1.75rem] font-bold leading-tight text-brand-900">{{ $heading }}</h1>

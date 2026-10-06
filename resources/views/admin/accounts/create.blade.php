@@ -1,6 +1,6 @@
 <x-layouts.app header="Add a PESO administrator"
                  subheader="They receive an email link to set their own password. You never see or choose it.">
-    <form method="POST" action="{{ route('admin.accounts.store') }}" class="panel max-w-xl space-y-5 p-6">
+    <form method="POST" action="{{ route('admin.accounts.store') }}" class="panel max-w-xl space-y-6 p-6">
         @csrf
 
         <div>

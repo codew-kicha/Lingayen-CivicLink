@@ -14,7 +14,7 @@
         </ul>
     </x-slot:aside>
 
-    <form method="POST" action="{{ route('login') }}" class="space-y-5">
+    <form method="POST" action="{{ route('login') }}" class="space-y-6">
         @csrf
 
         <div>
@@ -38,7 +38,7 @@
         <button type="submit" class="btn-primary w-full">Sign in</button>
     </form>
 
-    <div class="mt-10 border-t border-line pt-6">
+    <div class="mt-12 border-t border-line pt-6">
         <p class="font-semibold text-ink">Your organization isn't registered yet?</p>
         <p class="mt-1 text-sm text-muted">Create an account for your CSO, then file your accreditation application online.</p>
         <a href="{{ route('register') }}" class="btn-secondary mt-4">Register your organization</a>

@@ -6,7 +6,7 @@
 
     <div class="grid gap-6 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
         <div class="space-y-6">
-            <section class="panel-flat p-5">
+            <section class="panel-flat p-6">
                 <div class="flex flex-wrap items-center gap-3">
                     <h2 class="font-semibold text-ink">Review status</h2>
                     <span class="ml-auto"><x-status-badge :status="$application->status" /></span>
@@ -32,26 +32,26 @@
                 @endif
             </section>
 
-            <section class="panel-flat p-5">
+            <section class="panel-flat p-6">
                 <h2 class="font-semibold text-ink">Organization details</h2>
                 <dl class="mt-4 grid gap-4 sm:grid-cols-2">
                     <div>
                         <dt class="text-sm text-muted">Sector</dt>
-                        <dd class="mt-0.5 text-sm text-ink">{{ $application->organization->sector }}</dd>
+                        <dd class="mt-1 text-sm text-ink">{{ $application->organization->sector }}</dd>
                     </div>
                     <div>
                         <dt class="text-sm text-muted">Barangay</dt>
-                        <dd class="mt-0.5 text-sm text-ink">{{ $application->organization->barangay }}</dd>
+                        <dd class="mt-1 text-sm text-ink">{{ $application->organization->barangay }}</dd>
                     </div>
                     <div class="sm:col-span-2">
                         <dt class="text-sm text-muted">Advocacy</dt>
-                        <dd class="mt-0.5 max-w-[68ch] text-sm text-ink">
+                        <dd class="mt-1 max-w-[68ch] text-sm text-ink">
                             {{ $application->organization->advocacy ?: 'Not provided' }}
                         </dd>
                     </div>
                     <div class="sm:col-span-2">
                         <dt class="text-sm text-muted">Organizational structure</dt>
-                        <dd class="mt-0.5 max-w-[68ch] whitespace-pre-line text-sm text-ink">
+                        <dd class="mt-1 max-w-[68ch] whitespace-pre-line text-sm text-ink">
                             {{ $application->organization->org_chart ?: 'Not provided' }}
                         </dd>
                     </div>
@@ -59,15 +59,15 @@
             </section>
 
             <section class="panel-flat">
-                <div class="border-b border-line px-5 py-3">
+                <div class="border-b border-line px-4 py-3">
                     <h2 class="font-semibold text-ink">Submitted documents</h2>
-                    <p class="mt-0.5 text-sm text-muted">
+                    <p class="mt-1 text-sm text-muted">
                         {{ $application->documents->whereIn('document_type', \App\Models\Document::requiredTypes())->count() }} of {{ count(\App\Models\Document::requiredTypes()) }} required documents uploaded
                     </p>
                 </div>
 
                 @if ($application->documents->isEmpty())
-                    <p class="px-5 py-10 text-center text-sm text-muted">No documents uploaded yet.</p>
+                    <p class="px-4 py-12 text-center text-sm text-muted">No documents uploaded yet.</p>
                 @else
                     <table class="w-full">
                         <caption class="sr-only">Documents submitted with this application</caption>
@@ -100,16 +100,16 @@
                 @endif
             </section>
 
-            <section class="panel-flat p-5">
+            <section class="panel-flat p-6">
                 <h2 class="font-semibold text-ink">Officers and members</h2>
-                <p class="mt-0.5 text-sm text-muted">Visible to PESO administrators only.</p>
+                <p class="mt-1 text-sm text-muted">Visible to PESO administrators only.</p>
 
                 @if ($application->organization->members->isEmpty())
                     <p class="mt-4 text-sm text-muted">No members recorded.</p>
                 @else
                     <ul class="mt-4 divide-y divide-line border-y border-line">
                         @foreach ($application->organization->members as $member)
-                            <li class="flex flex-wrap items-baseline gap-x-4 gap-y-1 py-2.5">
+                            <li class="flex flex-wrap items-baseline gap-x-4 gap-y-1 py-3">
                                 <span class="text-sm font-medium text-ink">{{ $member->name }}</span>
                                 <span class="text-sm text-muted">{{ $member->position }}</span>
                                 @if ($member->contact_number)
@@ -125,7 +125,7 @@
         <aside class="space-y-4">
             @can('review', $application)
                 @if (in_array($application->status, ['submitted', 'under_review'], true))
-                    <section class="panel-flat p-5">
+                    <section class="panel-flat p-6">
                         <h2 class="font-semibold text-ink">Advance the review</h2>
 
                         <form method="POST" action="{{ route('admin.applications.stage', $application) }}" class="mt-4">
@@ -142,7 +142,7 @@
                             <button type="submit" class="btn-secondary mt-3 w-full">Update stage</button>
                         </form>
 
-                        <hr class="my-5 border-line">
+                        <hr class="my-6 border-line">
 
                         <form method="POST" action="{{ route('admin.applications.approve', $application) }}">
                             @csrf
@@ -153,7 +153,7 @@
                             <button type="submit" class="btn-primary mt-3 w-full">Approve application</button>
                         </form>
 
-                        <form method="POST" action="{{ route('admin.applications.reject', $application) }}" class="mt-5">
+                        <form method="POST" action="{{ route('admin.applications.reject', $application) }}" class="mt-6">
                             @csrf
                             <label for="rejection_reason" class="field-label">Reason for rejection</label>
                             <textarea id="rejection_reason" name="rejection_reason" rows="3"
@@ -167,7 +167,7 @@
                         </form>
                     </section>
                 @else
-                    <section class="panel-flat p-5">
+                    <section class="panel-flat p-6">
                         <h2 class="font-semibold text-ink">Review closed</h2>
                         <p class="mt-2 text-sm text-muted">
                             This application is {{ Str::lower(Str::headline($application->status)) }} and no longer
@@ -177,7 +177,7 @@
                 @endif
             @endcan
 
-            <section class="panel-flat p-5">
+            <section class="panel-flat p-6">
                 <h2 class="font-semibold text-ink">Filing details</h2>
                 <dl class="mt-4 space-y-3 text-sm">
                     <div class="flex gap-3">

@@ -4,7 +4,7 @@
         @foreach (['pending' => 'Pending', 'verified' => 'Verified', 'rejected' => 'Rejected'] as $status => $label)
             <a href="{{ route('admin.activities.index', ['status' => $status]) }}"
                @if ($currentStatus === $status) aria-current="page" @endif
-               class="rounded-sm px-3 py-1.5 text-sm font-medium transition-colors duration-fast ease-out-strong
+               class="rounded-sm px-3 py-2 text-sm font-medium transition-colors duration-fast ease-out-strong
                       {{ $currentStatus === $status ? 'bg-primary text-on-primary' : 'text-ink hover:bg-primary-subtle' }}">
                 {{ $label }}
                 @if ($status === 'pending' && $pendingCount)
@@ -15,7 +15,7 @@
     </nav>
 
     @if ($activities->isEmpty())
-        <div class="panel-flat px-4 py-14 text-center">
+        <div class="panel-flat px-4 py-12 text-center">
             <p class="font-medium text-ink">Nothing here.</p>
             <p class="mt-1 text-sm text-muted">
                 No {{ $currentStatus }} activities. Activities appear here as organizations log them.
@@ -24,11 +24,11 @@
     @else
         <div class="space-y-3">
             @foreach ($activities as $activity)
-                <article class="panel-flat p-5">
+                <article class="panel-flat p-6">
                     <div class="flex flex-wrap items-start gap-3">
                         <div class="min-w-0">
                             <h2 class="font-semibold text-ink">{{ $activity->title }}</h2>
-                            <p class="mt-0.5 text-sm text-muted">
+                            <p class="mt-1 text-sm text-muted">
                                 {{ $activity->organization->name }}
                                 &middot; Brgy. {{ $activity->organization->barangay }}
                                 &middot; <span class="tabular-nums">{{ $activity->activity_date->format('d M Y') }}</span>

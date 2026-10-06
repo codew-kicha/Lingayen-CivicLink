@@ -11,7 +11,7 @@
     @else
         <div class="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
             <div class="space-y-6">
-                <section class="panel p-5">
+                <section class="panel p-6">
                     <h2 class="font-semibold text-ink">Accreditation status</h2>
 
                     @if ($accreditation)
@@ -47,7 +47,7 @@
                     @endif
                 </section>
 
-                <section class="panel p-5">
+                <section class="panel p-6">
                     <h2 class="font-semibold text-ink">What PESO is waiting on</h2>
 
                     @php
@@ -68,7 +68,7 @@
                     @else
                         <ul class="mt-3 divide-y divide-line border-y border-line">
                             @foreach ($waiting as $item)
-                                <li class="py-2.5 text-sm text-ink">{{ $item }}</li>
+                                <li class="py-3 text-sm text-ink">{{ $item }}</li>
                             @endforeach
                         </ul>
                     @endif
@@ -76,7 +76,7 @@
             </div>
 
             <aside class="space-y-6">
-                <section class="panel p-5">
+                <section class="panel p-6">
                     <h2 class="font-semibold text-ink">Performance score</h2>
 
                     @if ($score)
@@ -111,7 +111,7 @@
                     </p>
                 </section>
 
-                <section class="panel p-5">
+                <section class="panel p-6">
                     <h2 class="font-semibold text-ink">Activity log</h2>
                     <dl class="mt-3 space-y-2 text-sm">
                         <div class="flex gap-3">
@@ -127,13 +127,13 @@
                 </section>
 
                 @if ($notifications->isNotEmpty())
-                    <section class="panel p-5">
+                    <section class="panel p-6">
                         <h2 class="font-semibold text-ink">Recent updates</h2>
                         <ul class="mt-3 divide-y divide-line border-y border-line">
                             @foreach ($notifications as $notification)
-                                <li class="py-2.5">
+                                <li class="py-3">
                                     <p class="text-sm font-medium text-ink">{{ $notification->data['headline'] ?? 'Update' }}</p>
-                                    <p class="mt-0.5 text-sm text-muted">{{ $notification->data['body'] ?? '' }}</p>
+                                    <p class="mt-1 text-sm text-muted">{{ $notification->data['body'] ?? '' }}</p>
                                 </li>
                             @endforeach
                         </ul>

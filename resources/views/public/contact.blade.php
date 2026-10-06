@@ -2,11 +2,11 @@
     <x-page-banner title="Contact the Civil Society Desk Office" photo="floating-market.jpg"
                    lede="For questions about accreditation requirements, the status of a filed application, or help encoding a paper form." />
 
-    <div class="mx-auto grid max-w-5xl gap-12 px-4 py-16 sm:px-6 lg:grid-cols-2 lg:px-8">
+    <div class="mx-auto grid max-w-5xl gap-12 px-4 py-12 sm:px-6 lg:grid-cols-2 lg:px-8">
         <div>
             <h2 class="font-serif text-xl font-bold text-brand-900">Visit or call</h2>
 
-            <dl class="mt-6 space-y-5 text-sm">
+            <dl class="mt-6 space-y-6 text-sm">
                 <div>
                     <dt class="font-semibold text-ink">Office</dt>
                     <dd class="mt-1 text-muted">
@@ -39,7 +39,7 @@
             <h2 class="font-serif text-xl font-bold text-brand-900">Send a message</h2>
             <p class="mt-1 text-sm text-muted">All fields required unless marked optional.</p>
 
-            <form class="mt-6 space-y-5" method="POST" action="{{ route('contact.send') }}">
+            <form class="mt-6 space-y-6" method="POST" action="{{ route('contact.send') }}">
                 @csrf
                 <div>
                     <label for="name" class="field-label">Your name</label>

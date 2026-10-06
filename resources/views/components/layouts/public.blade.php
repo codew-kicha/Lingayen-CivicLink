@@ -84,7 +84,7 @@
                             <a href="{{ route($route) }}"
                                @if (request()->routeIs($route, "{$route}.*")) aria-current="page" @endif
                                @class([
-                                   'block px-5 py-[1.125rem] text-[0.9rem] font-medium uppercase tracking-[0.08em]',
+                                   'block px-6 py-4 text-[0.9rem] font-medium uppercase tracking-[0.08em]',
                                    'transition-colors duration-fast ease-out-strong focus-visible:outline-accent-400',
                                    'text-accent-400' => request()->routeIs($route, "{$route}.*"),
                                    'text-brand-100 hover:text-paper' => ! request()->routeIs($route, "{$route}.*"),
@@ -125,7 +125,7 @@
     </main>
 
     <footer class="bg-brand-900 text-brand-200">
-        <div class="mx-auto max-w-7xl px-4 pb-10 pt-16 sm:px-6 lg:px-8">
+        <div class="mx-auto max-w-7xl px-4 pb-12 pt-12 sm:px-6 lg:px-8">
             <div class="mx-auto max-w-2xl text-center">
                 <div class="inline-flex items-center gap-3">
                     <x-civic-mark class="h-20 w-20" />
@@ -138,7 +138,7 @@
                 </p>
             </div>
 
-            <div class="mt-12 grid gap-8 border-t border-brand-700 pt-10 text-sm sm:grid-cols-3">
+            <div class="mt-12 grid gap-8 border-t border-brand-700 pt-12 text-sm sm:grid-cols-3">
                 <div>
                     <h2 class="font-semibold text-paper">Pages</h2>
                     <ul class="mt-3 space-y-2">
@@ -164,7 +164,7 @@
                 </div>
             </div>
 
-            <p class="mt-10 border-t border-brand-700 pt-6 text-xs text-brand-300">
+            <p class="mt-12 border-t border-brand-700 pt-6 text-xs text-brand-300">
                 &copy; {{ now()->year }} Municipality of Lingayen. Demonstration build.
             </p>
         </div>

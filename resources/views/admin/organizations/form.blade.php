@@ -4,7 +4,7 @@
                  :subheader="$editing ? 'Brgy. '.$organization->barangay.' · '.$organization->sector : 'For walk-in applicants and records the office already holds.'">
     <div class="grid gap-6 xl:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
         <form method="POST" action="{{ $editing ? route('admin.organizations.update', $organization) : route('admin.organizations.store') }}"
-              class="panel space-y-5 p-6">
+              class="panel space-y-6 p-6">
             @csrf
             @if ($editing) @method('PATCH') @endif
 
@@ -18,7 +18,7 @@
                 @error('name')<p id="name-error" class="field-error">{{ $message }}</p>@enderror
             </div>
 
-            <div class="grid gap-5 sm:grid-cols-2">
+            <div class="grid gap-6 sm:grid-cols-2">
                 <div>
                     <label for="barangay" class="field-label">Barangay</label>
                     <select id="barangay" name="barangay" required class="field-input @error('barangay') field-input-error @enderror">
@@ -48,13 +48,13 @@
             </div>
 
             @unless ($editing)
-                <fieldset class="space-y-5 border-t border-line pt-5">
+                <fieldset class="space-y-6 border-t border-line pt-6">
                     <legend class="font-semibold text-ink">Representative <span class="font-normal text-muted">(optional)</span></legend>
                     <p class="text-sm text-muted">
                         If you enter an email, an account is created and the representative receives a link to set
                         their own password. Leave blank to register the organization without a login.
                     </p>
-                    <div class="grid gap-5 sm:grid-cols-2">
+                    <div class="grid gap-6 sm:grid-cols-2">
                         <div>
                             <label for="rep_name" class="field-label">Full name</label>
                             <input id="rep_name" name="rep_name" value="{{ old('rep_name') }}" class="field-input @error('rep_name') field-input-error @enderror">
@@ -164,7 +164,7 @@
                 <section class="panel p-6">
                     <h2 class="font-semibold text-ink">Recent history</h2>
                     @forelse ($history as $entry)
-                        <div class="border-b border-line py-2.5 text-sm last:border-0">
+                        <div class="border-b border-line py-3 text-sm last:border-0">
                             <p class="text-ink">{{ str_replace(['.', '_'], ' ', ucfirst($entry->action)) }}</p>
                             <p class="text-xs text-muted">
                                 {{ $entry->actor?->name ?? 'System' }} · {{ $entry->created_at->format('d M Y, H:i') }}
@@ -184,12 +184,12 @@
             <div class="flex flex-wrap items-end gap-3">
                 <div>
                     <h2 class="font-semibold text-ink">Activity, last 24 months</h2>
-                    <p class="mt-0.5 text-sm text-muted">Verified activities per month, including those it joined as a partner.</p>
+                    <p class="mt-1 text-sm text-muted">Verified activities per month, including those it joined as a partner.</p>
                 </div>
                 <x-source-legend class="ml-auto" with-unknown />
             </div>
             @if ($timeline['longestGap'])
-                <p class="mt-3 inline-flex items-center gap-1.5 rounded-sm bg-warning-subtle px-3 py-1.5 text-sm text-warning">
+                <p class="mt-3 inline-flex items-center gap-tight rounded-sm bg-warning-subtle px-3 py-2 text-sm text-warning">
                     <x-phosphor-warning class="h-4 w-4" aria-hidden="true" />
                     No verified activity from {{ $timeline['longestGap']['from']->format('M Y') }}
                     to {{ $timeline['longestGap']['to']->format('M Y') }} ({{ $timeline['longestGap']['months'] }} months)

@@ -18,7 +18,7 @@
         <div class="space-y-3">
             @foreach ($applications as $application)
                 <a href="{{ route('cso.applications.show', $application) }}"
-                   class="panel block p-5 transition-colors duration-fast ease-out-strong hover:border-primary/40">
+                   class="panel block p-6 transition-colors duration-fast ease-out-strong hover:border-primary/40">
                     <div class="flex flex-wrap items-center gap-3">
                         <h2 class="font-semibold capitalize text-ink">{{ $application->type }} application</h2>
                         <span class="ml-auto"><x-status-badge :status="$application->status" /></span>

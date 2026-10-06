@@ -6,12 +6,12 @@
             <input type="search" id="q" name="q" value="{{ request('q') }}"
                    placeholder="Organization name" class="field-input w-72">
         </div>
-        <label class="mb-2.5 flex items-center gap-2 text-sm text-ink">
+        <label class="mb-3 flex items-center gap-2 text-sm text-ink">
             <input type="checkbox" name="account" value="none" @checked(request('account') === 'none')
                    class="rounded-sm border-line-strong text-primary">
             No login yet
         </label>
-        <label class="mb-2.5 flex items-center gap-2 text-sm text-ink">
+        <label class="mb-3 flex items-center gap-2 text-sm text-ink">
             <input type="checkbox" name="status" value="inactive" @checked(request('status') === 'inactive')
                    class="rounded-sm border-line-strong text-primary">
             Inactive only
@@ -28,7 +28,7 @@
 
     <section class="panel-flat overflow-hidden">
         @if ($organizations->isEmpty())
-            <p class="px-4 py-14 text-center text-sm text-muted">No organizations are registered yet.</p>
+            <p class="px-4 py-12 text-center text-sm text-muted">No organizations are registered yet.</p>
         @else
             <div class="overflow-x-auto">
                 <table class="w-full">
@@ -90,7 +90,7 @@
                                     <form method="POST" action="{{ route('admin.organizations.visibility', $organization) }}">
                                         @csrf
                                         @method('PATCH')
-                                        <button type="submit" class="btn-ghost px-3 py-1.5">
+                                        <button type="submit" class="btn-ghost px-3 py-2">
                                             {{ $organization->public_visibility ? 'Hide' : 'List' }}
                                         </button>
                                     </form>

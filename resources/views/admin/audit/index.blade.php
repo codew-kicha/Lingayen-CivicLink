@@ -21,7 +21,7 @@
 
     <section class="panel-flat overflow-hidden">
         @if ($entries->isEmpty())
-            <p class="px-4 py-14 text-center text-sm text-muted">No events recorded for this filter.</p>
+            <p class="px-4 py-12 text-center text-sm text-muted">No events recorded for this filter.</p>
         @else
             <div class="overflow-x-auto">
                 <table class="w-full">
