@@ -21,14 +21,30 @@
             </section>
 
             <section>
-                <h2 class="font-semibold text-ink">Activity history</h2>
+                <div class="flex flex-wrap items-end gap-3">
+                    {{-- Pagination focuses this heading after a page change (#history). --}}
+                    <h2 id="history" tabindex="-1" class="card-title mr-auto">Activity history</h2>
+                    <form method="GET" class="flex items-end gap-2">
+                        <div>
+                            <label for="status" class="field-label">Show</label>
+                            <select id="status" name="status" class="field-input w-auto py-1 text-sm">
+                                <option value="">All activities</option>
+                                <option value="pending" @selected(request('status') === 'pending')>Awaiting verification</option>
+                                <option value="verified" @selected(request('status') === 'verified')>Verified</option>
+                                <option value="rejected" @selected(request('status') === 'rejected')>Rejected</option>
+                            </select>
+                        </div>
+                        <x-keep-query />
+                        <button type="submit" class="btn-secondary btn-sm">Filter</button>
+                    </form>
+                </div>
 
                 @if ($activities->isEmpty())
-                    <div class="panel mt-4 p-8 text-center">
-                        <p class="font-semibold text-ink">No activities logged yet.</p>
-                        <p class="mt-1 text-sm text-muted">
+                    <div class="card mt-4">
+                        <x-empty-state :filtered="request()->filled('status')" :clear-url="route('cso.activities.index')"
+                                       title="No activities logged yet." icon="handshake">
                             Logged activities appear here, and on your public listing once verified.
-                        </p>
+                        </x-empty-state>
                     </div>
                 @else
                     <div class="mt-4 space-y-3">
@@ -72,7 +88,7 @@
                         @endforeach
                     </div>
 
-                    <div class="mt-4">{{ $activities->links() }}</div>
+                    <x-pagination :paginator="$activities" :default="10" target="history" />
                 @endif
 
                 @if ($taggedIn->isNotEmpty())

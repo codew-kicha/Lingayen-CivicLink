@@ -52,6 +52,9 @@ class ListPaginationTest extends TestCase
             'news posts' => ['admin.news.index', 'admin', 10, ['status' => 'published'], function (User $viewer, int $rows) {
                 NewsPost::factory()->count($rows)->create(['author_id' => $viewer->id, 'status' => 'published', 'published_at' => now()]);
             }],
+            'CSO activities' => ['cso.activities.index', 'cso', 10, ['status' => 'verified'], function (User $viewer, int $rows) {
+                Activity::factory()->count($rows)->for($viewer->organization)->verified()->create();
+            }],
             'verify activities' => ['admin.activities.index', 'admin', 10, ['status' => 'verified'], function (User $viewer, int $rows) {
                 Activity::factory()->count($rows)->verified()->create();
             }],
@@ -79,7 +82,7 @@ class ListPaginationTest extends TestCase
         $html = $this->actingAs($viewer)->get(route($route, $filters))->assertOk()->getContent();
 
         $this->assertStringContainsString('aria-label="Pagination"', $html);
-        $this->assertStringContainsString(http_build_query($filters, '', '&amp;').'&amp;page=2#page-title', $html);
+        $this->assertMatchesRegularExpression('/'.preg_quote(http_build_query($filters, '', '&amp;'), '/').'&amp;page=2#(page-title|history)"/', $html);
         $this->assertStringNotContainsString('per_page='.$default, $html);
     }
 

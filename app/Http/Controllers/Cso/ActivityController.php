@@ -6,12 +6,14 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreActivityRequest;
 use App\Models\Activity;
 use App\Models\Organization;
+use App\Support\ListPagination;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class ActivityController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
         $this->authorize('viewAny', Activity::class);
 
@@ -19,11 +21,11 @@ class ActivityController extends Controller
 
         return view('cso.activities.index', [
             'organization' => $organization,
-            'activities' => $organization
-                ?->activities()
+            'activities' => $organization ? ListPagination::paginate($organization->activities()
                 ->with(['verifiedBy', 'partnerOrganizations:id,name'])
-                ->latest('activity_date')
-                ->paginate(15) ?? collect(),
+                ->when(in_array($request->input('status'), ['pending', 'verified', 'rejected'], true), fn ($q) => $q->where('status', $request->input('status')))
+                ->latest('activity_date'),
+                $request, 10) : collect(),
             'partnerOptions' => $organization ? Organization::partnerOptions($organization) : [],
             // Activities other organizations logged that credit this one as a partner.
             'taggedIn' => $organization
