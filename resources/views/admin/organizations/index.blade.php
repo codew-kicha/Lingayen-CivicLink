@@ -11,29 +11,37 @@
                    class="rounded-sm border-line-strong text-primary">
             No login yet
         </label>
-        <label class="mb-3 flex items-center gap-2 text-sm text-ink">
-            <input type="checkbox" name="status" value="inactive" @checked(request('status') === 'inactive')
-                   class="rounded-sm border-line-strong text-primary">
-            Inactive only
-        </label>
+        <div>
+            <label for="status" class="field-label">Activity</label>
+            <select id="status" name="status" class="field-input w-56">
+                <option value="">All organizations</option>
+                <option value="inactive" @selected(request('status') === 'inactive')>Inactive (6 months)</option>
+                <option value="at-risk" @selected(request('status') === 'at-risk')>At risk (analytics definition)</option>
+            </select>
+        </div>
+        {{-- The analytics period (from/to) rides along when arriving from the at-risk list. --}}
+        <x-keep-query :only="['from', 'to', 'per_page']" />
         <button type="submit" class="btn-primary">Search</button>
         @if (request()->hasAny(['q', 'account', 'status']))
             <a href="{{ route('admin.organizations.index') }}" class="btn-ghost">Clear</a>
         @endif
-        <div class="ml-auto flex gap-2">
+        <div class="ml-auto flex flex-wrap gap-2">
             <a href="{{ route('admin.organizations.import') }}" class="btn-ghost">Import list</a>
             <a href="{{ route('admin.organizations.create') }}" class="btn-secondary">Register organization</a>
         </div>
     </form>
 
-    <section class="panel-flat overflow-hidden">
+    <section class="card">
         @if ($organizations->isEmpty())
-            <p class="px-4 py-12 text-center text-sm text-muted">No organizations are registered yet.</p>
+            <x-empty-state :filtered="request()->hasAny(['q', 'account', 'status'])" :clear-url="route('admin.organizations.index')"
+                           title="No organizations are registered yet." icon="buildings">
+                Register one, or import the office's list.
+            </x-empty-state>
         @else
-            <div class="table-wrap">
+            <div class="table-wrap table-sticky">
                 <table class="w-full">
                     <caption class="sr-only">Registered organizations</caption>
-                    <thead class="sticky top-0 bg-paper">
+                    <thead>
                         <tr>
                             <th scope="col" class="table-head">Organization</th>
                             <th scope="col" class="table-head">Sector</th>
@@ -103,5 +111,5 @@
         @endif
     </section>
 
-    <div class="mt-4">{{ $organizations->links() }}</div>
+    <x-pagination :paginator="$organizations" :default="25" />
 </x-layouts.app>

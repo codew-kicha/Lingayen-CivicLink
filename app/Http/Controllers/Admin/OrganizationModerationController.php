@@ -11,6 +11,7 @@ use App\Models\Organization;
 use App\Models\User;
 use App\Notifications\AccountInvitation;
 use App\Services\ReportData;
+use App\Support\ListPagination;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Symfony\Component\HttpFoundation\Response;
 use Illuminate\Http\RedirectResponse;
@@ -26,15 +27,16 @@ class OrganizationModerationController extends Controller
         $this->authorize('viewAny', Organization::class);
 
         return view('admin.organizations.index', [
-            'organizations' => Organization::query()
+            'organizations' => ListPagination::paginate(Organization::query()
                 ->with(['accreditations' => fn ($q) => $q->where('status', 'active'), 'user:id,name,email,is_active,email_verified_at'])
                 ->withCount(['activities as verified_activities_count' => fn ($q) => $q->where('status', 'verified')])
                 ->when($request->string('q')->trim()->value(), fn ($q, $term) => $q->where('name', 'like', "%{$term}%"))
                 ->when($request->input('account') === 'none', fn ($q) => $q->whereNull('user_id'))
                 ->when($request->input('status') === 'inactive', fn ($q) => $q->inactive())
-                ->orderBy('name')
-                ->paginate(20)
-                ->withQueryString(),
+                // Same definition and period as the analytics at-risk list and its Excel sheet.
+                ->when($request->input('status') === 'at-risk', fn ($q) => $q->whereKey(ReportData::fromRequest($request)->atRisk()->pluck('id')))
+                ->orderBy('name'),
+                $request, 25),
             'inactiveIds' => Organization::inactive()->pluck('id'),
         ]);
     }

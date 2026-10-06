@@ -35,7 +35,12 @@ class ListPaginationTest extends TestCase
             'applications queue' => ['admin.applications.index', 'admin', 25, ['status' => 'submitted'], function (User $viewer, int $rows) {
                 ApplicationModel::factory()->count($rows)->create(['status' => 'submitted']);
             }],
-            'verify activities' => ['admin.activities.index', 'admin', 10, ['status' => 'verified'], function (User $viewer, int $rows) {
+            'organizations' => ['admin.organizations.index', 'admin', 25, ['q' => 'Coop'], function (User $viewer, int $rows) {
+                foreach (range(1, $rows) as $i) {
+                    Organization::factory()->create(['name' => sprintf('Coop %03d', $i)]);
+                }
+            }],
+            'verify activities' =>['admin.activities.index', 'admin', 10, ['status' => 'verified'], function (User $viewer, int $rows) {
                 Activity::factory()->count($rows)->verified()->create();
             }],
         ];
@@ -111,6 +116,27 @@ class ListPaginationTest extends TestCase
             ->assertSee('No results for these filters')->assertSee('Clear filters');
         $this->actingAs($viewer)->get(route($route))->assertOk()
             ->assertDontSee('No results for these filters');
+    }
+
+    public function test_the_at_risk_filter_matches_the_analytics_definition(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $quiet = Organization::factory()->create(['name' => 'Quiet Association']);
+        $busy = Organization::factory()->create(['name' => 'Busy Cooperative']);
+        foreach ([$quiet, $busy] as $organization) {
+            $application = ApplicationModel::factory()->for($organization)->approved()->create();
+            $organization->accreditations()->create([
+                'application_id' => $application->id, 'verification_code' => 'RISK-'.$organization->id, 'status' => 'active',
+                'active_org_marker' => $organization->id, 'issued_at' => now()->subYear(), 'expires_at' => now()->addYear(),
+            ]);
+        }
+        Activity::factory()->count(3)->for($busy)->verified()->create(['activity_source' => 'independent', 'activity_date' => now()->subMonth()]);
+
+        $expected = \App\Services\ReportData::fromRequest(request())->atRisk()->pluck('name')->all();
+        $this->assertSame(['Quiet Association'], $expected);
+
+        $this->actingAs($admin)->get(route('admin.organizations.index', ['status' => 'at-risk']))
+            ->assertOk()->assertSee('Quiet Association')->assertDontSee('Busy Cooperative');
     }
 
     public function test_the_audit_log_can_show_one_organizations_history(): void
