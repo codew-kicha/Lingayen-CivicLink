@@ -39,10 +39,18 @@ class PerformanceScoreCalculator
             'document_currency' => $this->documentCurrency($organization),
         ];
 
-        return $organization->performanceScores()->updateOrCreate(
-            ['period_start' => $periodStart, 'period_end' => $periodEnd],
-            [...$components, 'total_score' => array_sum($components) / 4, 'computed_at' => now()],
-        );
+        // Find the period's row by date, not by timestamp. updateOrCreate compared the trailing year's
+        // end-of-day timestamp with a DATE column, never matched in MySQL, and the second recalculation
+        // on the same day hit the unique key. whereDate() compares correctly in MySQL and SQLite.
+        $score = $organization->performanceScores()
+            ->whereDate('period_start', $periodStart->toDateString())
+            ->whereDate('period_end', $periodEnd->toDateString())
+            ->first()
+            ?? $organization->performanceScores()->make(['period_start' => $periodStart->toDateString(), 'period_end' => $periodEnd->toDateString()]);
+
+        $score->fill([...$components, 'total_score' => array_sum($components) / 4, 'computed_at' => now()])->save();
+
+        return $score;
     }
 
     /**
