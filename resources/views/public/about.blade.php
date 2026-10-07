@@ -78,6 +78,18 @@
                     <dd class="mt-1 text-ink">{{ config('office.office.address') }}</dd>
                 </div>
                 <div>
+                    <dt class="text-muted">Phone</dt>
+                    <dd class="mt-1">
+                        <a href="tel:{{ config('office.office.phone_link') }}" class="tabular-nums text-brand-700 hover:underline">{{ config('office.office.phone') }}</a>
+                    </dd>
+                </div>
+                <div>
+                    <dt class="text-muted">Email</dt>
+                    <dd class="mt-1">
+                        <a href="mailto:{{ config('office.office.email') }}" class="break-all text-brand-700 hover:underline">{{ config('office.office.email') }}</a>
+                    </dd>
+                </div>
+                <div>
                     <dt class="text-muted">Office hours</dt>
                     <dd class="mt-1 text-ink">{{ config('office.office.hours') }}</dd>
                 </div>

@@ -1,13 +1,15 @@
 <?php
 
-// Public-page content. Officials, address, and hours confirmed by the client (PRD §11).
-// Phone and email are still pending from the client, so they are deliberately absent.
+// Public-page content. Officials, address, hours, phone and email confirmed by the client (PRD §11).
 return [
 
     'office' => [
         'name' => 'Civil Society Desk Office',
         'parent' => 'Public Employment Service Office, Municipality of Lingayen',
-        'address' => '#1 Bengson Street, Lingayen, Pangasinan 2401',
+        'address' => '2nd Floor, PESO Office, Municipal Hall, Lingayen, Pangasinan',
+        'email' => 'vandeveramoulic@gmail.com',
+        'phone' => '0964 057 4151',
+        'phone_link' => '+639640574151',   // tel: links (tap to call on phones)
         // Unconfirmed whether the office is closed Friday to Sunday or keeps other hours (PRD §11).
         'hours' => 'Monday to Thursday, 7:00 AM to 6:00 PM',
         'facebook' => 'https://www.facebook.com/pesolingayen/',

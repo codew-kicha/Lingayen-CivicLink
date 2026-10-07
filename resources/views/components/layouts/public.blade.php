@@ -154,6 +154,10 @@
                         {{ config('office.office.address') }}<br>
                         {{ config('office.office.hours') }}
                     </p>
+                    <p class="mt-3 leading-relaxed">
+                        <a href="tel:{{ config('office.office.phone_link') }}" class="tabular-nums hover:text-paper hover:underline">{{ config('office.office.phone') }}</a><br>
+                        <a href="mailto:{{ config('office.office.email') }}" class="break-all hover:text-paper hover:underline">{{ config('office.office.email') }}</a>
+                    </p>
                 </div>
                 <div>
                     <h2 class="font-semibold text-paper">Legal basis</h2>
