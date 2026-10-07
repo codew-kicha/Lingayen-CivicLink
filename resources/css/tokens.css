@@ -19,6 +19,9 @@
     --color-focus: 143 51 57; /* oklch(0.455 0.125 20) focus ring on light surfaces */
     --color-focus-on-dark: 245 189 86; /* oklch(0.83 0.135 80) focus ring on primary-dark */
 
+    /* Third-party marks (hover states only) */
+    --color-facebook: 24 119 242; /* #1877f2 Facebook blue; white on it is 4.2:1, used for an icon only */
+
     /* Surfaces, borders, text */
     --color-surface: 253 253 253; /* oklch(0.995 0 0) cards, inputs, page on the public site */
     --color-surface-muted: 243 243 243; /* oklch(0.965 0 0) admin and CSO page background, neutral fills */

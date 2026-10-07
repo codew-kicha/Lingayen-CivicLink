@@ -34,15 +34,17 @@
     </a>
 
     {{-- Two tiers, after pcnc.com.ph: an ivory identity bar that scrolls away, and a navy menu bar that sticks. --}}
-    {{-- The header sticks with a negative top equal to the identity bar's fixed height (4.75rem), so the
+    {{-- The header sticks with a negative top equal to the identity bar's height (4.75rem + 1px border), so the
          identity bar scrolls away and only the maroon menu bar stays pinned. --}}
-    <header x-data="{ open: false }" @keydown.escape.window="open = false" class="sticky -top-[4.75rem] z-sticky">
+    <header x-data="{ open: false, stuck: false }" @keydown.escape.window="open = false"
+            @scroll.window.passive="stuck = window.scrollY > 77" x-init="stuck = window.scrollY > 77"
+            class="sticky -top-[calc(4.75rem+1px)] z-sticky">
         <div class="border-b border-line bg-paper">
             <div class="mx-auto flex h-[4.75rem] max-w-7xl items-center gap-4 px-4 sm:px-6 lg:px-8">
-                <a href="{{ route('home') }}" class="flex items-center gap-3 rounded-sm">
-                    <x-civic-mark class="h-14 w-14" />
+                <a href="{{ route('home') }}" class="brand-link flex items-center gap-3 rounded-sm">
+                    <x-civic-mark class="civic-seal h-14 w-14" />
                     <span class="leading-tight">
-                        <span class="block font-serif text-lg font-bold text-brand-800">Lingayen CivicLink</span>
+                        <span class="brand-name block font-serif text-lg font-bold text-brand-800">Lingayen CivicLink</span>
                         <span class="block text-xs text-muted">Municipality of Lingayen, Pangasinan</span>
                     </span>
                 </a>
@@ -51,7 +53,8 @@
                 <div class="ml-auto hidden items-center gap-4 lg:flex">
                     <a href="{{ config('office.office.facebook') }}" target="_blank" rel="noopener"
                        class="inline-flex h-10 w-10 items-center justify-center rounded-full bg-canvas text-brand-800
-                              transition-colors duration-fast ease-out-strong hover:bg-brand-50">
+                              transition-colors duration-fast ease-out-strong hover:bg-facebook hover:text-on-primary
+                              focus-visible:bg-facebook focus-visible:text-on-primary">
                         <x-phosphor-facebook-logo class="h-5 w-5" aria-hidden="true" />
                         <span class="sr-only">PESO Lingayen on Facebook</span>
                     </a>
@@ -60,9 +63,8 @@
                             <a href="{{ route('dashboard') }}" class="utility-link">My dashboard</a>
                         @else
                             <a href="{{ route('login') }}" class="utility-link">Log in</a>
-                            <a href="{{ route('register') }}" class="utility-link font-semibold text-brand-800">Apply now</a>
+                            <a href="{{ route('register') }}" class="utility-link utility-link-cta">Apply now</a>
                         @endauth
-                        <a href="{{ route('contact') }}" class="utility-link">Contact us</a>
                     </div>
                 </div>
 
@@ -76,7 +78,7 @@
             </div>
         </div>
 
-        <nav aria-label="Primary" class="bg-brand-800">
+        <nav aria-label="Primary" class="bg-brand-800 transition-shadow duration-base ease-out-strong" :class="{ 'shadow-overlay': stuck }">
             <div class="mx-auto hidden max-w-7xl px-4 sm:px-6 lg:block lg:px-8">
                 <ul class="flex flex-wrap items-center justify-center">
                     @foreach ($links as $route => $label)
@@ -84,8 +86,7 @@
                             <a href="{{ route($route) }}"
                                @if (request()->routeIs($route, "{$route}.*")) aria-current="page" @endif
                                @class([
-                                   'block px-6 py-4 text-[0.9rem] font-medium uppercase tracking-[0.08em]',
-                                   'transition-colors duration-fast ease-out-strong focus-visible:outline-accent-400',
+                                   'nav-link',
                                    'text-accent-400' => request()->routeIs($route, "{$route}.*"),
                                    'text-brand-100 hover:text-paper' => ! request()->routeIs($route, "{$route}.*"),
                                ])>{{ $label }}</a>

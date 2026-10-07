@@ -243,9 +243,64 @@
     }
 
     /* Segmented utility buttons in the public identity bar (pcnc.com.ph's Report / Apply / Contact). */
+    /*
+     * Public header hover effects. Each one has the same cue on keyboard focus (:focus-visible),
+     * animates only transform and colour, stays under 200ms, and is instant under reduced motion.
+     */
+
+    /* Utility buttons: fill maroon on hover/focus; the call to action fills gold. */
     .utility-link {
         @apply px-6 py-3 text-ink transition-colors duration-fast ease-out-strong first:rounded-l-sm last:rounded-r-sm
-               hover:bg-brand-50 hover:text-brand-800 focus-visible:outline-brand-600;
+               hover:bg-primary hover:text-on-primary
+               focus-visible:bg-primary focus-visible:text-on-primary focus-visible:outline-focus;
+    }
+
+    .utility-link-cta {
+        @apply font-semibold text-brand-800 hover:bg-accent hover:text-accent-fg
+               focus-visible:bg-accent focus-visible:text-accent-fg;
+    }
+
+    /* Menu bar links: a gold underline grows from the centre; the current page keeps it full. */
+    .nav-link {
+        @apply relative block px-6 py-4 text-[0.9rem] font-medium uppercase tracking-[0.08em]
+               transition-colors duration-fast ease-out-strong focus-visible:outline-accent-400;
+    }
+
+    .nav-link::after {
+        content: '';
+        position: absolute;
+        left: 1.5rem;
+        right: 1.5rem;
+        bottom: 0.5rem;
+        height: 2px;
+        background: rgb(var(--color-accent));
+        transform: scaleX(0);
+        transition: transform 180ms cubic-bezier(0.23, 1, 0.32, 1);
+    }
+
+    .nav-link:hover::after,
+    .nav-link:focus-visible::after,
+    .nav-link[aria-current="page"]::after {
+        transform: scaleX(1);
+    }
+
+    /* Logo: the seal turns slightly and the name darkens. */
+    .brand-link .civic-seal {
+        @apply transition-transform duration-base ease-out-strong;
+    }
+
+    .brand-link:hover .civic-seal,
+    .brand-link:focus-visible .civic-seal {
+        transform: rotate(8deg);
+    }
+
+    .brand-link .brand-name {
+        @apply transition-colors duration-fast ease-out-strong;
+    }
+
+    .brand-link:hover .brand-name,
+    .brand-link:focus-visible .brand-name {
+        @apply text-primary-dark;
     }
 
     /* Sidebar nav fallback scroll for very short windows: thin, maroon, unobtrusive. */

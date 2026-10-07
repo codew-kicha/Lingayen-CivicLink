@@ -52,6 +52,7 @@ export default {
                     fg: token('on-accent'),
                     ...scale('accent', [100, 200, 400, 500, 600, 700]),
                 },
+                facebook: token('facebook'),   // Facebook icon hover in the public header
                 focus: {
                     DEFAULT: token('focus'),
                     'on-dark': token('focus-on-dark'),
