@@ -7,9 +7,8 @@ use App\Models\Activity;
 use App\Models\AnnualReport;
 use App\Models\NewsPost;
 use App\Models\Organization;
-use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
-use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 
@@ -90,23 +89,24 @@ class PublicController extends Controller
     }
 
     /** Blank paper form for low-literacy or offline applicants, built from the live requirement config. */
-    public function applicationForm(): Response
+    /** The official CY 2026 accreditation forms from the Office of the Sangguniang Bayan. */
+    public const FORMS = [
+        'new' => ['file' => 'accreditation-form-new-application.pdf', 'download' => 'Lingayen-CSO-Accreditation-Form-New-Application.pdf'],
+        'renewal' => ['file' => 'accreditation-form-renewal.pdf', 'download' => 'Lingayen-CSO-Accreditation-Form-Renewal.pdf'],
+    ];
+
+    public function applicationForm(string $type): BinaryFileResponse
     {
-        return Pdf::loadView('pdf.application-form')->download('lingayen-cso-accreditation-form.pdf');
+        $form = self::FORMS[$type];
+
+        return response()->download(resource_path('forms/'.$form['file']), $form['download'], ['Content-Type' => 'application/pdf']);
     }
 
     public function accreditation(): View
     {
         return view('public.accreditation', [
             'process' => config('office.process'),
-            'requirements' => collect(config('document_types'))
-                ->map(fn (array $type, string $key) => [
-                    'label' => $type['label'],
-                    'optional' => $type['optional'],
-                    'note' => config("office.requirement_notes.$key"),
-                ])
-                ->values()
-                ->all(),
+            'paperForms' => config('office.paper_forms'),
         ]);
     }
 

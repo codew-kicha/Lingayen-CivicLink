@@ -13,8 +13,9 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', [PublicController::class, 'home'])->name('home');
 Route::get('/about', [PublicController::class, 'about'])->name('about');
 Route::get('/accreditation', [PublicController::class, 'accreditation'])->name('accreditation');
-Route::get('/accreditation/application-form.pdf', [PublicController::class, 'applicationForm'])
-    ->middleware('throttle:20,1')->name('accreditation.form');
+// The Sangguniang Bayan's own forms (resources/forms): {type} is "new" or "renewal".
+Route::get('/accreditation/forms/{type}', [PublicController::class, 'applicationForm'])
+    ->whereIn('type', ['new', 'renewal'])->middleware('throttle:20,1')->name('accreditation.form');
 Route::get('/accredited-csos', [PublicController::class, 'directory'])->name('directory');
 Route::get('/accredited-csos/{organization}', [PublicController::class, 'organization'])->name('directory.show');
 Route::get('/resources', [PublicController::class, 'resources'])->name('resources');

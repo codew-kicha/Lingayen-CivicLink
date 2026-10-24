@@ -25,11 +25,11 @@
     /* Surfaces, borders, text */
     --color-surface: 253 253 253; /* oklch(0.995 0 0) cards, inputs, page on the public site */
     --color-surface-muted: 243 243 243; /* oklch(0.965 0 0) admin and CSO page background, neutral fills */
-    --color-band: 199 199 199; /* oklch(0.8282 0 0) public site alternating grey bands only */
+    --color-band: 245 240 239; /* #f5f0ef public site alternating bands only: off-white tinted toward the maroon */
     --color-border: 217 217 217; /* oklch(0.885 0 0) dividers and card borders */
     --color-border-strong: 143 143 143; /* oklch(0.65 0 0) input borders (3.18:1 on surface, WCAG 1.4.11) */
     --color-text: 43 37 34; /* oklch(0.27 0.01 50) body text (14.9:1) */
-    --color-text-muted: 82 76 72; /* oklch(0.42 0.01 50) secondary text (8.4:1 on surface, 5.0:1 on band) */
+    --color-text-muted: 82 76 72; /* oklch(0.42 0.01 50) secondary text (8.4:1 on surface, 7.6:1 on band) */
     --color-placeholder: 117 112 108; /* placeholder text: 4.8:1 on surface, clearly lighter than typed text (14.9:1) */
 
     /* Status (by meaning only; text on its own subtle background is at least 4.5:1) */

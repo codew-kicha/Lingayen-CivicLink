@@ -9,17 +9,19 @@
             ['Active accreditations', $counts['active_accreditations'], null, 'seal-check', false],
         ];
     @endphp
-    <section aria-label="Queue summary" class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
+    {{-- Two per row on phones (the last spans both), so the counts take half the screen they used to. --}}
+    <section aria-label="Queue summary" class="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-5">
         @foreach ($tiles as [$label, $value, $url, $icon, $urgent])
             @php $alert = $urgent && $value > 0; @endphp
             <{{ $url ? 'a' : 'div' }} @if ($url) href="{{ $url }}" @endif
                 @class([
-                    'card flex items-start gap-4 p-4',
+                    'card flex items-start gap-3 p-3 sm:gap-4 sm:p-4',
+                    'col-span-2 sm:col-span-1' => $loop->last,
                     'border-warning/40 bg-warning-subtle' => $alert,
                     'transition-colors duration-fast ease-out-strong hover:border-primary/40' => $url && ! $alert,
                     'transition-colors duration-fast ease-out-strong hover:border-warning' => $alert,
                 ])>
-                <x-dynamic-component :component="'phosphor-'.$icon" @class(['h-6 w-6 shrink-0', 'text-warning' => $alert, 'text-muted' => ! $alert]) aria-hidden="true" />
+                <x-dynamic-component :component="'phosphor-'.$icon" @class(['h-5 w-5 shrink-0 sm:h-6 sm:w-6', 'text-warning' => $alert, 'text-muted' => ! $alert]) aria-hidden="true" />
                 <div class="min-w-0">
                     <p @class(['text-page-title font-semibold tabular-nums', 'text-warning' => $alert, 'text-ink' => ! $alert])>{{ $value }}</p>
                     <p class="text-sm text-muted">{{ $label }}</p>
@@ -44,7 +46,7 @@
                 <x-empty-state title="No applications are waiting for review." icon="clipboard-text" />
             @else
                 <div class="table-wrap">
-                    <table class="w-full">
+                    <table class="table-stack w-full">
                         <caption class="sr-only">Applications awaiting PESO review</caption>
                         <thead>
                             <tr>
@@ -61,7 +63,7 @@
                                         <x-application-type :type="$application->type" />
                                     </td>
                                     <td class="table-cell"><x-status-badge :status="$application->status" /></td>
-                                    <td class="table-date">{{ $application->submitted_at?->format('d M Y') ?? 'Not filed' }}</td>
+                                    <td class="table-date" data-label="Filed">{{ $application->submitted_at?->format('d M Y') ?? 'Not filed' }}</td>
                                 </tr>
                             @endforeach
                         </tbody>
@@ -80,7 +82,7 @@
                 <x-empty-state title="No activities are waiting for verification." icon="check-square" />
             @else
                 <div class="table-wrap">
-                    <table class="w-full">
+                    <table class="table-stack w-full">
                         <caption class="sr-only">Activities awaiting verification</caption>
                         <thead>
                             <tr>
@@ -96,7 +98,7 @@
                                         <a href="{{ route('admin.activities.index') }}" class="entity-link">{{ $activity->title }}</a>
                                     </td>
                                     <td class="table-cell text-muted">{{ $activity->organization->name }}</td>
-                                    <td class="table-date">{{ $activity->activity_date->format('d M Y') }}</td>
+                                    <td class="table-date" data-label="Held">{{ $activity->activity_date->format('d M Y') }}</td>
                                 </tr>
                             @endforeach
                         </tbody>

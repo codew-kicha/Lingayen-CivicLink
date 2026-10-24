@@ -1,4 +1,6 @@
-{{-- Application type and requirement uploads, shared by the CSO form and PESO assisted encoding. --}}
+{{-- Application type and requirement uploads, shared by the CSO form and PESO assisted encoding.
+     Documents marked new_only (constitution and by-laws) appear only for a new application. --}}
+<div class="space-y-6" x-data="{ type: @js(old('type', $hasActiveAccreditation ? 'renewal' : 'new')) }">
 <section class="panel p-6">
     <h2 class="font-semibold text-ink">Application type</h2>
 
@@ -11,7 +13,7 @@
             ] as $value => $label)
                 <label class="flex items-start gap-3 rounded-sm border border-line-strong p-3
                               hover:border-primary/40 has-[:checked]:border-primary has-[:checked]:bg-primary-subtle">
-                    <input type="radio" name="type" value="{{ $value }}" class="mt-1"
+                    <input type="radio" name="type" value="{{ $value }}" class="mt-1" x-model="type"
                            @checked(old('type', $hasActiveAccreditation ? 'renewal' : 'new') === $value) required>
                     <span class="text-sm text-ink">{{ $label }}</span>
                 </label>
@@ -31,7 +33,8 @@
 
     <div class="mt-6 space-y-6">
         @foreach ($documentTypes as $key => $type)
-            <div class="grid gap-3 border-t border-line pt-6 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+            <div class="grid gap-3 border-t border-line pt-6 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]"
+                 @if (! empty($type['new_only'])) x-show="type === 'new'" @endif>
                 <div x-data="documentPrecheck(@js($type['keywords'] ?? []), {{ $type['min_matches'] ?? 1 }})">
                     <label for="doc-{{ $key }}" class="field-label">
                         {{ $type['label'] }}
@@ -44,6 +47,7 @@
                            aria-describedby="doc-{{ $key }}-check @error("documents.{$key}") doc-{{ $key }}-error @enderror"
                            class="field-input @error("documents.{$key}") field-input-error @enderror"
                            @error("documents.{$key}") aria-invalid="true" @enderror
+                           @if (! empty($type['new_only'])) :disabled="type !== 'new'" @endif
                            @required(! $type['optional'])>
                     <input type="hidden" name="ocr_text[{{ $key }}]" :value="text">
                     <p class="field-hint">{{ config("office.requirement_notes.{$key}") }}</p>
@@ -85,3 +89,4 @@
         @endforeach
     </div>
 </section>
+</div>

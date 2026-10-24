@@ -44,7 +44,7 @@
                 </x-empty-state>
             @else
                 <div class="table-scroll">
-                    <table class="w-full">
+                    <table class="table-stack w-full">
                         <caption class="sr-only">News posts. Use the arrow keys to move between rows and Enter to edit one.</caption>
                         <thead>
                             <tr>
@@ -62,11 +62,11 @@
                                         <p class="font-semibold text-ink">{{ $post->title }}</p>
                                     </td>
                                     <td class="table-cell"><x-status-badge :status="$post->status" /></td>
-                                    <td class="table-cell min-w-56 text-muted">
+                                    <td class="table-cell min-w-56 text-muted" @if ($post->organizations->isNotEmpty()) data-label="Featuring" @endif>
                                         {{ $post->organizations->pluck('name')->join(', ') ?: 'No organizations tagged' }}
                                     </td>
-                                    <td class="table-date">{{ $post->published_at?->format('d M Y') ?? '--' }}</td>
-                                    <td class="table-cell text-right">
+                                    <td @class(['table-date', 'stack-hide' => ! $post->published_at]) data-label="Published">{{ $post->published_at?->format('d M Y') ?? '--' }}</td>
+                                    <td class="table-cell text-right max-sm:pt-2">
                                         <button type="button" class="btn-danger btn-sm"
                                                 @click="$dispatch('delete-post', @js(['title' => $post->title, 'url' => route('admin.news.destroy', $post)]))">
                                             <x-phosphor-trash class="h-4 w-4" aria-hidden="true" />Delete<span class="sr-only"> “{{ $post->title }}”</span>
@@ -85,7 +85,7 @@
         {{-- Write / edit (720px). Publish and Save as draft are both submit buttons that set the status. --}}
         <x-dialog name="post" width="lg" :open="$initial !== null || request()->boolean('write')">
             <x-slot:header>
-                <div class="min-w-0">
+                <div class="min-w-0 flex-1">
                     <h2 id="dialog-post-title" class="card-title" x-text="post.id ? 'Edit post' : 'Write a post'">Write a post</h2>
                     <p class="mt-1 text-sm text-muted">Tag the organizations a post is about so it appears on their listings too.</p>
                 </div>

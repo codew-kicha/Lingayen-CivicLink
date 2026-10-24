@@ -91,7 +91,7 @@
         @apply min-h-11 w-full rounded-sm border border-line-strong bg-paper px-3 py-2 text-base
                text-ink transition-colors duration-fast ease-out-strong
                placeholder:text-placeholder hover:border-primary/60
-               focus:border-primary focus:ring-0
+               focus:border-primary focus:ring-4 focus:ring-primary/15
                disabled:cursor-not-allowed disabled:bg-canvas disabled:text-muted;
     }
 
@@ -101,8 +101,9 @@
         @apply text-danger;
     }
 
+    /* Focus is a soft maroon halo; an error is a red border on a faint red fill, so the two never look alike. */
     .field-input-error {
-        @apply border-danger;
+        @apply border-danger bg-danger-subtle/40 focus:border-danger focus:ring-danger/15;
     }
 
     .field-error {
@@ -287,7 +288,7 @@
     }
 
     .dialog-header {
-        @apply flex shrink-0 items-start gap-4 border-b border-line px-6 py-4;
+        @apply flex shrink-0 flex-wrap items-start gap-x-4 gap-y-2 border-b border-line px-6 py-4;
     }
 
     /* Square 44px icon button (dialog close, previous/next). */
@@ -377,14 +378,6 @@
         @apply font-serif text-[clamp(1.6rem,2.6vw,2.125rem)] font-bold leading-tight text-brand-900;
     }
 
-    .section-title::after {
-        content: '';
-        @apply mx-auto mt-4 block h-[3px] w-14 rounded-full bg-accent-500;
-    }
-
-    .section-title.text-left::after {
-        @apply mx-0;
-    }
 
     /* Full-colour photo with a navy wash on the text side, for the hero and the statistics band. */
     .photo-wash {
@@ -490,6 +483,18 @@
         background: rgb(var(--color-primary-dark) / 0.82);
     }
 
+    /* Page banners with real event photos: an even wash on phones (text spans the width), and a
+       left-to-right wash from lg so the photo shows on the right. */
+    .photo-wash-banner::after {
+        background: rgb(var(--color-primary-dark) / 0.84);
+    }
+
+    @media (min-width: theme('screens.lg')) {
+        .photo-wash-banner::after {
+            background: linear-gradient(90deg, rgb(var(--color-primary-dark) / 0.94) 0%, rgb(var(--color-primary-dark) / 0.78) 50%, rgb(var(--color-primary-dark) / 0.35) 100%);
+        }
+    }
+
     /*
      * Navy duotone, applied to every photo (DESIGN_SYSTEM.md §8). Grayscale sits on the <img>,
      * not the wrapper: a filter on the wrapper would also grayscale the navy ::after layer.
@@ -532,11 +537,113 @@
     .motion-ok .reveal.is-revealed {
         @apply translate-y-0 opacity-100;
     }
+
+    /*
+     * Public-page motion (MOTION_INTENSITY 5, only with .motion-ok, so reduced-motion and no-JS
+     * visitors see everything still). Transform and opacity only.
+     */
+    /* Banner title and lede rise in once on load. */
+    .motion-ok .banner-enter > * {
+        animation: banner-rise 520ms cubic-bezier(0.23, 1, 0.32, 1) both;
+    }
+
+    .motion-ok .banner-enter > *:nth-child(2) { animation-delay: 60ms; }
+    .motion-ok .banner-enter > *:nth-child(3) { animation-delay: 120ms; }
+
+    /* Banner photo settles from a slight zoom. */
+    .motion-ok .banner-photo {
+        animation: banner-settle 1400ms cubic-bezier(0.23, 1, 0.32, 1) both;
+    }
+
+    /* Timelines: the connecting line draws as the list scrolls in. */
+    .motion-ok .reveal-line {
+        @apply transition-transform duration-[900ms] ease-out-strong;
+    }
+
+    .motion-ok .reveal-line-x { transform: scaleX(0); transform-origin: left; }
+    .motion-ok .reveal-line-y { transform: scaleY(0); transform-origin: top; }
+
+    .motion-ok .reveal-line.is-revealed { transform: none; }
+
+    /* A photo that eases up and un-zooms as it enters. */
+    .motion-ok .reveal-photo {
+        @apply translate-y-4 scale-[1.02] opacity-0 transition duration-[700ms] ease-out-strong;
+    }
+
+    .motion-ok .reveal-photo.is-revealed {
+        @apply translate-y-0 scale-100 opacity-100;
+    }
+
+    /*
+     * Admin list tables on phones (.table-stack): each row becomes a block instead of a table that
+     * hides its last columns off-screen. Cells with data-label get a small label in front.
+     */
+    @media (max-width: 639px) {
+        .table-stack thead {
+            @apply sr-only;
+        }
+
+        .table-stack,
+        .table-stack tbody,
+        .table-stack tr,
+        .table-stack td {
+            display: block;
+            width: 100%;
+        }
+
+        .table-stack tr {
+            @apply border-b border-line px-4 py-3;
+        }
+
+        .table-stack td,
+        .table-scroll .table-stack td:first-child {
+            @apply static h-auto border-0 bg-transparent p-0 text-left;
+        }
+
+        .table-stack td + td {
+            @apply mt-1;
+        }
+
+        .table-stack td[data-label]::before {
+            content: attr(data-label) ' ';
+            @apply text-muted;
+        }
+
+        .table-stack .stack-hide {
+            display: none;
+        }
+
+        .table-stack .table-row-link:hover,
+        .table-stack .table-row-link:focus-visible {
+            @apply bg-primary-subtle;
+        }
+
+        .table-stack .table-row-link:focus-visible {
+            outline: 2px solid rgb(var(--color-focus));
+            outline-offset: -2px;
+        }
+
+        .table-stack .table-row-link > td,
+        .table-stack .table-row-link:focus-visible > td {
+            box-shadow: none;
+            background: transparent;
+        }
+    }
 }
 
 [x-cloak] { display: none !important; }
 
 /* Page-load progress bar (app layout): a segment sliding across. Reduced motion: a still bar. */
+@keyframes banner-rise {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: none; }
+}
+
+@keyframes banner-settle {
+    from { transform: scale(1.06); }
+    to { transform: none; }
+}
+
 @keyframes progress {
     from { transform: translateX(-100%); }
     to { transform: translateX(300%); }

@@ -259,13 +259,25 @@ class AdvocacyAnalyticsTest extends TestCase
         $this->assertDatabaseHas('audit_logs', ['action' => 'organization.members_printed', 'subject_id' => $organization->id]);
     }
 
-    public function test_anyone_can_download_the_blank_paper_form(): void
+    public function test_anyone_can_download_both_official_paper_forms(): void
     {
-        $response = $this->get(route('accreditation.form'));
+        foreach (['new' => 'accreditation-form-new-application.pdf', 'renewal' => 'accreditation-form-renewal.pdf'] as $type => $file) {
+            $response = $this->get(route('accreditation.form', $type));
 
-        $response->assertOk()->assertHeader('content-type', 'application/pdf');
-        $this->assertStringStartsWith('%PDF', $response->getContent());
-        $this->get(route('accreditation'))->assertSee(route('accreditation.form'));
+            $response->assertOk()->assertHeader('content-type', 'application/pdf')->assertDownload();
+            $this->assertSame(file_get_contents(resource_path('forms/'.$file)), $response->streamedContent() ?: file_get_contents($response->getFile()->getPathname()));
+            $this->get(route('accreditation'))->assertSee(route('accreditation.form', $type));
+        }
+
+        $this->get('/accreditation/forms/anything-else')->assertNotFound();
+    }
+
+    public function test_the_requirement_lists_match_the_sangguniang_bayan_forms(): void
+    {
+        $this->get(route('accreditation'))->assertOk()
+            ->assertSee('Submit everything in 2 copies.')
+            ->assertSee('Official receipt of the accreditation fee from the Municipal Treasury (PHP 1,000.00)')
+            ->assertSee('Official receipt of the renewal fee from the Municipal Treasury (PHP 500.00)');
     }
 
     public function test_the_timeline_names_the_longest_silence(): void

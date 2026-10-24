@@ -99,7 +99,8 @@
                     <a href="{{ route('admin.organizations.activities.create', $organization) }}" class="btn-secondary">Log an activity</a>
                 </div>
                 <a href="{{ route('admin.organizations.members', $organization) }}" class="btn-ghost mt-3 px-3">Print officers and members (PDF)</a>
-                <a href="{{ route('accreditation.form') }}" class="btn-ghost mt-1 px-3">Blank paper application form (PDF)</a>
+                <a href="{{ route('accreditation.form', 'new') }}" class="btn-ghost mt-1 px-3">Blank form: new application (PDF)</a>
+                <a href="{{ route('accreditation.form', 'renewal') }}" class="btn-ghost mt-1 px-3">Blank form: renewal (PDF)</a>
             </section>
 
             <section class="panel p-6">

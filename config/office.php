@@ -34,7 +34,7 @@ return [
         ],
         [
             'title' => 'PESO review',
-            'detail' => 'The office evaluates the application against the DILG MC 2022-083 criteria.',
+            'detail' => 'The office evaluates the application against the DILG MC No. 2025-060 criteria.',
         ],
         [
             'title' => 'Sangguniang Bayan readings',
@@ -46,18 +46,43 @@ return [
         ],
     ],
 
+    // What each Sangguniang Bayan form asks for, word for word from the CY 2026 forms (resources/forms).
+    'paper_forms' => [
+        'new' => [
+            'title' => 'New application',
+            'note' => 'Submit everything in 2 copies.',
+            'items' => [
+                'Accomplished Accreditation Form',
+                'Updated list of officers and members, including their contact numbers',
+                'Constitution and by-laws',
+                'Official receipt of the accreditation fee from the Municipal Treasury (PHP 1,000.00)',
+                'DOLE or SEC certification (if registered)',
+            ],
+        ],
+        'renewal' => [
+            'title' => 'Renewal',
+            'note' => null,
+            'items' => [
+                'Accomplished Accreditation Form',
+                'Updated list of officers and members, including their contact numbers',
+                'Official receipt of the renewal fee from the Municipal Treasury (PHP 500.00)',
+                'DOLE or SEC certification',
+            ],
+        ],
+    ],
+
     'requirement_notes' => [
         'accreditation_form' => 'The office\'s accreditation form, filled in and signed by your president.',
-        'officers_members_list' => 'Current officers and members, with positions.',
-        'constitution_bylaws' => 'Your organization\'s adopted constitution and by-laws.',
-        'fee_receipt' => 'PHP 1,000 for new applications, paid at the Municipal Treasury. PHP 500 for renewals, which is sometimes waived.',
+        'officers_members_list' => 'Current officers and members, with their positions and contact numbers.',
+        'constitution_bylaws' => 'Your organization\'s adopted constitution and by-laws. New applications only.',
+        'fee_receipt' => 'From the Municipal Treasury: PHP 1,000 for new applications, PHP 500 for renewals.',
         'dole_sec_certification' => 'Submit only if your organization is registered with DOLE or SEC.',
     ],
 
     'faqs' => [
         [
             'question' => 'How long does accreditation last?',
-            'answer' => 'Accreditation runs for three years, after which organizations file a renewal application.',
+            'answer' => 'The Sangguniang Bayan sets how long accreditation lasts. The office currently issues it for three years, after which organizations file a renewal application.',
         ],
         [
             'question' => 'What does the performance score affect?',

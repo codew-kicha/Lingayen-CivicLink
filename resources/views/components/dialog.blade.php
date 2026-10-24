@@ -37,7 +37,7 @@
             @isset($header)
                 {{ $header }}
             @else
-                <div class="min-w-0">
+                <div class="min-w-0 flex-1">
                     <h2 id="{{ $titleId }}" class="card-title">{{ $title }}</h2>
                     @if ($subtitle)
                         <p class="mt-1 text-sm text-muted">{{ $subtitle }}</p>

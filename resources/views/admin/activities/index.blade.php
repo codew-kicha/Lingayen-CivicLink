@@ -51,7 +51,7 @@
                 </div>
 
                 <div class="table-scroll" x-show="queue.length">
-                    <table class="w-full">
+                    <table class="table-stack w-full">
                         <caption class="sr-only">{{ \App\Http\Controllers\Admin\ActivityVerificationController::FILTERS[$currentStatus] }} activities. Use the arrow keys to move between rows and Enter to review one.</caption>
                         <thead>
                             <tr>
@@ -71,10 +71,10 @@
                                         <p class="font-semibold text-ink">{{ $activity->title }}</p>
                                         <p class="text-sm text-muted">{{ $activity->organization->name }} &middot; Brgy. {{ $activity->organization->barangay }}</p>
                                     </td>
-                                    <td class="table-date">{{ $activity->activity_date->format('d M Y') }}</td>
-                                    <td class="table-num">{{ $activity->participants_estimate !== null ? number_format($activity->participants_estimate) : '--' }}</td>
+                                    <td class="table-date" data-label="Held">{{ $activity->activity_date->format('d M Y') }}</td>
+                                    <td class="table-num" data-label="Residents reached">{{ $activity->participants_estimate !== null ? number_format($activity->participants_estimate) : '--' }}</td>
                                     @if ($pending)
-                                        <td @class(['table-cell whitespace-nowrap tabular-nums', 'font-semibold text-warning' => $waiting > 30, 'text-muted' => $waiting <= 30])>
+                                        <td data-label="Waiting" @class(['table-cell whitespace-nowrap tabular-nums', 'font-semibold text-warning' => $waiting > 30, 'text-muted' => $waiting <= 30])>
                                             @if ($waiting > 30)
                                                 <x-phosphor-clock-countdown class="-mt-1 mr-1 inline h-4 w-4" aria-hidden="true" />
                                             @endif
@@ -82,9 +82,9 @@
                                             @if ($waiting > 30)<span class="sr-only">, over 30 days</span>@endif
                                         </td>
                                     @else
-                                        <td class="table-date">{{ $activity->verified_at?->format('d M Y') ?? '--' }}</td>
+                                        <td class="table-date" data-label="Decided">{{ $activity->verified_at?->format('d M Y') ?? '--' }}</td>
                                     @endif
-                                    <td class="table-cell text-right text-muted">
+                                    <td class="table-cell stack-hide text-right text-muted">
                                         <x-phosphor-caret-right class="ml-auto h-5 w-5" aria-hidden="true" />
                                     </td>
                                 </tr>
@@ -106,7 +106,7 @@
                             <span x-text="current?.organization"></span> &middot; Brgy. <span x-text="current?.barangay"></span>
                         </p>
                     </div>
-                    <div class="-my-1 flex shrink-0 items-center" x-show="queue.length > 1">
+                    <div class="order-last -my-1 flex shrink-0 basis-full items-center sm:order-none sm:basis-auto" x-show="queue.length > 1">
                         <button type="button" class="icon-btn" @click="step(-1)" :disabled="position <= 1">
                             <x-phosphor-caret-left class="h-5 w-5" aria-hidden="true" /><span class="sr-only">Previous activity</span>
                         </button>

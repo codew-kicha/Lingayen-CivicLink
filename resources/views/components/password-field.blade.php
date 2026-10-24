@@ -5,6 +5,7 @@
     'autocomplete' => 'current-password',
     'checklist' => false,
     'bag' => 'default',
+    'marked' => false,   // red required asterisk, for forms with a "* Required" legend
 ])
 
 @php
@@ -15,7 +16,7 @@
 
 {{-- Show/hide toggle, plus an optional live checklist mirroring Password::defaults() in AppServiceProvider. --}}
 <div x-data="{ show: false, value: '' }">
-    <label for="{{ $id }}" class="field-label">{{ $label }}</label>
+    <label for="{{ $id }}" @class(['field-label', 'field-required' => $marked])>{{ $label }}</label>
     <div class="relative">
         <input id="{{ $id }}" name="{{ $name }}" type="password" :type="show ? 'text' : 'password'"
                x-model="value" required autocomplete="{{ $autocomplete }}"
@@ -31,7 +32,7 @@
     </div>
 
     @if ($checklist)
-        <ul id="{{ $id }}-rules" class="mt-2 grid gap-x-4 gap-y-1 text-sm sm:grid-cols-2">
+        <ul id="{{ $id }}-rules" x-show="value.length" x-cloak class="mt-2 grid gap-x-4 gap-y-1 text-sm sm:grid-cols-2">
             @foreach ([
                 ['At least 12 characters', 'value.length >= 12'],
                 ['An uppercase and a lowercase letter', '/[a-z]/.test(value) && /[A-Z]/.test(value)'],

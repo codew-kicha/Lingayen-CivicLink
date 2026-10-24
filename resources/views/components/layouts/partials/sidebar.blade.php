@@ -13,7 +13,7 @@
 <div class="flex shrink-0 items-center gap-3 px-4 py-3">
     <x-civic-mark class="h-9 w-9" />
     <div class="min-w-0">
-        <p class="text-sm font-semibold text-on-primary">CivicLink</p>
+        <p class="text-sm font-semibold text-on-primary">CSO Desk Office</p>
         <p class="text-xs text-on-dark-muted">{{ $role }}</p>
     </div>
 </div>

@@ -21,7 +21,7 @@
                            title="No applications have been filed yet." icon="clipboard-text" />
         @else
             <div class="table-scroll">
-                <table class="w-full">
+                <table class="table-stack w-full">
                     <caption class="sr-only">Accreditation applications. Use the arrow keys to move between rows and Enter to open one.</caption>
                     <thead>
                         <tr>
@@ -56,8 +56,8 @@
                                     <x-status-badge :status="$application->status" />
                                     <p class="mt-1 text-sm text-muted">SB: {{ $application->sb_stage === 'not_endorsed' ? 'Not endorsed yet' : Str::headline($application->sb_stage) }}</p>
                                 </td>
-                                <td class="table-date">{{ $application->submitted_at?->format('d M Y') ?? 'Not filed' }}</td>
-                                <td class="table-cell text-right text-muted">
+                                <td class="table-date" data-label="Filed">{{ $application->submitted_at?->format('d M Y') ?? 'Not filed' }}</td>
+                                <td class="table-cell stack-hide text-right text-muted">
                                     <x-phosphor-caret-right class="ml-auto h-5 w-5" aria-hidden="true" />
                                 </td>
                             </tr>

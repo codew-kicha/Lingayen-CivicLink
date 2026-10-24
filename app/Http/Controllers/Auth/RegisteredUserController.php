@@ -18,7 +18,6 @@ class RegisteredUserController extends Controller
     {
         return view('auth.register', [
             'sectors' => config('sectors'),
-            'barangays' => config('barangays'),
         ]);
     }
 

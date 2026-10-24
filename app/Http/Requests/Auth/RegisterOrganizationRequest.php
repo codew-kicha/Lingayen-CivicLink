@@ -31,7 +31,8 @@ class RegisterOrganizationRequest extends FormRequest
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', Rule::unique(User::class)],
             'phone' => ['required', 'regex:/^\+639\d{9}$/'],
-            'password' => ['required', 'confirmed', Password::defaults()],
+            // One password field with Show/Hide on the sign-up form, so no second "type it again" field.
+            'password' => ['required', Password::defaults()],
         ];
     }
 

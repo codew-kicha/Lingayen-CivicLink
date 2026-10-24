@@ -52,7 +52,7 @@ works. Never write a colour value in a view or in `app.css`; the compliance test
 | `danger` / `danger-subtle` | `danger`, `danger-subtle` | `#b6322d` / `#ffe5e0` | Rejected, revoked, errors (5.0:1) |
 | `neutral` | `neutral`, `neutral-subtle` | `text-muted` / `surface-muted` | Draft, expired, "not checked" |
 | `chart-self` / `chart-lgu` / `chart-unknown` / `chart-bar` | `chart-*` | `#8f3339` / `#efc8c6` / `#b1b1b1` / `#a8494d` | Chart series only |
-| `band` | `band` | `#c7c7c7` | Public site grey bands only |
+| `band` | `band` | `#f5f0ef` | Public site alternating bands only (off-white tinted toward the maroon; muted text 7.6:1) |
 
 The short class names `paper`, `canvas`, `line`, `ink` and `muted` were kept on purpose (about 300
 uses); they read the spec-named variables shown on the left.
@@ -148,6 +148,7 @@ To add a page: add a route, add an item under the right group in `config/navigat
 | `count-badge` | Nav and tab counts | Gold, tabular numerals |
 | `entity-link` | Names linking to a record | Text colour; maroon and underline on hover |
 | `table-wrap` | Around every table | Scrolls inside its own box; the page never scrolls sideways |
+| `table-stack` (on the `<table>`) | List tables on phones | Below `sm` each row becomes a block; `data-label` on a cell adds a small label, `stack-hide` hides it (the chevron) |
 | `table-scroll` | Around list tables (Applications, Verify activities, News posts) | Scroll box with a sticky header row and sticky first column; capped to the window at `lg` so the page stays short |
 | `table-row-link` + `x-data="tableNav"` on the `tbody` | Rows that open a record | Hover tint, pointer, focus ring; arrow keys / Home / End move between rows (one row in the tab order), Enter opens. `data-href` rows are links; others dispatch `row-open` |
 | `<x-filter-bar :chips search>` | Above every list | Search box plus one-click filter chips (`filter-chip`, current chip `aria-current`). No Status dropdown + Filter button |
@@ -315,3 +316,17 @@ Rows open their record; actions that change data live in dialogs, not in the row
   dialog). "Write a post" and a row both open the post dialog (720px): Title, Post content, Featured
   organizations (tag search). Publish (maroon), Save as draft (outlined), Cancel.
   `/admin/news/create` and `/admin/news/{id}/edit` open it.
+
+### 7.1 Public pages since October 2026
+
+- Section titles (`section-title`) are left-aligned with no gold rule; the rule was repeated on every
+  section and read as a template.
+- Page banners (`<x-page-banner photo="events/cso3.jpg" alt="...">`) use the client's event photos
+  in `public/images/events`, under `photo-wash-banner` (even wash on phones, opening to the right from `lg`).
+- Numbers and dates use Public Sans with `tabular-nums`; monospace is for codes only.
+- Motion (only with `.motion-ok`, so reduced-motion and no-JS visitors see everything still):
+  `reveal` (fade up on scroll, staggered), `reveal-line reveal-line-x|y` (timeline lines draw in),
+  `reveal-photo` (photo eases up and un-zooms), `banner-enter` / `banner-photo` (banner text rises,
+  photo settles on load). Transform and opacity only.
+- Process steps: numbered circles with connecting lines, a row from `lg`, a vertical timeline on phones.
+

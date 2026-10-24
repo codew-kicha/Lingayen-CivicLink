@@ -3,18 +3,7 @@
     <x-slot:heading>Sign in</x-slot:heading>
     <x-slot:intro>For CSO representatives and Civil Society Desk Office staff.</x-slot:intro>
 
-    <x-slot:aside>
-        <p class="max-w-[26ch] font-serif text-[1.75rem] font-bold leading-snug">
-            Track your application, log your organization's activities, and see your record as residents see it.
-        </p>
-        <ul class="mt-8 space-y-3 text-brand-100">
-            <li class="flex gap-3"><x-phosphor-seal-check class="h-5 w-5 shrink-0 text-accent-400" aria-hidden="true" /> Application status through each Sangguniang Bayan reading</li>
-            <li class="flex gap-3"><x-phosphor-seal-check class="h-5 w-5 shrink-0 text-accent-400" aria-hidden="true" /> Activities verified by the Civil Society Desk Office</li>
-            <li class="flex gap-3"><x-phosphor-seal-check class="h-5 w-5 shrink-0 text-accent-400" aria-hidden="true" /> Your organization's public profile and performance score</li>
-        </ul>
-    </x-slot:aside>
-
-    <form method="POST" action="{{ route('login') }}" class="space-y-6">
+    <form method="POST" action="{{ route('login') }}" class="space-y-4">
         @csrf
 
         <div>
@@ -27,20 +16,19 @@
 
         <x-password-field />
 
-        <div class="flex items-center justify-between gap-4">
+        <div class="flex flex-wrap items-center justify-between gap-x-4">
             <label for="remember_me" class="flex min-h-11 items-center gap-2 text-sm text-ink">
                 <input id="remember_me" name="remember" type="checkbox" class="rounded-sm border-line-strong text-brand-600">
-                Keep me signed in on this device
+                Keep me signed in
             </label>
-            <a href="{{ route('password.request') }}" class="text-sm font-semibold text-brand-700 hover:underline">Forgot password?</a>
+            <a href="{{ route('password.request') }}" class="flex min-h-11 items-center text-sm font-semibold text-brand-700 hover:underline">Forgot password?</a>
         </div>
 
         <button type="submit" class="btn-primary w-full">Sign in</button>
     </form>
 
-    <div class="mt-12 border-t border-line pt-6">
-        <p class="font-semibold text-ink">Your organization isn't registered yet?</p>
-        <p class="mt-1 text-sm text-muted">Create an account for your CSO, then file your accreditation application online.</p>
-        <a href="{{ route('register') }}" class="btn-secondary mt-4">Register your organization</a>
-    </div>
+    <x-slot:footer>
+        New organization?
+        <a href="{{ route('register') }}" class="font-semibold text-brand-700 hover:underline">Register your organization</a>
+    </x-slot:footer>
 </x-guest-layout>

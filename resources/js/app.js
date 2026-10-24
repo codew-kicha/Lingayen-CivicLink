@@ -117,7 +117,7 @@ if (document.documentElement.classList.contains('motion-ok')) {
         counterObserver.observe(counter);
     });
 
-    revealInBatches(document.querySelectorAll('.reveal'));
+    revealInBatches(document.querySelectorAll('.reveal, .reveal-line, .reveal-photo'));
 }
 
 // Application form: reads each requirement as it is chosen and says whether it looks like the
@@ -255,10 +255,13 @@ Alpine.data('combobox', (options, initial = '') => ({
         this.$nextTick(() => this.$refs.listbox?.querySelector('[data-active]')?.scrollIntoView({ block: 'nearest' }));
     },
 
+    // Fires `change`, not `input`: x-model listens to input and would copy the half-typed text back
+    // over the choice. Dialogs count change as typing too.
     choose(option) {
         this.query = option;
+        this.$refs.input.value = option;
         this.expanded = false;
-        this.$refs.input.dispatchEvent(new Event('input', { bubbles: true }));
+        this.$refs.input.dispatchEvent(new Event('change', { bubbles: true }));
     },
 
     chooseActive(event) {
@@ -306,13 +309,13 @@ Alpine.data('tagPicker', (options, single = false) => ({
         this.active = 0;
         // Single choice hides the search box, so focus goes to the choice's × instead of being lost.
         single ? this.$nextTick(() => this.$root.querySelector('button')?.focus()) : this.$refs.input.focus();
-        this.$refs.input.dispatchEvent(new Event('input', { bubbles: true }));
+        this.$refs.input.dispatchEvent(new Event('change', { bubbles: true }));
     },
 
     remove(id) {
         this.selected = this.selected.filter((other) => other !== id);
         this.$refs.input.focus();
-        this.$refs.input.dispatchEvent(new Event('input', { bubbles: true }));
+        this.$refs.input.dispatchEvent(new Event('change', { bubbles: true }));
     },
 
     move(step) {

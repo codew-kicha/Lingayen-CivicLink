@@ -30,33 +30,8 @@
             </div>
 
             <div class="grid gap-6 sm:grid-cols-2">
-                <div x-data="combobox(@js(array_values(config('barangays'))), @js($reopen ? (string) old('barangay') : ''))"
-                     class="relative" @focusout="settle()">
-                    <label for="reg-barangay" class="field-label field-required">Barangay</label>
-                    <input id="reg-barangay" name="barangay" x-ref="input" x-model="query" required autocomplete="off"
-                           role="combobox" aria-autocomplete="list" aria-controls="reg-barangay-list"
-                           :aria-expanded="expanded.toString()"
-                           :aria-activedescendant="expanded && matches[active] ? 'reg-barangay-' + active : null"
-                           @focus="show()" @click="show()" @input="expanded = true; active = 0"
-                           @keydown.down.prevent="move(1)" @keydown.up.prevent="move(-1)" @keydown.enter="chooseActive($event)"
-                           @keydown.escape="if (expanded) { expanded = false; $event.stopPropagation() }"
-                           placeholder="Type to search"
-                           @class(['field-input pr-12', 'field-input-error' => $field('barangay')])
-                           @if ($field('barangay')) aria-invalid="true" aria-describedby="reg-barangay-error" @endif>
-                    <x-phosphor-caret-up-down class="pointer-events-none absolute right-4 top-11 h-5 w-5 text-muted" aria-hidden="true" />
-                    <ul id="reg-barangay-list" role="listbox" aria-label="Barangays" x-ref="listbox" x-show="expanded" x-cloak class="listbox">
-                        <template x-for="(option, i) in matches" :key="option">
-                            <li role="option" :id="'reg-barangay-' + i" :aria-selected="(option === query).toString()"
-                                :data-active="i === active ? '' : null" @mousedown.prevent="choose(option)" @mousemove="active = i"
-                                class="listbox-option">
-                                <span x-text="option"></span>
-                                <x-phosphor-check x-show="option === query" class="ml-auto h-4 w-4 text-primary" aria-hidden="true" />
-                            </li>
-                        </template>
-                        <li x-show="! matches.length" class="px-3 py-2 text-sm text-muted">No barangay matches that.</li>
-                    </ul>
-                    @if ($field('barangay'))<p id="reg-barangay-error" class="field-error">{{ $errors->first('barangay') }}</p>@endif
-                </div>
+                <x-barangay-combobox id="reg-barangay" :value="$reopen ? old('barangay') : ''"
+                                     :error="$field('barangay') ? $errors->first('barangay') : null" />
 
                 <div>
                     <label for="reg-sector" class="field-label field-required">Sector</label>

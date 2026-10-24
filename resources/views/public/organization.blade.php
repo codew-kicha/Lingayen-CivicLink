@@ -4,27 +4,27 @@
             <a href="{{ route('directory') }}" class="text-sm font-semibold text-brand-700 hover:underline">
                 Back to the directory
             </a>
-            <div class="mt-6 flex flex-wrap items-start gap-6">
+            {{-- Logo beside the name; the accreditation status sits under the details on phones and
+                 to the right from sm, so a long name never collides with it. --}}
+            <div class="mt-6 grid grid-cols-[auto_minmax(0,1fr)] items-start gap-x-4 gap-y-4 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:gap-x-6">
                 @if ($organization->logo_path)
                     <img src="{{ asset('storage/'.$organization->logo_path) }}" alt="{{ $organization->name }} logo"
-                         class="h-16 w-16 shrink-0 rounded-lg border border-line bg-paper object-contain p-1">
+                         class="h-12 w-12 shrink-0 rounded-lg border border-line bg-paper object-contain p-1 sm:h-16 sm:w-16">
                 @else
-                    <span class="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg bg-brand-900 text-accent-400">
-                        <x-sector-icon :sector="$organization->sector" class="h-8 w-8" />
+                    <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-brand-900 text-accent-400 sm:h-16 sm:w-16">
+                        <x-sector-icon :sector="$organization->sector" class="h-6 w-6 sm:h-8 sm:w-8" />
                     </span>
                 @endif
-                <div class="min-w-0 flex-1">
-                    <h1 class="font-serif text-[clamp(1.75rem,3vw,2.25rem)] font-bold leading-tight text-brand-900">{{ $organization->name }}</h1>
-                    <p class="mt-2 text-muted">
-                        Brgy. {{ $organization->barangay }}, Lingayen &middot; {{ $organization->sector }}
-                    </p>
+                <div class="min-w-0">
+                    <h1 class="font-serif text-[clamp(1.6rem,3vw,2.25rem)] font-bold leading-tight text-brand-900">{{ $organization->name }}</h1>
+                    <p class="mt-2 text-muted">Brgy. {{ $organization->barangay }}, Lingayen</p>
+                    <p class="text-muted">{{ $organization->sector }}</p>
                 </div>
                 @if ($accreditation)
-                    <div class="sm:text-right">
+                    <div class="col-span-2 flex flex-wrap items-center gap-x-3 gap-y-1 sm:col-span-1 sm:block sm:text-right">
                         <x-status-badge :status="$accreditation->status" />
-                        <p class="mt-2 text-sm text-muted">
-                            Accredited until
-                            <span class="font-mono tabular-nums">{{ $accreditation->expires_at->format('d M Y') }}</span>
+                        <p class="text-sm text-muted sm:mt-2">
+                            Accredited until <span class="tabular-nums">{{ $accreditation->expires_at->format('d M Y') }}</span>
                         </p>
                     </div>
                 @endif
@@ -32,22 +32,22 @@
 
             <dl class="mt-8 grid grid-cols-3 divide-x divide-line border-y border-line">
                 <div class="py-4 pr-4">
-                    <dt class="text-sm text-muted">Verified activities</dt>
-                    <dd class="mt-1 font-mono text-xl tabular-nums text-brand-800">
+                    <dt class="text-xs text-muted sm:text-sm">Verified activities</dt>
+                    <dd class="mt-1 text-xl font-semibold tabular-nums text-brand-800">
                         <span aria-hidden="true" data-count-to="{{ $ledger['count'] }}">{{ number_format($ledger['count']) }}</span>
                         <span class="sr-only">{{ number_format($ledger['count']) }}</span>
                     </dd>
                 </div>
                 <div class="px-4 py-4">
-                    <dt class="text-sm text-muted">Residents reached</dt>
-                    <dd class="mt-1 font-mono text-xl tabular-nums text-brand-800">
+                    <dt class="text-xs text-muted sm:text-sm">Residents reached</dt>
+                    <dd class="mt-1 text-xl font-semibold tabular-nums text-brand-800">
                         <span aria-hidden="true" data-count-to="{{ $ledger['reached'] }}">{{ number_format($ledger['reached']) }}</span>
                         <span class="sr-only">{{ number_format($ledger['reached']) }}</span>
                     </dd>
                 </div>
                 <div class="py-4 pl-4">
-                    <dt class="text-sm text-muted">Logging since</dt>
-                    <dd class="mt-1 font-mono text-xl tabular-nums text-brand-800">
+                    <dt class="text-xs text-muted sm:text-sm">Logging since</dt>
+                    <dd class="mt-1 text-xl font-semibold tabular-nums text-brand-800">
                         {{ $ledger['since'] ? \Illuminate\Support\Carbon::parse($ledger['since'])->format('M Y') : 'Not yet' }}
                     </dd>
                 </div>
@@ -81,7 +81,7 @@
                 <ol class="mt-6">
                     @foreach ($activities as $activity)
                         <li class="reveal grid gap-x-6 gap-y-1 border-b border-line py-4 sm:grid-cols-[7rem_minmax(0,1fr)]">
-                            <p class="font-mono text-sm tabular-nums text-muted">
+                            <p class="text-sm tabular-nums text-muted">
                                 <time datetime="{{ $activity->activity_date->toDateString() }}">
                                     {{ $activity->activity_date->format('d M Y') }}
                                 </time>
@@ -106,7 +106,7 @@
                                     @if ($activity->participants_estimate)
                                         <span>
                                             About
-                                            <span class="font-mono tabular-nums">{{ number_format($activity->participants_estimate) }}</span>
+                                            <span class="tabular-nums">{{ number_format($activity->participants_estimate) }}</span>
                                             residents
                                         </span>
                                     @endif

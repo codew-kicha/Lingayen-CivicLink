@@ -1,5 +1,5 @@
 <x-layouts.public title="Resources">
-    <x-page-banner title="Resources" photo="reading-session.jpg"
+    <x-page-banner title="Resources" photo="events/cso6.jpg" alt="Members of a senior citizens association at a CSO assembly in Lingayen"
                    lede="News from the PESO office, annual accreditation reports, and answers to the questions organizations ask most often." />
 
     <div class="mx-auto grid max-w-7xl gap-12 px-4 py-12 sm:px-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] lg:px-8">
@@ -16,7 +16,7 @@
                     <ul class="mt-6 divide-y divide-line border-y border-line">
                         @foreach ($posts as $post)
                             <li class="py-6">
-                                <p class="font-mono text-xs uppercase tracking-wide text-muted">
+                                <p class="text-sm tabular-nums text-muted">
                                     {{ $post->published_at?->format('d M Y') }}
                                 </p>
                                 <h3 class="mt-1 text-lg font-semibold text-ink">{{ $post->title }}</h3>
@@ -66,7 +66,7 @@
                         <li>
                             <a href="{{ route('annual-reports.download', $report) }}"
                                class="panel flex items-baseline gap-3 p-4 transition-colors duration-fast ease-out-strong hover:border-brand-300">
-                                <span class="font-mono text-sm tabular-nums text-brand-600">{{ $report->year }}</span>
+                                <span class="text-sm font-semibold tabular-nums text-brand-600">{{ $report->year }}</span>
                                 <span class="text-sm font-medium text-ink">{{ $report->title }}</span>
                             </a>
                         </li>
@@ -77,7 +77,7 @@
             <h2 class="mt-12 font-serif text-xl font-bold text-brand-900">Regulations</h2>
             <ul class="mt-6 space-y-3 text-sm text-muted">
                 <li>RA 7160, Local Government Code of 1991, on the role of NGOs and people's organizations</li>
-                <li>DILG Memorandum Circular 2022-083, CSO accreditation for Local Special Bodies</li>
+                <li>DILG Memorandum Circular No. 2025-060 (June 23, 2025), accreditation of CSOs and selection of representatives to Local Special Bodies; it replaced MC 2022-083</li>
             </ul>
         </aside>
     </div>

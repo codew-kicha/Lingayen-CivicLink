@@ -1,9 +1,10 @@
 <x-layouts.public title="Contact Us">
-    <x-page-banner title="Contact the Civil Society Desk Office" photo="floating-market.jpg"
+    <x-page-banner title="Contact the Civil Society Desk Office" photo="events/cso7.jpg"
+                   alt="Representatives of the PWD Association at a CSO assembly in Lingayen"
                    lede="For questions about accreditation requirements, the status of a filed application, or help encoding a paper form." />
 
     <div class="mx-auto grid max-w-5xl gap-12 px-4 py-12 sm:px-6 lg:grid-cols-2 lg:px-8">
-        <div>
+        <div class="reveal">
             <h2 class="font-serif text-xl font-bold text-brand-900">Visit or call</h2>
 
             <dl class="mt-6 space-y-6 text-sm">
@@ -47,25 +48,36 @@
             </dl>
         </div>
 
-        <div class="panel h-fit p-6">
+        <div class="reveal panel h-fit p-6">
             <h2 class="font-serif text-xl font-bold text-brand-900">Send a message</h2>
-            <p class="mt-1 text-sm text-muted">All fields required unless marked optional.</p>
+            <p class="mt-1 text-sm text-muted">
+                It goes to the Civil Society Desk Office's email, and they reply to the address you give.
+            </p>
 
-            <form class="mt-6 space-y-6" method="POST" action="{{ route('contact.send') }}">
+            <div class="mt-4">
+                <x-flash />
+            </div>
+
+            <form class="mt-2 space-y-6" method="POST" action="{{ route('contact.send') }}">
                 @csrf
+                <p class="text-sm text-muted"><span class="text-danger" aria-hidden="true">*</span> Required</p>
+
                 <div>
-                    <label for="name" class="field-label">Your name</label>
-                    <input type="text" id="name" name="name" value="{{ old('name') }}"
+                    <label for="name" class="field-label field-required">Your name</label>
+                    <input type="text" id="name" name="name" value="{{ old('name') }}" autocomplete="name" maxlength="255"
                            class="field-input @error('name') field-input-error @enderror"
                            @error('name') aria-invalid="true" aria-describedby="name-error" @enderror required>
                     @error('name')<p id="name-error" class="field-error">{{ $message }}</p>@enderror
                 </div>
 
                 <div>
-                    <label for="email" class="field-label">Email address</label>
-                    <input type="email" id="email" name="email" value="{{ old('email') }}"
+                    <label for="email" class="field-label field-required">Your email address</label>
+                    <input type="email" id="email" name="email" value="{{ old('email') }}" autocomplete="email" maxlength="255"
+                           placeholder="name@example.com"
+                           aria-describedby="email-hint{{ $errors->has('email') ? ' email-error' : '' }}"
                            class="field-input @error('email') field-input-error @enderror"
-                           @error('email') aria-invalid="true" aria-describedby="email-error" @enderror required>
+                           @error('email') aria-invalid="true" @enderror required>
+                    <p id="email-hint" class="field-hint">Your own email, so the office can write back to you.</p>
                     @error('email')<p id="email-error" class="field-error">{{ $message }}</p>@enderror
                 </div>
 
@@ -73,13 +85,13 @@
                     <label for="organization" class="field-label">
                         Organization <span class="font-normal text-muted">(optional)</span>
                     </label>
-                    <input type="text" id="organization" name="organization" value="{{ old('organization') }}"
+                    <input type="text" id="organization" name="organization" value="{{ old('organization') }}" maxlength="255"
                            class="field-input">
                 </div>
 
                 <div>
-                    <label for="message" class="field-label">Message</label>
-                    <textarea id="message" name="message" rows="5"
+                    <label for="message" class="field-label field-required">Message</label>
+                    <textarea id="message" name="message" rows="5" maxlength="2000"
                               class="field-input @error('message') field-input-error @enderror"
                               @error('message') aria-invalid="true" aria-describedby="message-error" @enderror required>{{ old('message') }}</textarea>
                     @error('message')<p id="message-error" class="field-error">{{ $message }}</p>@enderror

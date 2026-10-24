@@ -163,7 +163,7 @@
                 <div>
                     <h2 class="font-semibold text-paper">Legal basis</h2>
                     <p class="mt-3 leading-relaxed">
-                        RA 7160 (Local Government Code of 1991) and DILG Memorandum Circular 2022-083 on CSO
+                        RA 7160 (Local Government Code of 1991) and DILG Memorandum Circular No. 2025-060 on CSO
                         accreditation for Local Special Bodies.
                     </p>
                 </div>
