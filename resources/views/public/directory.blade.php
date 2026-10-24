@@ -82,7 +82,7 @@
                 @endforeach
             </div>
 
-            <div class="mt-8">{{ $organizations->withQueryString()->links() }}</div>
+            <div class="mt-8">{{ $organizations->withQueryString()->links('pagination.public') }}</div>
         @endif
     </div>
 </x-layouts.public>

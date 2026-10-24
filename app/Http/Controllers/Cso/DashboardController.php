@@ -18,6 +18,7 @@ class DashboardController extends Controller
             'score' => $organization?->performanceScores()->latest('computed_at')->first(),
             'pendingActivities' => $organization?->activities()->where('status', 'pending')->count() ?? 0,
             'verifiedActivities' => $organization?->activities()->where('status', 'verified')->count() ?? 0,
+            'recentActivities' => $organization?->activities()->latest('activity_date')->latest('id')->limit(5)->get() ?? collect(),
             'expiringDocuments' => $organization
                 ?->documents()
                 ->whereNotNull('expires_at')

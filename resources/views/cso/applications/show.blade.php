@@ -17,7 +17,7 @@
                     <p class="text-sm font-semibold text-danger">What needs correcting</p>
                     <p class="mt-1 text-sm text-danger">{{ $application->rejection_reason }}</p>
                 </div>
-                <a href="{{ route('cso.applications.create') }}" class="btn-primary mt-4">File a corrected application</a>
+                <a href="{{ route('cso.applications.index', ['apply' => 1]) }}" class="btn-primary mt-4">File a corrected application</a>
             @endif
 
             @if ($application->accreditation)
@@ -56,7 +56,7 @@
                                     {{ \App\Models\Document::label($document->document_type) }}
                                 </td>
                                 <td class="table-cell">
-                                    <a href="{{ route('documents.download', $document) }}"
+                                    <a href="{{ route('documents.download', $document) }}" target="_blank" rel="noopener"
                                        class="entity-link">{{ $document->original_filename }}</a>
                                 </td>
                                 <td class="table-date">

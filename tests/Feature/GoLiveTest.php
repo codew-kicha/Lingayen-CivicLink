@@ -102,12 +102,41 @@ class GoLiveTest extends TestCase
         $this->assertDatabaseMissing('users', ['email' => 'weak@lingayen.gov.ph']);
     }
 
-    public function test_the_demo_data_is_never_seeded_on_a_live_site(): void
+    public function test_the_demo_data_is_never_seeded_on_a_live_site_without_opting_in(): void
     {
         $this->app['env'] = 'production';
 
         $this->expectExceptionMessage('Refusing to seed demo accounts in production');
         $this->app->make(DatabaseSeeder::class)->run();
+    }
+
+    public function test_a_live_demo_needs_a_private_password(): void
+    {
+        $this->app['env'] = 'production';
+        config(['app.allow_demo_data' => true]);
+
+        foreach ([null, '', 'short-1A!', DatabaseSeeder::DEMO_PASSWORD] as $password) {
+            config(['app.demo_password' => $password]);
+            try {
+                DatabaseSeeder::password();
+                $this->fail('Accepted demo password: '.var_export($password, true));
+            } catch (\RuntimeException $e) {
+                $this->assertStringContainsString('Refusing to seed demo accounts in production', $e->getMessage());
+            }
+        }
+
+        config(['app.demo_password' => 'Defense-Panel-2026!']);
+        $this->assertSame('Defense-Panel-2026!', DatabaseSeeder::password());
+    }
+
+    public function test_demo_accounts_with_a_private_password_pass_but_the_demo_data_is_flagged(): void
+    {
+        User::factory()->create(['email' => 'rep1@example.ph', 'password' => 'Defense-Panel-2026!']);
+
+        $results = (new GoLiveChecks)->run(probeUrls: false);
+
+        $this->assertSame('pass', $this->check($results, 'Demo accounts')['status']);
+        $this->assertSame('warn', $this->check($results, 'Demo data')['status']);
     }
 
     public function test_the_system_check_page_is_for_admins(): void

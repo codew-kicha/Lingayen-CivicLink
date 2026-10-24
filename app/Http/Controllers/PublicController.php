@@ -161,7 +161,9 @@ class PublicController extends Controller
             'posts' => NewsPost::with('organizations')
                 ->where('status', 'published')
                 ->latest('published_at')
-                ->paginate(10),
+                // Five a page; page links land back on the news list, not the top of the page.
+                ->paginate(5)
+                ->fragment('news'),
             'reports' => AnnualReport::orderByDesc('year')->get(),
             'faqs' => config('office.faqs'),
         ]);

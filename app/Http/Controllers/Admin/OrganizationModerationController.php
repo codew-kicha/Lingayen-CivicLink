@@ -12,6 +12,7 @@ use App\Models\AuditLog;
 use App\Models\Organization;
 use App\Models\User;
 use App\Notifications\AccountInvitation;
+use App\Notifications\AccreditationExpiring;
 use App\Services\OrganizationRecords;
 use App\Services\ReportData;
 use App\Support\ListPagination;
@@ -37,12 +38,54 @@ class OrganizationModerationController extends Controller
                 ->when($request->string('q')->trim()->value(), fn ($q, $term) => $q->where('name', 'like', "%{$term}%"))
                 ->when($request->input('account') === 'none', fn ($q) => $q->whereNull('user_id'))
                 ->when($request->input('status') === 'inactive', fn ($q) => $q->inactive())
+                // Same window as the dashboard's "Expiring within 90 days" tile.
+                ->when($request->input('status') === 'expiring', fn ($q) => $q->whereHas('accreditations', fn ($a) => $a
+                    ->where('status', 'active')->whereBetween('expires_at', [now(), now()->addDays(90)])))
                 // Same definition and period as the analytics at-risk list and its Excel sheet.
                 ->when($request->input('status') === 'at-risk', fn ($q) => $q->whereKey(ReportData::fromRequest($request)->atRisk()->pluck('id')))
                 ->orderBy('name'),
                 $request),
             'inactiveIds' => Organization::inactive()->pluck('id'),
+            'remindedIds' => $request->input('status') === 'expiring' ? self::recentlyReminded() : collect(),
         ]);
+    }
+
+    // Emails the representative that the accreditation is running out (the office's own call; nothing
+    // sends this on a schedule). At most one reminder a day per organization, so a double click or a
+    // second visit doesn't spam them.
+    public function remind(Organization $organization): RedirectResponse
+    {
+        $this->authorize('manage', Organization::class);
+
+        $accreditation = $organization->accreditations()->where('status', 'active')->first();
+        $user = $organization->user;
+
+        if (! $accreditation) {
+            return back()->with('error', "{$organization->name} has no active accreditation to remind about.");
+        }
+        if (! $user || ! $user->is_active || ! $user->email_verified_at) {
+            return back()->with('error', "{$organization->name} has no active representative account to email.");
+        }
+        if (self::recentlyReminded()->contains($organization->id)) {
+            return back()->with('error', "A reminder already went to {$user->email} in the last 24 hours.");
+        }
+
+        $user->notify(new AccreditationExpiring($accreditation));
+        AuditLog::record('accreditation.reminder_sent', $organization, [
+            'email' => $user->email,
+            'expires_at' => $accreditation->expires_at->toDateString(),
+        ]);
+
+        return back()->with('status', "Expiry reminder sent to {$user->email}.");
+    }
+
+    /** Organizations reminded in the last 24 hours. */
+    private static function recentlyReminded()
+    {
+        return AuditLog::where('action', 'accreditation.reminder_sent')
+            ->where('subject_type', 'Organization')
+            ->where('created_at', '>=', now()->subDay())
+            ->pluck('subject_id');
     }
 
     // The CSO list as an Excel file: all registered organizations, or only the accredited ones.
@@ -110,6 +153,12 @@ class OrganizationModerationController extends Controller
             'sectors' => config('sectors'),
             'barangays' => config('barangays'),
             'timeline' => ReportData::timeline($organization),
+            // For the File an application dialog.
+            'documentTypes' => config('document_types'),
+            'lastReminder' => AuditLog::where('action', 'accreditation.reminder_sent')
+                ->where('subject_type', 'Organization')->where('subject_id', $organization->id)
+                ->latest('created_at')->value('created_at'),
+            'hasActiveAccreditation' => $organization->accreditations->contains('status', 'active'),
             // For the Delete and Merge dialogs.
             'footprint' => OrganizationRecords::footprint($organization),
             'mergeOptions' => Organization::whereKeyNot($organization->id)->orderBy('name')->get(['id', 'name', 'barangay'])

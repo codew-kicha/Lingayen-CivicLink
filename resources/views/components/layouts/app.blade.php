@@ -1,9 +1,11 @@
-@props(['header' => 'Dashboard', 'subheader' => null])
+@props(['header' => 'Dashboard', 'subheader' => null, 'sticky' => false])
 
 {{--
     The one signed-in layout for both roles (admin and CSO representative). Only the navigation
     differs, from config('navigation'). Page frame: max-w-7xl, padding 16/24/32 by breakpoint,
-    title and subtitle always in the same place. See docs/DESIGN_SYSTEM.md §3.
+    title and subtitle always in the same place. See docs/DESIGN_SYSTEM.md §3. With `sticky`, the title
+    bar (and its actions) stays pinned on desktop and gains a rule once the page scrolls; phones keep
+    the existing sticky top bar, which already names the page.
 --}}
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
@@ -62,7 +64,12 @@
             </div>
 
             <main id="main" class="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
-                <div class="mb-6 flex flex-wrap items-start gap-x-6 gap-y-4">
+                <div @if ($sticky) x-data="{ stuck: false }" @scroll.window="stuck = scrollY > 8"
+                         :class="stuck && 'lg:border-line lg:shadow-panel'" @endif
+                     @class([
+                         'mb-6 flex flex-wrap items-start gap-x-6 gap-y-4',
+                         'border-b border-transparent bg-canvas transition-shadow duration-fast lg:sticky lg:top-0 lg:z-sticky lg:-mx-8 lg:-mt-8 lg:px-8 lg:pb-4 lg:pt-8' => $sticky,
+                     ])>
                     <div class="min-w-0 flex-1 basis-80">
                         {{-- Pagination links point here (#page-title) so focus lands on the results after a page change. --}}
                         <h1 id="page-title" tabindex="-1" class="text-page-title font-semibold text-ink">{{ $header }}</h1>

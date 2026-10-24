@@ -110,7 +110,9 @@ class AccreditationLoopTest extends TestCase
         // profile now carries the verified work.
         $this->actingAs($rep)->get(route('cso.dashboard'))
             ->assertOk()
-            ->assertSee(number_format($score->total_score * 100, 0).'%');
+            ->assertSee(number_format($score->total_score * 100, 0).'%')
+            ->assertSee('Recent activities')
+            ->assertSee('Coastal clean-up drive');
         $this->actingAs($rep)->get(route('cso.activities.index'))
             ->assertOk()
             ->assertSee('Coastal clean-up drive');

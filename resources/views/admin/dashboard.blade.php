@@ -4,7 +4,7 @@
         $tiles = [
             ['Applications to review', $counts['awaiting_review'], route('admin.applications.index'), 'clipboard-text', true],
             ['Activities to verify', $counts['pending_activities'], route('admin.activities.index'), 'check-square', true],
-            ['Expiring within 90 days', $counts['expiring_soon'], route('admin.organizations.index'), 'calendar-x', true],
+            ['Expiring within 90 days', $counts['expiring_soon'], route('admin.organizations.index', ['status' => 'expiring']), 'calendar-x', true],
             ['Inactive CSOs', $counts['inactive'], route('admin.organizations.index', ['status' => 'inactive']), 'warning-circle', false],
             ['Active accreditations', $counts['active_accreditations'], null, 'seal-check', false],
         ];

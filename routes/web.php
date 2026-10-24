@@ -73,6 +73,7 @@ Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->name('ad
     Route::get('/organizations/{organization}/members.pdf', [Admin\OrganizationModerationController::class, 'members'])->name('organizations.members');
     Route::post('/organizations/{organization}/account',[Admin\OrganizationModerationController::class, 'attachAccount'])->name('organizations.account');
     Route::patch('/organizations/{organization}/visibility', [Admin\OrganizationModerationController::class, 'toggleVisibility'])->name('organizations.visibility');
+    Route::post('/organizations/{organization}/remind', [Admin\OrganizationModerationController::class, 'remind'])->name('organizations.remind');
     // Both re-check the admin's password inside the dialog (ConfirmedOrganizationRequest).
     Route::delete('/organizations/{organization}', [Admin\OrganizationModerationController::class, 'destroy'])->name('organizations.destroy');
     Route::post('/organizations/{organization}/merge', [Admin\OrganizationModerationController::class, 'merge'])->name('organizations.merge');

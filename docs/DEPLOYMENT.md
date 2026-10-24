@@ -175,6 +175,32 @@ Upload `public/build` from your computer (or install Node on the server and run 
 
 ---
 
+## 4D. Demo data for the defense (optional)
+
+The live site can carry the same demo data as your computer (organizations in every state,
+activity histories, scores) for the panel to try, as long as the accounts don't use the
+development password, which is public in the repository.
+
+1. In the server's `.env`:
+   ```
+   ALLOW_DEMO_DATA=true
+   DEMO_PASSWORD=your-private-password   # at least 12 characters, shared only with the panel
+   ```
+2. Load it: `php artisan config:clear && php artisan migrate:fresh --seed --force`, then the three
+   cache commands from §4H. Every demo account (admin@lingayen.gov.ph, rep1@example.ph, …) now
+   signs in with `DEMO_PASSWORD`. The seeder refuses if the password is missing, short, or the
+   public one.
+3. System check then passes **Demo accounts** and shows a **Demo data** warning, because the fake
+   organizations appear in the public directory.
+
+**After the defense, before real use:**
+```bash
+php artisan migrate:fresh --force        # wipes everything; no --seed
+php artisan app:create-admin             # the office's real administrator
+```
+Set `ALLOW_DEMO_DATA=false`, delete the `DEMO_PASSWORD` line, run the three cache commands, and
+re-open System check: the Demo data warning is gone.
+
 ## 5. Check it, then go live
 
 1. Open `https://your-domain/.env` in a browser. It must show an error page, never settings.

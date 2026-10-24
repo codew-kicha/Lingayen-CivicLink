@@ -34,6 +34,9 @@ class OrganizationProfileController extends Controller
             }
 
             $data['logo_path'] = $request->file('logo')->store('logos', 'public');
+        } elseif ($request->boolean('remove_logo') && $organization?->logo_path) {
+            Storage::disk('public')->delete($organization->logo_path);
+            $data['logo_path'] = null;
         }
 
         DB::transaction(function () use ($request, $organization, $data) {

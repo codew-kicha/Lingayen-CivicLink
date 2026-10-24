@@ -28,6 +28,7 @@ class UpdateOrganizationRequest extends FormRequest
             'advocacy' => ['nullable', 'string', 'max:2000'],
             'org_chart' => ['nullable', 'string', 'max:2000'],
             'logo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
+            'remove_logo' => ['nullable', 'boolean'],
 
             'members' => ['array', 'max:50'],
             'members.*.name' => ['required_with:members.*.position', 'nullable', 'string', 'max:255'],

@@ -42,6 +42,7 @@ class GoLiveChecks
             $this->appKey(),
             $this->https(),
             $this->demoAccounts(),
+            $this->demoData(),
             $this->writable(),
             $this->assets(),
             $this->mail(),
@@ -114,6 +115,21 @@ class GoLiveChecks
         return $exposed->isEmpty()
             ? ['label' => 'Demo accounts', 'status' => 'pass', 'detail' => 'No account uses the published demo password.']
             : ['label' => 'Demo accounts', 'status' => 'fail', 'detail' => 'These accounts still use the demo password, which is public: '.$exposed->take(5)->join(', ').($exposed->count() > 5 ? ' and '.($exposed->count() - 5).' more' : '').'. Do not seed the live database.'];
+    }
+
+    // Demo data under a private password is fine for a defense, but its fake organizations sit in the
+    // public directory, so it is flagged until the database is wiped for real use.
+    private function demoData(): ?array
+    {
+        $seeded = User::where('email', 'like', '%@example.ph')->exists();
+
+        if (! $seeded && ! config('app.allow_demo_data')) {
+            return null;
+        }
+
+        return $seeded
+            ? ['label' => 'Demo data', 'status' => 'warn', 'detail' => 'Demo organizations and accounts are loaded and show in the public directory. Before real use: php artisan migrate:fresh (no --seed), php artisan app:create-admin, then ALLOW_DEMO_DATA=false and remove DEMO_PASSWORD from .env.']
+            : ['label' => 'Demo data', 'status' => 'warn', 'detail' => 'ALLOW_DEMO_DATA is on. Set ALLOW_DEMO_DATA=false and remove DEMO_PASSWORD from .env once the demo is over.'];
     }
 
     private function writable(): array

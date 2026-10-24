@@ -123,4 +123,18 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Demo data (thesis defense)
+    |--------------------------------------------------------------------------
+    |
+    | The seeder's demo accounts use DatabaseSeeder::DEMO_PASSWORD on a development computer. On a
+    | live server it refuses to run unless ALLOW_DEMO_DATA=true and DEMO_PASSWORD holds a private
+    | password, which every demo account then uses. Wipe the demo data before real use.
+    |
+    */
+
+    'allow_demo_data' => (bool) env('ALLOW_DEMO_DATA', false),
+    'demo_password' => env('DEMO_PASSWORD'),
+
 ];

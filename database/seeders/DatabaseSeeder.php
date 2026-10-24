@@ -7,13 +7,16 @@ use App\Models\Activity;
 use App\Models\AnnualReport;
 use App\Models\AuditLog;
 use App\Models\ApplicationModel;
+use App\Models\Document;
 use App\Models\NewsPost;
 use App\Models\Organization;
 use App\Models\User;
 use App\Services\DocumentPrecheck;
 use App\Services\PerformanceScoreCalculator;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 /**
@@ -25,21 +28,40 @@ use Illuminate\Support\Str;
  */
 class DatabaseSeeder extends Seeder
 {
-    // Every demo account uses this. It satisfies Password::defaults() like a real password must.
+    // The development password for every demo account. It is in a public repository, so a live
+    // server must set its own (DEMO_PASSWORD) before demo data may be seeded there.
     public const DEMO_PASSWORD = 'Lingayen-Demo-2026';
+
+    /** Published demo news, newest first: [title, body]. Fifteen, so the Resources list pages (5 a page). */
+    public const NEWS_POSTS = [
+        ['Accreditation window for 2026 now open', 'The Civil Society Desk Office is accepting applications for CSO accreditation until the end of the quarter. Organizations may file online or bring two copies of each requirement to #1 Bengson Street for assisted encoding.'],
+        ['Coastal clean-up covers four barangays', 'Fisherfolk and farmers\' associations joined the quarterly shoreline clean-up, collecting waste across four coastal barangays and recording the volumes for the environment office.'],
+        ['Reminder on document expiry', 'Accredited organizations are reminded to replace expiring DOLE or SEC certifications and updated officer lists before they lapse. The Desk Office emails a reminder ahead of each accreditation\'s expiry date.'],
+        ['Senior citizens\' wellness day draws 300 residents', 'Senior citizens\' groups from Domalandan and Talogtog held a joint wellness day with free blood pressure checks, light exercise, and a talk on managing maintenance medicines. Barangay health workers assisted throughout the morning.'],
+        ['Online filing now available for CSO accreditation', 'Organizations can now register, upload their requirements, and follow their application through each Sangguniang Bayan reading on the CSO Desk Office website. Paper filing at the office remains available for groups without internet access.'],
+        ['Orientation on the accreditation requirements', 'The Desk Office will hold an orientation on the five accreditation requirements for new and renewing organizations. Officers are encouraged to bring their draft documents so staff can check them on the spot.'],
+        ['Mangrove planting along the Pangapisan coast', 'Fisherfolk and youth volunteers planted 1,200 mangrove propagules along the Pangapisan shoreline. The planting site will be monitored monthly, and survival counts will be shared with the municipal environment office.'],
+        ['Women\'s organizations lead anti-VAWC forum', 'KALIPI chapters and the Capandanan Kababaihan Association held a forum on preventing violence against women and children, with resource speakers from the municipal social welfare office and the women and children protection desk.'],
+        ['Road safety seminar for tricycle and pedicab drivers', 'TODA and pedicab drivers\' associations attended a road safety seminar on traffic rules, passenger safety, and first aid. Drivers who completed the seminar received certificates from the municipal traffic office.'],
+        ['Cooperatives attend bookkeeping workshop', 'Officers of six cooperatives completed a two-day bookkeeping workshop covering cash records, member share capital, and preparing financial statements for the annual general assembly.'],
+        ['Vaccination drive reaches four barangays', 'The Dulag Health Workers Association supported the municipal health office in a vaccination drive for children and older residents in four barangays, recording more than 500 doses in a single weekend.'],
+        ['Youth volunteers launch recycling drive', 'Basing Youth for Environment opened weekly drop-off points for plastic bottles and cartons, and visited two elementary schools to teach pupils how to separate waste at home.'],
+        ['Call for nominees to Local Special Bodies', 'Accredited organizations may nominate representatives to the municipal Local Special Bodies, such as the Development Council and the Health Board. Nomination forms are available at the Civil Society Desk Office.'],
+        ['Farmers receive seeds through community sharing day', 'The Malawa Farmers Association held its seed sharing day, distributing rice and vegetable seeds to smallholder farmers and demonstrating organic fertilizer preparation.'],
+        ['CSO Assembly recognizes most active organizations', 'The annual CSO Assembly recognized organizations with the most verified community activities over the past year. Organizations were also briefed on the accreditation calendar for the coming year.'],
+    ];
+
+    /** Hash of the password every demo account gets, worked out once. */
+    private string $passwordHash;
 
     public function run(): void
     {
-        // The demo password and admin email are in a public repository: seeding a live site would
-        // hand anyone an admin login. Create the real admin with `php artisan app:create-admin`.
-        if (app()->isProduction()) {
-            throw new \RuntimeException('Refusing to seed demo accounts in production. Use `php artisan app:create-admin` for the real administrator.');
-        }
+        $this->passwordHash = Hash::make(self::password());
 
         $admin = User::factory()->admin()->create([
             'name' => 'PESO Administrator',
             'email' => 'admin@lingayen.gov.ph',
-            'password' => Hash::make(self::DEMO_PASSWORD),
+            'password' => $this->passwordHash,
         ]);
 
         $this->accreditedOrganizations($admin);
@@ -49,6 +71,29 @@ class DatabaseSeeder extends Seeder
         $this->accountStates($admin);
         $this->newsAndReports($admin);
         $this->computeScores();
+    }
+
+    /**
+     * The demo accounts' password. On a development computer, DEMO_PASSWORD (or the public default).
+     * On a live server only with ALLOW_DEMO_DATA=true and a private DEMO_PASSWORD of at least 12
+     * characters: seeding with the published password would hand anyone an admin login.
+     */
+    public static function password(): string
+    {
+        $custom = (string) config('app.demo_password');
+
+        if (! app()->isProduction()) {
+            return $custom !== '' ? $custom : self::DEMO_PASSWORD;
+        }
+
+        if (! config('app.allow_demo_data')) {
+            throw new \RuntimeException('Refusing to seed demo accounts in production. For a defense demo set ALLOW_DEMO_DATA=true and a private DEMO_PASSWORD in .env; for real use run `php artisan app:create-admin` instead.');
+        }
+        if ($custom === self::DEMO_PASSWORD || mb_strlen($custom) < 12) {
+            throw new \RuntimeException('Refusing to seed demo accounts in production with the published or a short password. Set DEMO_PASSWORD in .env to a private password of at least 12 characters.');
+        }
+
+        return $custom;
     }
 
     /**
@@ -82,6 +127,24 @@ class DatabaseSeeder extends Seeder
             ['Baay Pedicab Drivers Association', 'Pedicab Drivers', 'Baay',
                 'Represents pedicab drivers and runs a mutual aid fund for members.',
                 ['road safety orientation', 'mutual aid fund assembly', 'pedicab terminal clean-up']],
+            ['Dulag Health Workers Association', 'Health', 'Dulag',
+                'Barangay health workers who run maternal care visits, vaccination drives, and first aid training.',
+                ['vaccination drive', 'first aid training', 'prenatal check-up caravan']],
+            ['Namolan Mussel Growers Cooperative', 'Cooperative', 'Namolan',
+                'Pools members\' mussel harvests for fair pricing and trains them in safe post-harvest handling.',
+                ['post-harvest handling training', 'cooperative general assembly', 'bookkeeping workshop']],
+            ['Capandanan Kababaihan Association', "KALIPI (Women's)", 'Capandanan',
+                'Helps women start home-based businesses and speaks up on family welfare in the barangay.',
+                ['microenterprise training', 'family welfare forum', 'women\'s savings group meeting']],
+            ['Talogtog Senior Citizens Federation', 'Senior Citizen', 'Talogtog',
+                'Looks after older residents through home visits, social pension assistance, and exercise groups.',
+                ['senior exercise morning', 'social pension assistance desk', 'home visits to bedridden seniors']],
+            ['Basing Youth for Environment', 'Independent Organizations', 'Basing',
+                'Young volunteers who plant trees, run recycling drives, and teach children about waste segregation.',
+                ['tree planting', 'recycling drive', 'waste segregation lesson for children']],
+            ['Rosario TODA', 'TODA', 'Rosario',
+                'Represents tricycle drivers in Rosario and keeps the terminal orderly and safe.',
+                ['terminal clean-up', 'road safety seminar', 'driver discipline orientation']],
             ['Lingayen OFW Families Circle', 'OFW', 'Poblacion',
                 'Supports families of overseas Filipino workers with financial literacy and reintegration help.',
                 ['financial literacy seminar', 'reintegration counselling session', 'OFW family day']],
@@ -94,7 +157,7 @@ class DatabaseSeeder extends Seeder
             $user = User::factory()->create([
                 'name' => "Representative, {$name}",
                 'email' => 'rep'.($index + 1).'@example.ph',
-                'password' => Hash::make(self::DEMO_PASSWORD),
+                'password' => $this->passwordHash,
             ]);
 
             $organization = Organization::factory()->for($user)->create([
@@ -199,23 +262,28 @@ class DatabaseSeeder extends Seeder
     private function organizationsInReview(): void
     {
         $stages = [
-            ['not_endorsed', 'Tonton Neighborhood Association', 'Independent Organizations', 'Tonton'],
-            ['first_reading', 'Estanza Fisherfolk Alliance', 'Farmers and Fisherfolks', 'Estanza'],
-            ['second_reading', 'Libsong Health Advocates', 'Health', 'Libsong East'],
-            ['third_reading', 'Maniboc TODA', 'TODA', 'Maniboc'],
+            ['not_endorsed', 'Tonton Neighborhood Association', 'Independent Organizations', 'Tonton',
+                'Keeps Tonton\'s streets clean and lit, and organizes the barangay\'s neighborhood watch.'],
+            ['first_reading', 'Estanza Fisherfolk Alliance', 'Farmers and Fisherfolks', 'Estanza',
+                'Unites small-scale fishers in Estanza to protect fishing grounds and sell their catch at fair prices.'],
+            ['second_reading', 'Libsong Health Advocates', 'Health', 'Libsong East',
+                'Volunteers who run health education sessions and help residents reach the rural health unit.'],
+            ['third_reading', 'Maniboc TODA', 'TODA', 'Maniboc',
+                'Represents tricycle operators and drivers serving Maniboc and the routes to the town proper.'],
         ];
 
-        foreach ($stages as $index => [$stage, $name, $sector, $barangay]) {
+        foreach ($stages as $index => [$stage, $name, $sector, $barangay, $advocacy]) {
             $user = User::factory()->create([
                 'name' => "Representative, {$name}",
                 'email' => 'applicant'.($index + 1).'@example.ph',
-                'password' => Hash::make(self::DEMO_PASSWORD),
+                'password' => $this->passwordHash,
             ]);
 
             $organization = Organization::factory()->for($user)->create([
                 'name' => $name,
                 'sector' => $sector,
                 'barangay' => $barangay,
+                'advocacy' => $advocacy,
             ]);
 
             $organization->members()->createMany([
@@ -244,13 +312,14 @@ class DatabaseSeeder extends Seeder
         $user = User::factory()->create([
             'name' => 'Representative, Wawa Community Circle',
             'email' => 'rejected@example.ph',
-            'password' => Hash::make(self::DEMO_PASSWORD),
+            'password' => $this->passwordHash,
         ]);
 
         $organization = Organization::factory()->for($user)->create([
             'name' => 'Wawa Community Circle',
             'sector' => 'Independent Organizations',
             'barangay' => 'Wawa',
+            'advocacy' => 'Brings Wawa residents together for clean-up days, feeding programmes, and disaster preparedness drills.',
         ]);
 
         $application = ApplicationModel::factory()->for($organization)->rejected()->create([
@@ -266,7 +335,7 @@ class DatabaseSeeder extends Seeder
         $user = User::factory()->create([
             'name' => 'Lorna Bautista',
             'email' => 'new@example.ph',
-            'password' => Hash::make(self::DEMO_PASSWORD),
+            'password' => $this->passwordHash,
         ]);
 
         Organization::factory()->for($user)->create([
@@ -286,6 +355,7 @@ class DatabaseSeeder extends Seeder
             'name' => 'Aliwekwek Farmers Association',
             'sector' => 'Farmers and Fisherfolks',
             'barangay' => 'Aliwekwek',
+            'advocacy' => 'Helps Aliwekwek\'s rice and vegetable farmers share equipment and learn better farming methods.',
         ]);
 
         // Its paper application, encoded by PESO staff (assisted encoding).
@@ -309,12 +379,13 @@ class DatabaseSeeder extends Seeder
             'name' => 'Libsong East OFW Families',
             'sector' => 'OFW',
             'barangay' => 'Libsong East',
+            'advocacy' => 'Supports families of overseas workers in Libsong East with savings groups and counselling.',
         ]);
 
         $deactivated = User::factory()->create([
             'name' => 'Teresa Lim',
             'email' => 'deactivated@example.ph',
-            'password' => Hash::make(self::DEMO_PASSWORD),
+            'password' => $this->passwordHash,
         ]);
         $deactivated->forceFill([
             'is_active' => false,
@@ -325,6 +396,7 @@ class DatabaseSeeder extends Seeder
             'name' => 'Tonton Youth Volunteers',
             'sector' => 'Independent Organizations',
             'barangay' => 'Tonton',
+            'advocacy' => 'Young volunteers who tutor children and help during barangay events and relief operations.',
         ]);
 
         AuditLog::record('account.deactivated', $deactivated, ['reason' => $deactivated->deactivation_reason], $admin);
@@ -334,19 +406,15 @@ class DatabaseSeeder extends Seeder
     {
         $accredited = Organization::where('public_visibility', true)->take(3)->get();
 
-        $posts = [
-            ['Accreditation window for 2026 now open', 'The Civil Society Desk Office is accepting applications for CSO accreditation until the end of the quarter. Organizations may file online or bring two copies of each requirement to #1 Bengson Street for assisted encoding.'],
-            ['Coastal clean-up covers four barangays', 'Fisherfolk and farmers\' associations joined the quarterly shoreline clean-up, collecting waste across four coastal barangays and recording the volumes for the environment office.'],
-            ['Reminder on document expiry', 'Accredited organizations are reminded to replace expiring DOLE or SEC certifications and updated officer lists before they lapse. The system now sends a reminder ahead of each expiry date.'],
-        ];
 
-        foreach ($posts as $index => [$title, $body]) {
+        foreach (self::NEWS_POSTS as $index => [$title, $body]) {
             $post = NewsPost::factory()->create([
                 'author_id' => $admin->id,
                 'title' => $title,
                 'slug' => \Illuminate\Support\Str::slug($title),
                 'body' => $body,
-                'published_at' => now()->subDays(($index + 1) * 12),
+                // Newest first, roughly a week apart, so the Resources news list runs to three pages.
+                'published_at' => now()->subDays($index * 7 + 2),
             ]);
 
             if ($accredited->isNotEmpty()) {
@@ -361,15 +429,66 @@ class DatabaseSeeder extends Seeder
             'body' => 'Pending confirmation from the Sangguniang Bayan Secretariat.',
         ]);
 
-        foreach ([now()->year - 1, now()->year - 2] as $year) {
+        foreach ([now()->year - 1, now()->year - 2] as $age => $year) {
+            $title = "CSO Accreditation and Activity Report {$year}";
+            $path = "annual-reports/sample-{$year}.pdf";
+            Storage::disk('local')->put($path, self::pdf('pdf.annual-report', ['title' => $title, 'year' => $year] + $this->sampleReportFigures($age)));
+
             AnnualReport::create([
-                'title' => "CSO Accreditation and Activity Report {$year}",
+                'title' => $title,
                 'year' => $year,
-                // Placeholder path: the file itself is uploaded through the admin CMS.
-                'file_path' => "annual-reports/placeholder-{$year}.pdf",
+                'file_path' => $path,
                 'uploaded_by' => $admin->id,
             ]);
         }
+    }
+
+    /**
+     * Invented but consistent figures for a sample annual report: the accredited organizations as
+     * they are now, with smaller numbers the further back the year ($age 0 = last year).
+     */
+    private function sampleReportFigures(int $age): array
+    {
+        $scale = $age === 0 ? 1.0 : 0.6;
+        $organizations = Organization::whereHas('accreditations')->orderBy('name')->get(['name', 'sector', 'barangay'])
+            ->map(fn (Organization $o) => [
+                'name' => $o->name, 'sector' => $o->sector, 'barangay' => $o->barangay,
+                'activities' => max(1, (int) round(fake()->numberBetween(4, 18) * $scale)),
+            ]);
+        if ($age > 0) {
+            $organizations = $organizations->take((int) ceil($organizations->count() * $scale));
+        }
+
+        $sectors = $organizations->groupBy('sector')->map(fn ($group, $sector) => [
+            'sector' => $sector,
+            'organizations' => $group->count(),
+            'activities' => $group->sum('activities'),
+            'residents' => $group->sum('activities') * fake()->numberBetween(25, 70),
+            'independent' => $sector === 'TODA' ? fake()->numberBetween(8, 20) : fake()->numberBetween(45, 80),
+        ])->sortByDesc('activities')->values();
+
+        return [
+            'totals' => [
+                'accredited' => $organizations->count(),
+                'new' => (int) round($organizations->count() * ($age === 0 ? 0.4 : 0.7)),
+                'renewed' => (int) round($organizations->count() * ($age === 0 ? 0.3 : 0.1)),
+                'activities' => $sectors->sum('activities'),
+                'residents' => $sectors->sum('residents'),
+                'barangays' => $organizations->pluck('barangay')->unique()->count(),
+            ],
+            'sectors' => $sectors,
+            'top' => $organizations->sortByDesc('activities')->take(5)->values(),
+            'highlights' => $age === 0 ? [
+                'The quarterly coastal clean-up grew to four barangays, led by fisherfolk and youth organizations.',
+                'Senior citizens\' groups held monthly wellness days and a medicine assistance programme.',
+                'Online filing opened: organizations could apply for accreditation and log activities from the CSO Desk Office website.',
+                'Women\'s organizations ran livelihood trainings and an anti-VAWC awareness forum in every district.',
+            ] : [
+                'The Desk Office completed the first full list of CSOs operating in Lingayen.',
+                'Accreditation requirements were simplified to five documents, with assisted filing at the office.',
+                'Farmers\' and fisherfolk associations joined the municipal agriculture fair.',
+            ],
+        ];
     }
 
     /**
@@ -389,12 +508,19 @@ class DatabaseSeeder extends Seeder
         foreach (array_keys(config('document_types')) as $index => $type) {
             $check = DocumentPrecheck::evaluate($type, array_key_exists($type, $ocr) ? $ocr[$type] : $readText[$type], $organization->name);
 
+            $path = "documents/{$organization->id}/sample-{$application->id}-{$type}.pdf";
+            Storage::disk('local')->put($path, self::pdf('pdf.sample-document', [
+                'organization' => $organization,
+                'label' => Document::label($type),
+                'text' => array_key_exists($type, $ocr) ? $ocr[$type] : $readText[$type],
+            ]));
+
             $organization->documents()->create([
                 'ocr_status' => $check['status'],
                 'ocr_details' => $check['details'],
                 'application_id' => $application->id,
                 'document_type' => $type,
-                'file_path' => "documents/{$organization->id}/placeholder-{$type}.pdf",
+                'file_path' => $path,
                 'original_filename' => "{$type}.pdf",
                 'mime_type' => 'application/pdf',
                 'expires_at' => match (true) {
@@ -404,6 +530,12 @@ class DatabaseSeeder extends Seeder
                 },
             ]);
         }
+    }
+
+    /** A sample PDF with only the font glyphs it uses (about 30 KB instead of 850 KB). */
+    private static function pdf(string $view, array $data): string
+    {
+        return Pdf::setOption(['isFontSubsettingEnabled' => true])->loadView($view, $data)->output();
     }
 
     private function computeScores(): void

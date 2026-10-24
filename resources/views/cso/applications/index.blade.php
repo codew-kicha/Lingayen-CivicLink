@@ -1,37 +1,51 @@
 <x-layouts.app header="Applications" subheader="Every accreditation application your organization has filed.">
     @if (! $organization)
-        <section class="panel p-8 text-center">
-            <p class="font-semibold text-ink">Set up your organization profile first.</p>
-            <a href="{{ route('cso.profile.edit') }}" class="btn-primary mt-4">Set up profile</a>
-        </section>
-    @elseif ($applications->isEmpty())
-        <section class="panel p-8 text-center">
-            <p class="font-semibold text-ink">No applications filed yet.</p>
-            <p class="mt-1 text-sm text-muted">Apply for accreditation to appear in the public directory.</p>
-            <a href="{{ route('cso.applications.create') }}" class="btn-primary mt-4">Apply for accreditation</a>
+        <section class="card">
+            <x-empty-state title="Set up your organization profile first." icon="user-circle">
+                <x-slot:action><a href="{{ route('cso.profile.edit') }}" class="btn-primary">Set up profile</a></x-slot:action>
+            </x-empty-state>
         </section>
     @else
-        <div class="mb-4 flex justify-end">
-            <a href="{{ route('cso.applications.create') }}" class="btn-primary">File a new application</a>
-        </div>
+        <x-slot:actions>
+            <button type="button" class="btn-primary" @click="$dispatch('open-dialog', 'apply')">
+                <x-phosphor-upload-simple class="h-4 w-4" aria-hidden="true" />{{ $applications->isEmpty() ? 'Apply for accreditation' : 'File a new application' }}
+            </button>
+        </x-slot:actions>
 
-        <div class="space-y-3">
-            @foreach ($applications as $application)
-                <a href="{{ route('cso.applications.show', $application) }}"
-                   class="panel block p-6 transition-colors duration-fast ease-out-strong hover:border-primary/40">
-                    <div class="flex flex-wrap items-center gap-3">
-                        <h2 class="font-semibold capitalize text-ink">{{ $application->type }} application</h2>
-                        <span class="ml-auto"><x-status-badge :status="$application->status" /></span>
-                    </div>
-                    <p class="mt-1 text-sm text-muted">
-                        Filed
-                        <span class="tabular-nums">
-                            {{ $application->submitted_at?->format('d M Y') ?? 'not yet' }}
-                        </span>
-                    </p>
-                    <div class="mt-3"><x-sb-stepper :stage="$application->sb_stage" /></div>
-                </a>
-            @endforeach
-        </div>
+        <section class="card">
+            @if ($applications->isEmpty())
+                <x-empty-state title="No applications filed yet." icon="clipboard-text">
+                    Apply for accreditation to appear in the public directory.
+                </x-empty-state>
+            @else
+                <div class="table-wrap">
+                    <table class="table-stack w-full">
+                        <caption class="sr-only">Your organization's applications</caption>
+                        <thead>
+                            <tr>
+                                <th scope="col" class="table-head pl-6">Application</th>
+                                <th scope="col" class="table-head">Filed</th>
+                                <th scope="col" class="table-head">Status</th>
+                                <th scope="col" class="table-head pr-6">Sangguniang Bayan stage</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach ($applications as $application)
+                                <tr class="table-row">
+                                    <td class="table-cell pl-6">
+                                        <a href="{{ route('cso.applications.show', $application) }}" class="entity-link capitalize">{{ $application->type }} application</a>
+                                    </td>
+                                    <td class="table-date" data-label="Filed">{{ $application->submitted_at?->format('d M Y') ?? 'Not yet' }}</td>
+                                    <td class="table-cell"><x-status-badge :status="$application->status" /></td>
+                                    <td class="table-cell pr-6"><x-sb-stepper :stage="$application->sb_stage" /></td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            @endif
+        </section>
+
+        @include('cso.applications.apply-dialog')
     @endif
 </x-layouts.app>

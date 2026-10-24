@@ -21,7 +21,7 @@
         Skip to the form
     </a>
 
-    <div class="absolute inset-x-0 top-0 h-52 bg-brand-800 sm:h-64" aria-hidden="true"></div>
+    <div class="absolute inset-x-0 top-0 h-44 bg-brand-800 sm:h-48" aria-hidden="true"></div>
 
     <div class="relative mx-auto flex min-h-dvh w-full max-w-md flex-col px-4 pb-8 pt-8 sm:pt-12">
         <a href="{{ route('home') }}" class="mx-auto flex items-center gap-3 rounded-sm focus-visible:outline-focus-on-dark">

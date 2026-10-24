@@ -239,8 +239,14 @@ class SecurityHardeningTest extends TestCase
 
         $this->assertStringStartsNotWith('public', $document->file_path);
         $this->assertContains($this->get('/storage/'.$document->file_path)->status(), [403, 404]);
-        $this->actingAs($rep)->get(route('documents.download', $document))
-            ->assertOk()->assertHeader('content-disposition');
+        // A PDF opens in the browser tab, typed as recorded at upload and never sniffed.
+        $response = $this->actingAs($rep)->get(route('documents.download', $document))->assertOk()
+            ->assertHeader('content-type', 'application/pdf')->assertHeader('x-content-type-options', 'nosniff');
+        $this->assertStringStartsWith('inline', $response->headers->get('content-disposition'));
+
+        // Anything not viewable is downloaded instead.
+        $document->update(['mime_type' => 'application/octet-stream']);
+        $this->assertStringStartsWith('attachment', $this->actingAs($rep)->get(route('documents.download', $document))->headers->get('content-disposition'));
     }
 
     public function test_representative_contact_details_never_appear_publicly(): void

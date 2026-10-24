@@ -1,5 +1,26 @@
 <x-layouts.app header="Organizations"
                  subheader="Every registered CSO. Hiding an organization removes it from the public directory without touching its record.">
+    <x-slot:actions>
+        <a href="{{ route('admin.organizations.import') }}" class="btn-ghost">Import list</a>
+        <div x-data="{ open: false }" class="relative" @click.outside="open = false" @keydown.escape.stop="open = false">
+            <button type="button" class="btn-secondary" @click="open = ! open" :aria-expanded="open.toString()" aria-controls="export-menu">
+                <x-phosphor-microsoft-excel-logo class="h-4 w-4" aria-hidden="true" />Download Excel
+                <x-phosphor-caret-down class="h-4 w-4" aria-hidden="true" />
+            </button>
+            <div id="export-menu" x-show="open" x-cloak
+                 class="absolute right-0 z-sticky mt-1 w-64 rounded-md border border-line bg-paper py-1 shadow-overlay">
+                <a href="{{ route('admin.organizations.export', ['scope' => 'accredited']) }}" download class="listbox-option" @click="open = false">
+                    <x-phosphor-download-simple class="h-4 w-4 text-muted" aria-hidden="true" />Accredited CSOs
+                </a>
+                <a href="{{ route('admin.organizations.export') }}" download class="listbox-option" @click="open = false">
+                    <x-phosphor-download-simple class="h-4 w-4 text-muted" aria-hidden="true" />All registered CSOs
+                </a>
+            </div>
+        </div>
+        <a href="{{ route('admin.organizations.create') }}" class="btn-secondary"
+           @click.prevent="$dispatch('open-dialog', 'register-organization')">Register an organization</a>
+    </x-slot:actions>
+
     <form method="GET" class="mb-4 flex flex-wrap items-end gap-3">
         <div>
             <label for="q" class="field-label">Search</label>
@@ -15,6 +36,7 @@
             <label for="status" class="field-label">Activity</label>
             <select id="status" name="status" class="field-input w-56">
                 <option value="">All organizations</option>
+                <option value="expiring" @selected(request('status') === 'expiring')>Accreditation expiring (90 days)</option>
                 <option value="inactive" @selected(request('status') === 'inactive')>Inactive (6 months)</option>
                 <option value="at-risk" @selected(request('status') === 'at-risk')>At risk (analytics definition)</option>
             </select>
@@ -25,26 +47,6 @@
         @if (request()->hasAny(['q', 'account', 'status']))
             <a href="{{ route('admin.organizations.index') }}" class="btn-ghost">Clear</a>
         @endif
-        <div class="ml-auto flex flex-wrap gap-2">
-            <a href="{{ route('admin.organizations.import') }}" class="btn-ghost">Import list</a>
-            <div x-data="{ open: false }" class="relative" @click.outside="open = false" @keydown.escape.stop="open = false">
-                <button type="button" class="btn-secondary" @click="open = ! open" :aria-expanded="open.toString()" aria-controls="export-menu">
-                    <x-phosphor-microsoft-excel-logo class="h-4 w-4" aria-hidden="true" />Download Excel
-                    <x-phosphor-caret-down class="h-4 w-4" aria-hidden="true" />
-                </button>
-                <div id="export-menu" x-show="open" x-cloak
-                     class="absolute right-0 z-sticky mt-1 w-64 rounded-md border border-line bg-paper py-1 shadow-overlay">
-                    <a href="{{ route('admin.organizations.export', ['scope' => 'accredited']) }}" download class="listbox-option" @click="open = false">
-                        <x-phosphor-download-simple class="h-4 w-4 text-muted" aria-hidden="true" />Accredited CSOs
-                    </a>
-                    <a href="{{ route('admin.organizations.export') }}" download class="listbox-option" @click="open = false">
-                        <x-phosphor-download-simple class="h-4 w-4 text-muted" aria-hidden="true" />All registered CSOs
-                    </a>
-                </div>
-            </div>
-            <a href="{{ route('admin.organizations.create') }}" class="btn-secondary"
-               @click.prevent="$dispatch('open-dialog', 'register-organization')">Register an organization</a>
-        </div>
     </form>
 
     <section class="card">
@@ -111,13 +113,27 @@
                                     @endif
                                 </td>
                                 <td class="table-cell text-right">
-                                    <form method="POST" action="{{ route('admin.organizations.visibility', $organization) }}">
-                                        @csrf
-                                        @method('PATCH')
-                                        <button type="submit" class="btn-ghost px-3 py-2">
-                                            {{ $organization->public_visibility ? 'Hide' : 'List' }}
-                                        </button>
-                                    </form>
+                                    <div class="flex items-center justify-end gap-2">
+                                        @if (request('status') === 'expiring' && $accreditation)
+                                            @if ($remindedIds->contains($organization->id))
+                                                <span class="whitespace-nowrap text-xs text-muted">Reminded today</span>
+                                            @elseif ($organization->user?->email_verified_at && $organization->user->is_active)
+                                                <form method="POST" action="{{ route('admin.organizations.remind', $organization) }}">
+                                                    @csrf
+                                                    <button type="submit" class="btn-secondary btn-sm whitespace-nowrap">
+                                                        <x-phosphor-envelope-simple class="h-4 w-4" aria-hidden="true" />Send reminder
+                                                    </button>
+                                                </form>
+                                            @endif
+                                        @endif
+                                        <form method="POST" action="{{ route('admin.organizations.visibility', $organization) }}">
+                                            @csrf
+                                            @method('PATCH')
+                                            <button type="submit" class="btn-ghost px-3 py-2">
+                                                {{ $organization->public_visibility ? 'Hide' : 'List' }}
+                                            </button>
+                                        </form>
+                                    </div>
                                 </td>
                             </tr>
                         @endforeach

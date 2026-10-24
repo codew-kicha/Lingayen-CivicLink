@@ -4,7 +4,7 @@
 
     <div class="mx-auto grid max-w-7xl gap-12 px-4 py-12 sm:px-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] lg:px-8">
         <div>
-            <section>
+            <section id="news" class="scroll-mt-24">
                 <h2 class="font-serif text-xl font-bold text-brand-900">News and community updates</h2>
 
                 @if ($posts->isEmpty())
@@ -37,20 +37,26 @@
                         @endforeach
                     </ul>
 
-                    <div class="mt-8">{{ $posts->links() }}</div>
+                    <div class="mt-6">{{ $posts->links('pagination.public') }}</div>
                 @endif
             </section>
 
             <section class="mt-12">
                 <h2 class="font-serif text-xl font-bold text-brand-900">Frequently asked questions</h2>
-                <dl class="mt-6 divide-y divide-line border-y border-line">
+                {{-- Each question opens its answer (native <details>: keyboard and screen-reader friendly, no script). --}}
+                <div class="mt-6 divide-y divide-line border-y border-line">
                     @foreach ($faqs as $faq)
-                        <div class="py-4">
-                            <dt class="font-semibold text-ink">{{ $faq['question'] }}</dt>
-                            <dd class="mt-2 max-w-[68ch] text-sm text-muted">{{ $faq['answer'] }}</dd>
-                        </div>
+                        <details class="group">
+                            <summary class="flex cursor-pointer list-none items-center gap-4 py-4 font-semibold text-ink
+                                            transition-colors duration-fast hover:text-brand-700 focus-visible:outline-focus
+                                            [&::-webkit-details-marker]:hidden">
+                                <span class="flex-1">{{ $faq['question'] }}</span>
+                                <x-phosphor-caret-down class="h-5 w-5 shrink-0 text-brand-700 transition-transform duration-base group-open:rotate-180" aria-hidden="true" />
+                            </summary>
+                            <p class="max-w-[68ch] pb-4 pr-8 text-sm leading-relaxed text-muted">{{ $faq['answer'] }}</p>
+                        </details>
                     @endforeach
-                </dl>
+                </div>
             </section>
         </div>
 

@@ -1,56 +1,52 @@
-{{-- Application type and requirement uploads, shared by the CSO form and PESO assisted encoding.
-     Documents marked new_only (constitution and by-laws) appear only for a new application. --}}
-<div class="space-y-6" x-data="{ type: @js(old('type', $hasActiveAccreditation ? 'renewal' : 'new')) }">
-<section class="panel p-6">
-    <h2 class="font-semibold text-ink">Application type</h2>
-
-    <fieldset class="mt-4">
-        <legend class="sr-only">Application type</legend>
-        <div class="space-y-2">
+{{-- Application type and requirement uploads, shared by the CSO form and the admin "File an application"
+     dialog. No card of its own, so it sits in either. Documents marked new_only (constitution and
+     by-laws) appear only for a new application. --}}
+<div x-data="{ type: @js(old('type', $hasActiveAccreditation ? 'renewal' : 'new')) }">
+    <fieldset>
+        <legend class="field-label">Application type</legend>
+        <div class="grid gap-3 sm:grid-cols-2">
             @foreach ([
-                'new' => 'New accreditation, this organization has not been accredited before',
-                'renewal' => 'Renewal of an existing accreditation',
-            ] as $value => $label)
-                <label class="flex items-start gap-3 rounded-sm border border-line-strong p-3
-                              hover:border-primary/40 has-[:checked]:border-primary has-[:checked]:bg-primary-subtle">
+                'new' => ['New', 'Not accredited before'],
+                'renewal' => ['Renewal', 'Renewing an existing accreditation'],
+            ] as $value => [$title, $description])
+                <label class="flex cursor-pointer items-start gap-3 rounded-md border border-line-strong p-4
+                              transition-colors duration-fast hover:border-primary/40
+                              has-[:checked]:border-primary has-[:checked]:bg-primary-subtle">
                     <input type="radio" name="type" value="{{ $value }}" class="mt-1" x-model="type"
                            @checked(old('type', $hasActiveAccreditation ? 'renewal' : 'new') === $value) required>
-                    <span class="text-sm text-ink">{{ $label }}</span>
+                    <span>
+                        <span class="block text-sm font-semibold text-ink">{{ $title }}</span>
+                        <span class="block text-sm text-muted">{{ $description }}</span>
+                    </span>
                 </label>
             @endforeach
         </div>
         @error('type')<p class="field-error">{{ $message }}</p>@enderror
     </fieldset>
-</section>
 
-<section class="panel p-6">
-    <h2 class="font-semibold text-ink">Requirements</h2>
-    <p class="mt-1 text-sm text-muted">
-        Upload each required document. Add an expiry date where the document carries one, so
-        PESO can track when it needs replacing. Each file is read in your browser as you choose it, to
-        catch a document attached in the wrong slot.
-    </p>
+    <h3 class="mt-6 text-sm font-semibold text-ink">Requirements</h3>
+    <p class="mt-1 text-sm text-muted">PDF, JPG or PNG, up to 5 MB each. Add an expiry date if the document shows one.</p>
 
-    <div class="mt-6 space-y-6">
+    <div class="mt-2 divide-y divide-line border-t border-line">
         @foreach ($documentTypes as $key => $type)
-            <div class="grid gap-3 border-t border-line pt-6 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]"
+            <div class="grid gap-3 py-4 sm:grid-cols-[minmax(0,1fr)_11rem]"
                  @if (! empty($type['new_only'])) x-show="type === 'new'" @endif>
-                <div x-data="documentPrecheck(@js($type['keywords'] ?? []), {{ $type['min_matches'] ?? 1 }})">
+                <div x-data="documentPrecheck(@js($type['keywords'] ?? []), {{ $type['min_matches'] ?? 1 }})" class="min-w-0">
                     <label for="doc-{{ $key }}" class="field-label">
                         {{ $type['label'] }}
                         @if ($type['optional'])
-                            <span class="font-normal text-muted">(optional, only if you have one)</span>
+                            <span class="font-normal text-muted">(optional)</span>
                         @endif
                     </label>
                     <input type="file" id="doc-{{ $key }}" name="documents[{{ $key }}]"
                            accept=".pdf,.jpg,.jpeg,.png" @change="check($event)"
-                           aria-describedby="doc-{{ $key }}-check @error("documents.{$key}") doc-{{ $key }}-error @enderror"
-                           class="field-input @error("documents.{$key}") field-input-error @enderror"
+                           aria-describedby="doc-{{ $key }}-hint doc-{{ $key }}-check @error("documents.{$key}") doc-{{ $key }}-error @enderror"
+                           class="field-file @error("documents.{$key}") field-input-error @enderror"
                            @error("documents.{$key}") aria-invalid="true" @enderror
                            @if (! empty($type['new_only'])) :disabled="type !== 'new'" @endif
                            @required(! $type['optional'])>
                     <input type="hidden" name="ocr_text[{{ $key }}]" :value="text">
-                    <p class="field-hint">{{ config("office.requirement_notes.{$key}") }}</p>
+                    <p id="doc-{{ $key }}-hint" class="field-hint">{{ config("office.requirement_notes.{$key}") }}</p>
 
                     {{-- Advisory only: never blocks submitting. PESO sees the server's own verdict. --}}
                     <p id="doc-{{ $key }}-check" aria-live="polite" x-cloak x-show="state !== 'idle'"
@@ -78,7 +74,7 @@
                 </div>
                 <div>
                     <label for="exp-{{ $key }}" class="field-label">
-                        Expiry date <span class="font-normal text-muted">(optional)</span>
+                        Expires <span class="font-normal text-muted">(optional)</span>
                     </label>
                     <input type="date" id="exp-{{ $key }}" name="expires_at[{{ $key }}]"
                            value="{{ old("expires_at.{$key}") }}"
@@ -88,5 +84,4 @@
             </div>
         @endforeach
     </div>
-</section>
 </div>
