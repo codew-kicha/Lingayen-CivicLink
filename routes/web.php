@@ -42,12 +42,15 @@ Route::middleware('auth')->group(function () {
     // Private uploads are never served from a guessable path; the policy check lives here.
     Route::get('/documents/{document}/download', [DocumentController::class, 'download'])
         ->name('documents.download');
+    Route::get('/activities/{activity}/evidence', [DocumentController::class, 'evidence'])
+        ->name('activities.evidence');
 });
 
 Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/dashboard', Admin\DashboardController::class)->name('dashboard');
 
     Route::get('/applications', [Admin\ApplicationReviewController::class, 'index'])->name('applications.index');
+    Route::get('/applications/export', [Admin\ApplicationReviewController::class, 'export'])->name('applications.export');
     Route::get('/applications/{application}', [Admin\ApplicationReviewController::class, 'show'])->name('applications.show');
     Route::patch('/applications/{application}/stage', [Admin\ApplicationReviewController::class, 'updateStage'])->name('applications.stage');
     Route::post('/applications/{application}/approve', [Admin\ApplicationReviewController::class, 'approve'])->name('applications.approve');
@@ -59,6 +62,7 @@ Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->name('ad
 
     Route::get('/organizations', [Admin\OrganizationModerationController::class, 'index'])->name('organizations.index');
     Route::get('/organizations/create', [Admin\OrganizationModerationController::class, 'create'])->name('organizations.create');
+    Route::get('/organizations/export', [Admin\OrganizationModerationController::class, 'export'])->name('organizations.export');
     Route::get('/organizations/import', [Admin\OrganizationImportController::class, 'create'])->name('organizations.import');
     Route::post('/organizations/import', [Admin\OrganizationImportController::class, 'store'])->name('organizations.import.store');
     Route::get('/organizations/import/template', [Admin\OrganizationImportController::class, 'template'])->name('organizations.import.template');
@@ -68,6 +72,9 @@ Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->name('ad
     Route::get('/organizations/{organization}/members.pdf', [Admin\OrganizationModerationController::class, 'members'])->name('organizations.members');
     Route::post('/organizations/{organization}/account',[Admin\OrganizationModerationController::class, 'attachAccount'])->name('organizations.account');
     Route::patch('/organizations/{organization}/visibility', [Admin\OrganizationModerationController::class, 'toggleVisibility'])->name('organizations.visibility');
+    // Both re-check the admin's password inside the dialog (ConfirmedOrganizationRequest).
+    Route::delete('/organizations/{organization}', [Admin\OrganizationModerationController::class, 'destroy'])->name('organizations.destroy');
+    Route::post('/organizations/{organization}/merge', [Admin\OrganizationModerationController::class, 'merge'])->name('organizations.merge');
 
     // Assisted encoding: PESO files paper submissions on an organization's behalf.
     Route::get('/organizations/{organization}/applications/create', [Admin\AssistedEncodingController::class, 'createApplication'])->name('organizations.applications.create');
@@ -78,7 +85,10 @@ Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->name('ad
     Route::get('/accounts', [Admin\AccountController::class, 'index'])->name('accounts.index');
     Route::post('/accounts/{user}/invitation', [Admin\AccountController::class, 'resendInvitation'])->name('accounts.invitation');
     Route::patch('/accounts/{user}/reactivate', [Admin\AccountController::class, 'reactivate'])->name('accounts.reactivate');
+    // Re-checks the admin's own password inside the form (UpdateCredentialsRequest), so it works from a dialog.
+    Route::patch('/accounts/{user}', [Admin\AccountController::class, 'update'])->name('accounts.update');
     Route::get('/audit-log', [Admin\AuditLogController::class, 'index'])->name('audit.index');
+    Route::get('/system-check', Admin\SystemCheckController::class)->name('system-check');
 
     // Actions that grant access or remove it: the admin re-enters their password first.
     Route::middleware('password.confirm')->group(function () {
@@ -119,6 +129,9 @@ Route::middleware(['auth', 'verified', 'role:cso_rep'])->prefix('cso')->name('cs
 
     Route::get('/activities', [Cso\ActivityController::class, 'index'])->name('activities.index');
     Route::post('/activities', [Cso\ActivityController::class, 'store'])->name('activities.store');
+    Route::get('/activities/{activity}/edit', [Cso\ActivityController::class, 'edit'])->name('activities.edit');
+    Route::put('/activities/{activity}', [Cso\ActivityController::class, 'update'])->name('activities.update');
+    Route::delete('/activities/{activity}', [Cso\ActivityController::class, 'destroy'])->name('activities.destroy');
 });
 
 require __DIR__.'/auth.php';

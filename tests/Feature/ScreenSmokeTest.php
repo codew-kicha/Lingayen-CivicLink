@@ -51,7 +51,7 @@ class ScreenSmokeTest extends TestCase
             'admin.scorecards.index',
             'admin.analytics',
             'admin.accounts.index',
-            'admin.organizations.create',
+            'admin.news.index',
             'admin.audit.index',
             'profile.edit',
         ] as $route) {
@@ -84,12 +84,12 @@ class ScreenSmokeTest extends TestCase
         }
 
         $invited = User::factory()->unverified()->create();
-        $this->get(\Illuminate\Support\Facades\URL::temporarySignedRoute('invitation.show', now()->addHour(), ['user' => $invited]))
+        $this->get(\Illuminate\Support\Facades\URL::temporarySignedRoute('invitation.show', now()->addHour(), ['user' => $invited, 'for' => \App\Notifications\AccountInvitation::fingerprint($invited)]))
             ->assertOk()->assertSee('Set your password');
 
         $used = User::factory()->create();
         $this->get(\Illuminate\Support\Facades\URL::temporarySignedRoute('invitation.show', now()->addHour(), ['user' => $used]))
-            ->assertOk()->assertSee('already been used');
+            ->assertOk()->assertSee('This link no longer works');
     }
 
     public function test_the_analytics_pdf_export_produces_a_pdf(): void

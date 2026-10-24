@@ -11,7 +11,7 @@
                 <h2 class="font-semibold text-ink">Log an activity</h2>
                 <p class="mt-1 text-sm text-muted">All fields required unless marked optional.</p>
 
-                <form method="POST" action="{{ route('cso.activities.store') }}" class="mt-6 space-y-6">
+                <form method="POST" action="{{ route('cso.activities.store') }}" enctype="multipart/form-data" class="mt-6 space-y-6">
                     @csrf
 
                     @include('activities.fields')
@@ -34,7 +34,6 @@
                                 <option value="rejected" @selected(request('status') === 'rejected')>Rejected</option>
                             </select>
                         </div>
-                        <x-keep-query />
                         <button type="submit" class="btn-secondary btn-sm">Filter</button>
                     </form>
                 </div>
@@ -84,11 +83,35 @@
                                         {{ $activity->rejection_reason }}
                                     </p>
                                 @endif
+
+                                @if ($activity->evidence_path)
+                                    <p class="mt-2 text-sm text-muted">
+                                        <x-phosphor-paperclip class="-mt-1 mr-1 inline h-4 w-4" aria-hidden="true" />Sign-in sheet:
+                                        <a href="{{ route('activities.evidence', $activity) }}" target="_blank" rel="noopener" class="entity-link">{{ $activity->evidence_filename }}</a>
+                                    </p>
+                                @endif
+
+                                @can('update', $activity)
+                                    <div class="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-line pt-4">
+                                        @unless ($activity->evidence_path)
+                                            <p class="min-w-48 flex-1 text-sm text-warning">No sign-in sheet yet. Adding one helps PESO verify it.</p>
+                                        @endunless
+                                        <div class="ml-auto flex gap-2">
+                                            <a href="{{ route('cso.activities.edit', $activity) }}" class="btn-secondary btn-sm">
+                                                <x-phosphor-pencil-simple class="h-4 w-4" aria-hidden="true" />{{ $activity->evidence_path ? 'Edit' : 'Edit or add sign-in sheet' }}
+                                            </a>
+                                            <button type="button" class="btn-danger btn-sm"
+                                                    @click="$dispatch('withdraw-activity', @js(['title' => $activity->title, 'url' => route('cso.activities.destroy', $activity)]))">
+                                                Withdraw
+                                            </button>
+                                        </div>
+                                    </div>
+                                @endcan
                             </article>
                         @endforeach
                     </div>
 
-                    <x-pagination :paginator="$activities" :default="10" target="history" />
+                    <x-pagination :paginator="$activities" target="history" class="card mt-4" />
                 @endif
 
                 @if ($taggedIn->isNotEmpty())
@@ -108,5 +131,6 @@
                 @endif
             </section>
         </div>
+        @include('cso.activities.withdraw-dialog')
     @endif
 </x-layouts.app>

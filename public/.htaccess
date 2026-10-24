@@ -1,3 +1,11 @@
+# The project root's .htaccess refuses everything; this folder is the one that is public.
+Require all granted
+
+# Hidden files (.env, .git, .htaccess copies) are never served from here either.
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>
+
 <IfModule mod_rewrite.c>
     <IfModule mod_negotiation.c>
         Options -MultiViews -Indexes

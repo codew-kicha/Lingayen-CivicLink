@@ -15,6 +15,9 @@ return Application::configure(basePath: dirname(__DIR__))
             'role' => \App\Http\Middleware\EnsureRole::class,
         ]);
 
+        // Passwords are never trimmed: a space at either end is part of the password.
+        $middleware->trimStrings(except: ['admin_password', 'new_password']);
+
         $middleware->web(append: [
             \App\Http\Middleware\EnsureAccountActive::class,
             \App\Http\Middleware\SecurityHeaders::class,

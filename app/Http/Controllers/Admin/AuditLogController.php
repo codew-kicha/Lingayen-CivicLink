@@ -12,9 +12,6 @@ use Illuminate\View\View;
 
 class AuditLogController extends Controller
 {
-    /** The largest list: every sign-in is a row. */
-    private const PER_PAGE = 50;
-
     public function index(Request $request): View
     {
         $this->authorize('viewAny', User::class);
@@ -28,7 +25,7 @@ class AuditLogController extends Controller
                 ->when($request->input('organization'), fn ($q, $organization) => $q->where('subject_type', 'Organization')->where('subject_id', $organization))
                 ->latest('created_at')
                 ->latest('id'),
-                $request, self::PER_PAGE),
+                $request),
             'organization' => $request->filled('organization') ? Organization::find($request->input('organization')) : null,
             'actions' => ['login', 'account', 'organization', 'accreditation', 'password'],
         ]);

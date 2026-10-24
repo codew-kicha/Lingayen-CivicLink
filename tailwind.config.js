@@ -69,6 +69,7 @@ export default {
                 },
                 ink: token('text'),             // --color-text
                 muted: token('text-muted'),     // --color-text-muted
+                placeholder: token('placeholder'),
                 info: { DEFAULT: token('info'), subtle: token('info-subtle') },
                 success: { DEFAULT: token('success'), subtle: token('success-subtle') },
                 warning: { DEFAULT: token('warning'), subtle: token('warning-subtle') },

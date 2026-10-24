@@ -1,0 +1,16 @@
+# Only public/ is meant to be reached over the web. This file covers any Apache that serves the
+# project folder itself: XAMPP's htdocs, or a shared host where the whole project is uploaded into
+# the web root (htdocs / public_html).
+#
+# Every request is sent into public/, so .env, storage/logs, vendor, .git and composer files can't
+# be fetched: they either don't exist under public/ (Laravel answers 404) or are hidden files that
+# public/.htaccess refuses.
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^(?!public/)(.*)$ public/$1 [L]
+</IfModule>
+
+# Without mod_rewrite nothing here is served at all.
+<IfModule !mod_rewrite.c>
+    Require all denied
+</IfModule>

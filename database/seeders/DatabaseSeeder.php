@@ -30,6 +30,12 @@ class DatabaseSeeder extends Seeder
 
     public function run(): void
     {
+        // The demo password and admin email are in a public repository: seeding a live site would
+        // hand anyone an admin login. Create the real admin with `php artisan app:create-admin`.
+        if (app()->isProduction()) {
+            throw new \RuntimeException('Refusing to seed demo accounts in production. Use `php artisan app:create-admin` for the real administrator.');
+        }
+
         $admin = User::factory()->admin()->create([
             'name' => 'PESO Administrator',
             'email' => 'admin@lingayen.gov.ph',

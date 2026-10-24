@@ -24,7 +24,6 @@
                     <option value="deactivated" @selected(request('status') === 'deactivated')>Deactivated</option>
                 </select>
             </div>
-            <x-keep-query />
             <button type="submit" class="btn-primary">Filter</button>
             @if (request()->hasAny(['q', 'role', 'status']))
                 <a href="{{ route('admin.accounts.index') }}" class="btn-ghost">Clear</a>
@@ -32,7 +31,8 @@
         </form>
 
         <div class="ml-auto flex gap-2">
-            <a href="{{ route('admin.organizations.create') }}" class="btn-secondary">Register organization</a>
+            <a href="{{ route('admin.organizations.create') }}" class="btn-secondary"
+               @click.prevent="$dispatch('open-dialog', 'register-organization')">Register an organization</a>
             <a href="{{ route('admin.accounts.create') }}" class="btn-primary">Add PESO admin</a>
         </div>
     </div>
@@ -88,6 +88,13 @@
                                     <div class="flex flex-wrap justify-end gap-1">
                                         <a href="{{ route('admin.audit.index', ['account' => $account->id]) }}" class="btn-ghost px-3 py-2">History</a>
 
+                                        @can('manageCredentials', $account)
+                                            <button type="button" class="btn-ghost px-3 py-2"
+                                                    @click="$dispatch('edit-login', @js(['id' => $account->id, 'name' => $account->name, 'email' => $account->email, 'phone' => $account->phone, 'organization' => $account->organization?->name, 'url' => route('admin.accounts.update', $account)]))">
+                                                <x-phosphor-key class="h-4 w-4" aria-hidden="true" />Edit login
+                                            </button>
+                                        @endcan
+
                                         @can('invite', $account)
                                             <form method="POST" action="{{ route('admin.accounts.invitation', $account) }}">
                                                 @csrf
@@ -125,11 +132,13 @@
                 </table>
             </div>
         @endif
+        <x-pagination :paginator="$accounts" />
     </section>
 
     @error('reason')
         <p class="field-error mt-3">{{ $message }}</p>
     @enderror
 
-    <x-pagination :paginator="$accounts" :default="25" />
+    @include('admin.accounts.edit-login-dialog')
+    @include('admin.organizations.register-dialog')
 </x-layouts.app>

@@ -20,14 +20,30 @@
             </select>
         </div>
         {{-- The analytics period (from/to) rides along when arriving from the at-risk list. --}}
-        <x-keep-query :only="['from', 'to', 'per_page']" />
+        <x-keep-query :only="['from', 'to']" />
         <button type="submit" class="btn-primary">Search</button>
         @if (request()->hasAny(['q', 'account', 'status']))
             <a href="{{ route('admin.organizations.index') }}" class="btn-ghost">Clear</a>
         @endif
         <div class="ml-auto flex flex-wrap gap-2">
             <a href="{{ route('admin.organizations.import') }}" class="btn-ghost">Import list</a>
-            <a href="{{ route('admin.organizations.create') }}" class="btn-secondary">Register organization</a>
+            <div x-data="{ open: false }" class="relative" @click.outside="open = false" @keydown.escape.stop="open = false">
+                <button type="button" class="btn-secondary" @click="open = ! open" :aria-expanded="open.toString()" aria-controls="export-menu">
+                    <x-phosphor-microsoft-excel-logo class="h-4 w-4" aria-hidden="true" />Download Excel
+                    <x-phosphor-caret-down class="h-4 w-4" aria-hidden="true" />
+                </button>
+                <div id="export-menu" x-show="open" x-cloak
+                     class="absolute right-0 z-sticky mt-1 w-64 rounded-md border border-line bg-paper py-1 shadow-overlay">
+                    <a href="{{ route('admin.organizations.export', ['scope' => 'accredited']) }}" download class="listbox-option" @click="open = false">
+                        <x-phosphor-download-simple class="h-4 w-4 text-muted" aria-hidden="true" />Accredited CSOs
+                    </a>
+                    <a href="{{ route('admin.organizations.export') }}" download class="listbox-option" @click="open = false">
+                        <x-phosphor-download-simple class="h-4 w-4 text-muted" aria-hidden="true" />All registered CSOs
+                    </a>
+                </div>
+            </div>
+            <a href="{{ route('admin.organizations.create') }}" class="btn-secondary"
+               @click.prevent="$dispatch('open-dialog', 'register-organization')">Register an organization</a>
         </div>
     </form>
 
@@ -109,7 +125,8 @@
                 </table>
             </div>
         @endif
+        <x-pagination :paginator="$organizations" />
     </section>
 
-    <x-pagination :paginator="$organizations" :default="25" />
+    @include('admin.organizations.register-dialog')
 </x-layouts.app>

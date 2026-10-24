@@ -21,7 +21,7 @@
             <img src="{{ asset('images/stock/floating-market.jpg') }}" alt="" width="1600" height="1000" class="hidden lg:block">
             <a href="{{ route('home') }}" class="relative z-10 flex items-center gap-3 self-start rounded-sm focus-visible:outline-accent-400">
                 <x-civic-mark class="h-11 w-11" />
-                <span class="font-serif text-lg font-bold">Lingayen CivicLink</span>
+                <span class="font-serif text-lg font-bold">CSO Desk Office</span>
             </a>
 
             <div class="relative z-10 hidden flex-1 flex-col justify-center py-12 lg:flex">

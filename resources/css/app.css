@@ -62,9 +62,10 @@
         @apply btn text-primary hover:bg-primary-subtle disabled:text-muted;
     }
 
+    /* Destructive actions are red-outlined, never filled: the one filled button is the primary action. */
     .btn-danger {
-        @apply btn bg-danger text-on-primary hover:brightness-90 active:brightness-75
-               disabled:bg-danger-subtle disabled:text-muted;
+        @apply btn border border-danger bg-paper text-danger hover:bg-danger-subtle active:bg-danger-subtle
+               disabled:border-line disabled:text-muted;
     }
 
     /* Compact row action: same height rules, less horizontal padding. */
@@ -87,11 +88,17 @@
     }
 
     .field-input {
-        @apply w-full rounded-sm border border-line-strong bg-paper px-3 py-2 text-base
+        @apply min-h-11 w-full rounded-sm border border-line-strong bg-paper px-3 py-2 text-base
                text-ink transition-colors duration-fast ease-out-strong
-               placeholder:text-muted hover:border-primary/60
+               placeholder:text-placeholder hover:border-primary/60
                focus:border-primary focus:ring-0
                disabled:cursor-not-allowed disabled:bg-canvas disabled:text-muted;
+    }
+
+    /* Required fields: a red asterisk after the label text, explained by a "* Required" legend. */
+    .field-required::after {
+        content: ' *';
+        @apply text-danger;
     }
 
     .field-input-error {
@@ -175,6 +182,161 @@
 
     .table-row {
         @apply transition-colors duration-fast ease-out-strong hover:bg-primary-subtle;
+    }
+
+    /*
+     * List tables (Applications, Verify activities, News posts). The table scrolls inside its own box:
+     * the header row sticks to the top of the box and the first column to its left edge. At lg the box
+     * is capped to the window, so the page stays short and the pagination bar stays in view.
+     * isolate: the sticky cells' z-index stays inside the box, under the mobile top bar and dialogs.
+     */
+    .table-scroll {
+        @apply relative isolate w-full overflow-auto lg:max-h-[calc(100dvh-17rem)];
+    }
+
+    .table-scroll .table-head {
+        @apply sticky top-0 z-dropdown bg-paper;
+    }
+
+    .table-scroll :is(th, td):first-child {
+        @apply sticky left-0 bg-paper;
+    }
+
+    .table-scroll thead th:first-child {
+        @apply z-sticky;
+    }
+
+    /* A row that opens something: pointer, hover tint (on the cells, so the sticky column tints too),
+       a focus ring, and arrow-key/Enter support from the tableNav script. */
+    .table-row-link {
+        @apply cursor-pointer outline-none;
+    }
+
+    .table-row-link > td {
+        @apply transition-colors duration-fast ease-out-strong;
+    }
+
+    .table-row-link:hover > td,
+    .table-row-link:focus-visible > td {
+        @apply bg-primary-subtle;
+    }
+
+    /* The focus ring is drawn on the cells (an outline on the row would sit under the sticky first cell). */
+    .table-row-link:focus-visible > td {
+        box-shadow: inset 0 2px 0 rgb(var(--color-focus)), inset 0 -2px 0 rgb(var(--color-focus));
+    }
+
+    .table-row-link:focus-visible > td:first-child {
+        box-shadow: inset 2px 0 0 rgb(var(--color-focus)), inset 0 2px 0 rgb(var(--color-focus)), inset 0 -2px 0 rgb(var(--color-focus));
+    }
+
+    .table-row-link:focus-visible > td:last-child {
+        box-shadow: inset -2px 0 0 rgb(var(--color-focus)), inset 0 2px 0 rgb(var(--color-focus)), inset 0 -2px 0 rgb(var(--color-focus));
+    }
+
+    /* The column a list is sorted by. */
+    .table-head-sorted {
+        @apply text-ink;
+    }
+
+    /* Bottom bar of a table card: counts and page links, pinned while the table is taller than the window. */
+    .pagination-bar {
+        @apply sticky bottom-0 z-sticky flex flex-wrap items-center gap-x-6 gap-y-3 rounded-b-lg border-t border-line
+               bg-paper px-4 py-3 text-sm;
+    }
+
+    /* Filter bar above a list: a search box and one-click filter chips. */
+    .filter-chip {
+        @apply inline-flex min-h-9 items-center gap-tight whitespace-nowrap rounded-full border border-line-strong bg-paper px-3
+               text-sm text-ink transition-colors duration-fast ease-out-strong
+               hover:border-primary/60 hover:bg-primary-subtle max-lg:min-h-11 touch:min-h-11;
+    }
+
+    .filter-chip[aria-current="page"] {
+        @apply border-primary bg-primary-subtle font-semibold text-primary;
+    }
+
+    .search-input {
+        @apply field-input pl-12;
+    }
+
+    /*
+     * Dialogs (<x-dialog>). Centred in the content area to the right of the sidebar, while
+     * the overlay covers the whole window. Header and footer are pinned; only the body scrolls. At most
+     * 80% of the window tall; full screen below sm.
+     */
+    .dialog-root {
+        @apply fixed inset-0 z-dialog flex items-center justify-center sm:p-6;
+    }
+
+    /* Beside the sidebar: the sidebar's width plus the usual gutter on the left, so the dialog's centre
+       is the content area's centre. */
+    @media (min-width: theme('screens.lg')) {
+        .dialog-root {
+            padding-left: calc(theme('width.64') + theme('padding.6'));
+        }
+    }
+
+    .dialog-overlay {
+        @apply fixed inset-0 bg-ink/50;
+    }
+
+    .dialog-panel {
+        @apply relative flex h-dvh w-full flex-col bg-paper shadow-overlay
+               sm:h-auto sm:max-h-[80vh] sm:rounded-lg;
+    }
+
+    .dialog-header {
+        @apply flex shrink-0 items-start gap-4 border-b border-line px-6 py-4;
+    }
+
+    /* Square 44px icon button (dialog close, previous/next). */
+    .icon-btn {
+        @apply inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-muted
+               transition-colors duration-fast ease-out-strong hover:bg-primary-subtle hover:text-ink
+               disabled:pointer-events-none disabled:opacity-40;
+    }
+
+    .dialog-close {
+        @apply icon-btn -mr-2 ml-auto;
+    }
+
+    .dialog-body {
+        @apply min-h-0 flex-1 overflow-y-auto px-6 py-6;
+    }
+
+    .dialog-footer {
+        @apply flex shrink-0 flex-wrap items-center justify-end gap-3 border-t border-line px-6 py-4;
+    }
+
+    .dialog-footer :is(.btn-primary, .btn-secondary, .btn-danger, .btn-ghost) {
+        @apply min-h-11;
+    }
+
+    /* Combobox and tag-picker option lists. */
+    .listbox {
+        @apply absolute inset-x-0 top-full z-dropdown mt-1 max-h-60 overflow-y-auto rounded-md border border-line bg-paper
+               py-1 shadow-overlay;
+    }
+
+    .listbox-option {
+        @apply flex min-h-11 cursor-pointer items-center gap-2 px-3 text-sm text-ink;
+    }
+
+    .listbox-option[aria-selected="true"],
+    .listbox-option[data-active] {
+        @apply bg-primary-subtle;
+    }
+
+    /* Toast: bottom right, above everything, with an optional Undo. */
+    .toast {
+        @apply fixed bottom-6 right-6 z-toast flex max-w-[calc(100vw-3rem)] items-center gap-4 rounded-md bg-ink px-4 py-3
+               text-sm text-paper shadow-overlay max-sm:inset-x-4 max-sm:bottom-4 max-sm:right-auto;
+    }
+
+    .toast-action {
+        @apply -my-2 inline-flex min-h-11 items-center rounded-sm px-2 font-semibold text-accent underline underline-offset-2
+               hover:text-accent-400 focus-visible:outline-accent-400;
     }
 
     /*

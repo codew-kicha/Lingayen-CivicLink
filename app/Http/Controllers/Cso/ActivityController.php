@@ -25,7 +25,7 @@ class ActivityController extends Controller
                 ->with(['verifiedBy', 'partnerOrganizations:id,name'])
                 ->when(in_array($request->input('status'), ['pending', 'verified', 'rejected'], true), fn ($q) => $q->where('status', $request->input('status')))
                 ->latest('activity_date'),
-                $request, 10) : collect(),
+                $request) : collect(),
             'partnerOptions' => $organization ? Organization::partnerOptions($organization) : [],
             // Activities other organizations logged that credit this one as a partner.
             'taggedIn' => $organization
@@ -45,5 +45,32 @@ class ActivityController extends Controller
         return redirect()
             ->route('cso.activities.index')
             ->with('status', 'Activity logged. It will count toward your score once PESO verifies it.');
+    }
+
+    // Editable (and withdrawable) only while pending: once PESO has decided, the record stands.
+    public function edit(Activity $activity): View
+    {
+        $this->authorize('update', $activity);
+
+        return view('cso.activities.edit', [
+            'activity' => $activity->load('partnerOrganizations:id'),
+            'partnerOptions' => Organization::partnerOptions($activity->organization),
+        ]);
+    }
+
+    public function update(StoreActivityRequest $request, Activity $activity): RedirectResponse
+    {
+        $activity->revise($request->validated());
+
+        return redirect()->route('cso.activities.index')->with('status', "“{$activity->title}” was updated.");
+    }
+
+    public function destroy(Activity $activity): RedirectResponse
+    {
+        $this->authorize('withdraw', $activity);
+
+        $activity->withdraw();
+
+        return redirect()->route('cso.activities.index')->with('status', "“{$activity->title}” was withdrawn.");
     }
 }

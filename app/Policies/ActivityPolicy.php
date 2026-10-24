@@ -27,6 +27,12 @@ class ActivityPolicy
         return $activity->organization->user_id === $user->id && $activity->status === 'pending';
     }
 
+    // A representative can take back an activity until PESO has reviewed it.
+    public function withdraw(User $user, Activity $activity): bool
+    {
+        return $this->update($user, $activity);
+    }
+
     public function verify(User $user, Activity $activity): bool
     {
         return $user->isAdmin();

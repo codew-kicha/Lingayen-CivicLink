@@ -21,12 +21,6 @@ class RejectActivityRequest extends FormRequest
         ];
     }
 
-    /** Back to the activity that failed, not the top of a long queue. */
-    protected function getRedirectUrl(): string
-    {
-        return parent::getRedirectUrl().'#activity-'.$this->route('activity')->id;
-    }
-
     public function messages(): array
     {
         return [

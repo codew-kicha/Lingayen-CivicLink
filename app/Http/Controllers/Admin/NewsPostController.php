@@ -19,21 +19,21 @@ class NewsPostController extends Controller
         $this->authorize('viewAny', NewsPost::class);
 
         return view('admin.news.index', [
-            'posts' => ListPagination::paginate(NewsPost::with('organizations')
+            'posts' => ListPagination::paginate(NewsPost::with('organizations:id,name')
                 ->when(in_array($request->input('status'), ['draft', 'published'], true), fn ($q) => $q->where('status', $request->input('status')))
+                ->when($request->string('q')->trim()->value(), fn ($q, $term) => $q->where('title', 'like', "%{$term}%"))
                 ->latest('id'),
-                $request, 10),
+                $request),
+            'organizations' => $this->organizations(),
         ]);
     }
 
-    public function create(): View
+    // Posts are written and edited in the "Write a post" dialog on the list; these addresses open it.
+    public function create(): RedirectResponse
     {
         $this->authorize('create', NewsPost::class);
 
-        return view('admin.news.form', [
-            'post' => new NewsPost(['status' => 'draft']),
-            'organizations' => $this->organizations(),
-        ]);
+        return redirect()->route('admin.news.index', ['write' => 1]);
     }
 
     public function store(StoreNewsPostRequest $request): RedirectResponse
@@ -52,14 +52,11 @@ class NewsPostController extends Controller
             ->with('status', $post->status === 'published' ? 'Post published.' : 'Draft saved.');
     }
 
-    public function edit(NewsPost $newsPost): View
+    public function edit(NewsPost $newsPost): RedirectResponse
     {
         $this->authorize('update', $newsPost);
 
-        return view('admin.news.form', [
-            'post' => $newsPost,
-            'organizations' => $this->organizations(),
-        ]);
+        return redirect()->route('admin.news.index', ['edit' => $newsPost->id]);
     }
 
     public function update(StoreNewsPostRequest $request, NewsPost $newsPost): RedirectResponse
@@ -88,9 +85,10 @@ class NewsPostController extends Controller
         return redirect()->route('admin.news.index')->with('status', 'Post deleted.');
     }
 
-    private function organizations()
+    /** Choices for the Featured organizations picker. */
+    private function organizations(): array
     {
-        return Organization::orderBy('name')->get(['id', 'name']);
+        return Organization::orderBy('name')->get(['id', 'name'])->toArray();
     }
 
     private function uniqueSlug(string $title): string

@@ -20,7 +20,7 @@ class ScorecardController extends Controller
             'organizations' => ListPagination::paginate(Organization::with(['performanceScores' => fn ($q) => $q->latest('computed_at')->limit(1)])
                 ->when($request->string('q')->trim()->value(), fn ($q, $term) => $q->where('name', 'like', "%{$term}%"))
                 ->orderBy('name'),
-                $request, 25),
+                $request),
         ]);
     }
 

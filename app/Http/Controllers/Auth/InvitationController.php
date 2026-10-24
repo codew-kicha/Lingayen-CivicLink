@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Models\User;
+use App\Notifications\AccountInvitation;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -12,17 +13,18 @@ use Illuminate\Validation\Rules\Password;
 use Illuminate\View\View;
 
 // Accepting an admin-sent invitation. The link is signed and expires (route middleware); it also
-// stops working as soon as the account is verified, so a used or forwarded link can't be replayed.
+// stops working as soon as the account is verified, or its email or password changes, so a used,
+// forwarded or mis-addressed link can't be replayed.
 class InvitationController extends Controller
 {
-    public function show(User $user): View
+    public function show(Request $request, User $user): View
     {
-        return view('auth.invitation', ['user' => $user, 'usable' => $this->usable($user)]);
+        return view('auth.invitation', ['user' => $user, 'usable' => $this->usable($user, $request)]);
     }
 
     public function store(Request $request, User $user): RedirectResponse
     {
-        abort_unless($this->usable($user), 410);
+        abort_unless($this->usable($user, $request), 410);
 
         $request->validate(['password' => ['required', 'confirmed', Password::defaults()]]);
 
@@ -39,8 +41,9 @@ class InvitationController extends Controller
         return redirect()->route('dashboard');
     }
 
-    private function usable(User $user): bool
+    private function usable(User $user, Request $request): bool
     {
-        return $user->is_active && $user->email_verified_at === null;
+        return $user->is_active && $user->email_verified_at === null
+            && hash_equals(AccountInvitation::fingerprint($user), (string) $request->query('for'));
     }
 }

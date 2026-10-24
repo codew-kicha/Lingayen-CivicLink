@@ -12,7 +12,6 @@
             <label for="q" class="field-label">Search</label>
             <input type="search" id="q" name="q" value="{{ request('q') }}" placeholder="Organization name" class="field-input w-72">
         </div>
-        <x-keep-query />
         <button type="submit" class="btn-primary">Search</button>
         @if (request()->filled('q'))
             <a href="{{ route('admin.scorecards.index') }}" class="btn-ghost">Clear</a>
@@ -61,7 +60,6 @@
                 </table>
             </div>
         @endif
+        <x-pagination :paginator="$organizations" />
     </section>
-
-    <x-pagination :paginator="$organizations" :default="25" />
 </x-layouts.app>

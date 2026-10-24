@@ -11,7 +11,7 @@
     <header class="bg-brand-900 text-paper">
         <div class="mx-auto flex max-w-7xl items-center gap-3 px-4 py-3 sm:px-6 lg:px-8">
             <x-civic-mark class="h-10 w-10" />
-            <span class="text-base font-semibold tracking-tight">Lingayen CivicLink</span>
+            <span class="text-base font-semibold tracking-tight">CSO Desk Office</span>
         </div>
     </header>
 

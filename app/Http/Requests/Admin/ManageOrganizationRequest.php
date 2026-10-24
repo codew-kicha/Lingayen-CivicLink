@@ -6,8 +6,8 @@ use App\Models\User;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-// Admin create/edit of an organization. On create, the representative is optional: imported or
-// walk-in organizations can exist without a login and get one attached later.
+// Admin create/edit of an organization. On create, a login is optional: imported or walk-in
+// organizations can exist without one and get one attached later.
 class ManageOrganizationRequest extends FormRequest
 {
     public function authorize(): bool
@@ -33,10 +33,12 @@ class ManageOrganizationRequest extends FormRequest
         ];
 
         if ($this->isMethod('post')) {
+            // The representative's fields count only when "Create a login for the representative" is ticked.
             $rules += [
-                'rep_name' => ['nullable', 'required_with:rep_email', 'string', 'max:255'],
-                'rep_email' => ['nullable', 'required_with:rep_name', 'email', 'lowercase', 'max:255', Rule::unique(User::class, 'email')],
-                'rep_phone' => ['nullable', 'regex:/^\+639\d{9}$/'],
+                'create_login' => ['boolean'],
+                'rep_name' => ['exclude_unless:create_login,1', 'required', 'string', 'max:255'],
+                'rep_email' => ['exclude_unless:create_login,1', 'required', 'email', 'lowercase', 'max:255', Rule::unique(User::class, 'email')],
+                'rep_phone' => ['exclude_unless:create_login,1', 'nullable', 'regex:/^\+639\d{9}$/'],
             ];
         }
 

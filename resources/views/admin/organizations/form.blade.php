@@ -1,12 +1,11 @@
-@php $editing = $organization->exists; @endphp
-
-<x-layouts.app :header="$editing ? $organization->name : 'Register an organization'"
-                 :subheader="$editing ? 'Brgy. '.$organization->barangay.' · '.$organization->sector : 'For walk-in applicants and records the office already holds.'">
+{{-- The organization page. New organizations are registered in the dialog (register-dialog.blade.php). --}}
+<x-layouts.app :header="$organization->name"
+                 :subheader="'Brgy. '.$organization->barangay.' · '.$organization->sector">
     <div class="grid gap-6 xl:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
-        <form method="POST" action="{{ $editing ? route('admin.organizations.update', $organization) : route('admin.organizations.store') }}"
+        <form method="POST" action="{{ route('admin.organizations.update', $organization) }}"
               class="panel space-y-6 p-6">
             @csrf
-            @if ($editing) @method('PATCH') @endif
+            @method('PATCH')
 
             <h2 class="font-semibold text-ink">Organization details</h2>
 
@@ -47,161 +46,145 @@
                 @error('advocacy')<p class="field-error">{{ $message }}</p>@enderror
             </div>
 
-            @unless ($editing)
-                <fieldset class="space-y-6 border-t border-line pt-6">
-                    <legend class="font-semibold text-ink">Representative <span class="font-normal text-muted">(optional)</span></legend>
-                    <p class="text-sm text-muted">
-                        If you enter an email, an account is created and the representative receives a link to set
-                        their own password. Leave blank to register the organization without a login.
-                    </p>
-                    <div class="grid gap-6 sm:grid-cols-2">
-                        <div>
-                            <label for="rep_name" class="field-label">Full name</label>
-                            <input id="rep_name" name="rep_name" value="{{ old('rep_name') }}" class="field-input @error('rep_name') field-input-error @enderror">
-                            @error('rep_name')<p class="field-error">{{ $message }}</p>@enderror
-                        </div>
-                        <div>
-                            <label for="rep_email" class="field-label">Email</label>
-                            <input id="rep_email" name="rep_email" type="email" value="{{ old('rep_email') }}" class="field-input @error('rep_email') field-input-error @enderror">
-                            @error('rep_email')<p class="field-error">{{ $message }}</p>@enderror
-                        </div>
-                    </div>
-                    <div class="sm:w-1/2">
-                        <label for="rep_phone" class="field-label">Mobile number</label>
-                        <input id="rep_phone" name="rep_phone" type="tel" value="{{ old('rep_phone') }}" placeholder="0917 123 4567"
-                               class="field-input @error('rep_phone') field-input-error @enderror">
-                        @error('rep_phone')<p class="field-error">{{ $message }}</p>@enderror
-                    </div>
-                </fieldset>
-            @endunless
-
             <div class="flex flex-wrap gap-3">
-                <button type="submit" class="btn-primary">{{ $editing ? 'Save details' : 'Register organization' }}</button>
+                <button type="submit" class="btn-primary">Save details</button>
                 <a href="{{ route('admin.organizations.index') }}" class="btn-ghost">Back to organizations</a>
             </div>
         </form>
 
-        @if ($editing)
-            <div class="space-y-6">
-                <section class="panel p-6">
-                    <h2 class="font-semibold text-ink">Representative account</h2>
-                    @if ($organization->user)
-                        <p class="mt-3 font-semibold text-ink">{{ $organization->user->name }}</p>
-                        <p class="text-sm text-muted">{{ $organization->user->email }}{{ $organization->user->phone ? ' · '.$organization->user->phone : '' }}</p>
-                        <p class="mt-2">
-                            @if (! $organization->user->is_active)
-                                <span class="badge-danger">Deactivated</span>
-                            @elseif (! $organization->user->email_verified_at)
-                                <span class="badge-warning">Invitation pending</span>
-                            @else
-                                <span class="badge-success">Active</span>
-                            @endif
-                        </p>
-                        <a href="{{ route('admin.accounts.index', ['q' => $organization->user->email]) }}" class="btn-ghost mt-3 px-3">Manage account</a>
-                    @else
-                        <p class="mt-2 text-sm text-muted">No one can sign in for this organization yet. Invite its representative:</p>
-                        <form method="POST" action="{{ route('admin.organizations.account', $organization) }}" class="mt-4 space-y-4">
-                            @csrf
-                            <div>
-                                <label for="acct-name" class="field-label">Full name</label>
-                                <input id="acct-name" name="name" value="{{ old('name') }}" required class="field-input">
-                            </div>
-                            <div>
-                                <label for="acct-email" class="field-label">Email</label>
-                                <input id="acct-email" name="email" type="email" value="{{ old('email') }}" required class="field-input">
-                                @error('email')<p class="field-error">{{ $message }}</p>@enderror
-                            </div>
-                            <div>
-                                <label for="acct-phone" class="field-label">Mobile number <span class="font-normal text-muted">(optional)</span></label>
-                                <input id="acct-phone" name="phone" type="tel" value="{{ old('phone') }}" placeholder="0917 123 4567" class="field-input">
-                                @error('phone')<p class="field-error">{{ $message }}</p>@enderror
-                            </div>
-                            <button type="submit" class="btn-primary">Send invitation</button>
-                        </form>
-                    @endif
-                </section>
-
-                <section class="panel p-6">
-                    <h2 class="font-semibold text-ink">Encode on their behalf</h2>
-                    <p class="mt-1 text-sm text-muted">For paper submissions brought to the office.</p>
-                    <div class="mt-4 flex flex-wrap gap-2">
-                        <a href="{{ route('admin.organizations.applications.create', $organization) }}" class="btn-secondary">File an application</a>
-                        <a href="{{ route('admin.organizations.activities.create', $organization) }}" class="btn-secondary">Log an activity</a>
-                    </div>
-                    <a href="{{ route('admin.organizations.members', $organization) }}" class="btn-ghost mt-3 px-3">Print officers and members (PDF)</a>
-                    <a href="{{ route('accreditation.form') }}" class="btn-ghost mt-1 px-3">Blank paper application form (PDF)</a>
-                </section>
-
-                <section class="panel p-6">
-                    <h2 class="font-semibold text-ink">Accreditation</h2>
-                    @php $active = $organization->accreditations->firstWhere('status', 'active'); @endphp
-                    @if ($active)
-                        <p class="mt-3 flex items-center gap-2">
-                            <x-status-badge status="active" />
-                            <span class="font-mono text-sm text-muted">{{ $active->verification_code }}</span>
-                        </p>
-                        <p class="mt-1 text-sm text-muted">Valid until {{ $active->expires_at->format('d M Y') }}</p>
-                        <details class="mt-4">
-                            <summary class="btn-ghost cursor-pointer list-none px-3 text-danger">Revoke accreditation</summary>
-                            <form method="POST" action="{{ route('admin.organizations.revoke', $organization) }}" class="mt-3 space-y-3">
-                                @csrf
-                                <label for="revoke-reason" class="field-label">Reason (kept in the audit log)</label>
-                                <textarea id="revoke-reason" name="reason" rows="3" required minlength="10" class="field-input">{{ old('reason') }}</textarea>
-                                @error('reason')<p class="field-error">{{ $message }}</p>@enderror
-                                <button type="submit" class="btn-danger">Revoke {{ $active->verification_code }}</button>
-                            </form>
-                        </details>
-                    @else
-                        <p class="mt-2 text-sm text-muted">
-                            Not currently accredited.
-                            @if ($organization->accreditations->isNotEmpty())
-                                Last record: {{ ucfirst($organization->accreditations->first()->status) }}.
-                            @endif
-                        </p>
-                    @endif
-                </section>
-
-                <section class="panel p-6">
-                    <div class="flex items-center gap-3">
-                        <h2 class="card-title">Recent history</h2>
-                        <a href="{{ route('admin.audit.index', ['organization' => $organization->id]) }}" class="ml-auto whitespace-nowrap text-sm font-semibold text-primary hover:underline">Full history</a>
-                    </div>
-                    @forelse ($history as $entry)
-                        <div class="border-b border-line py-3 text-sm last:border-0">
-                            <p class="text-ink">{{ str_replace(['.', '_'], ' ', ucfirst($entry->action)) }}</p>
-                            <p class="text-xs text-muted">
-                                {{ $entry->actor?->name ?? 'System' }} · {{ $entry->created_at->format('d M Y, H:i') }}
-                                @if (! empty($entry->meta['reason'])) · {{ $entry->meta['reason'] }} @endif
-                            </p>
+        <div class="space-y-6">
+            <section class="panel p-6">
+                <h2 class="font-semibold text-ink">Representative account</h2>
+                @if ($organization->user)
+                    <p class="mt-3 font-semibold text-ink">{{ $organization->user->name }}</p>
+                    <p class="text-sm text-muted">{{ $organization->user->email }}{{ $organization->user->phone ? ' · '.$organization->user->phone : '' }}</p>
+                    <p class="mt-2">
+                        @if (! $organization->user->is_active)
+                            <span class="badge-danger">Deactivated</span>
+                        @elseif (! $organization->user->email_verified_at)
+                            <span class="badge-warning">Invitation pending</span>
+                        @else
+                            <span class="badge-success">Active</span>
+                        @endif
+                    </p>
+                    <a href="{{ route('admin.accounts.index', ['q' => $organization->user->email]) }}" class="btn-ghost mt-3 px-3">Manage account</a>
+                @else
+                    <p class="mt-2 text-sm text-muted">No one can sign in for this organization yet. Invite its representative:</p>
+                    <form method="POST" action="{{ route('admin.organizations.account', $organization) }}" class="mt-4 space-y-4">
+                        @csrf
+                        <div>
+                            <label for="acct-name" class="field-label">Full name</label>
+                            <input id="acct-name" name="name" value="{{ old('name') }}" required class="field-input">
                         </div>
-                    @empty
-                        <p class="mt-2 text-sm text-muted">No recorded changes yet.</p>
-                    @endforelse
-                </section>
-            </div>
-        @endif
+                        <div>
+                            <label for="acct-email" class="field-label">Email</label>
+                            <input id="acct-email" name="email" type="email" value="{{ old('email') }}" required class="field-input">
+                            @error('email')<p class="field-error">{{ $message }}</p>@enderror
+                        </div>
+                        <div>
+                            <label for="acct-phone" class="field-label">Mobile number <span class="font-normal text-muted">(optional)</span></label>
+                            <input id="acct-phone" name="phone" type="tel" value="{{ old('phone') }}" placeholder="0917 123 4567" class="field-input">
+                            @error('phone')<p class="field-error">{{ $message }}</p>@enderror
+                        </div>
+                        <button type="submit" class="btn-primary">Send invitation</button>
+                    </form>
+                @endif
+            </section>
+
+            <section class="panel p-6">
+                <h2 class="font-semibold text-ink">Encode on their behalf</h2>
+                <p class="mt-1 text-sm text-muted">For paper submissions brought to the office.</p>
+                <div class="mt-4 flex flex-wrap gap-2">
+                    <a href="{{ route('admin.organizations.applications.create', $organization) }}" class="btn-secondary">File an application</a>
+                    <a href="{{ route('admin.organizations.activities.create', $organization) }}" class="btn-secondary">Log an activity</a>
+                </div>
+                <a href="{{ route('admin.organizations.members', $organization) }}" class="btn-ghost mt-3 px-3">Print officers and members (PDF)</a>
+                <a href="{{ route('accreditation.form') }}" class="btn-ghost mt-1 px-3">Blank paper application form (PDF)</a>
+            </section>
+
+            <section class="panel p-6">
+                <h2 class="font-semibold text-ink">Accreditation</h2>
+                @php $active = $organization->accreditations->firstWhere('status', 'active'); @endphp
+                @if ($active)
+                    <p class="mt-3 flex items-center gap-2">
+                        <x-status-badge status="active" />
+                        <span class="font-mono text-sm text-muted">{{ $active->verification_code }}</span>
+                    </p>
+                    <p class="mt-1 text-sm text-muted">Valid until {{ $active->expires_at->format('d M Y') }}</p>
+                    <details class="mt-4">
+                        <summary class="btn-ghost cursor-pointer list-none px-3 text-danger">Revoke accreditation</summary>
+                        <form method="POST" action="{{ route('admin.organizations.revoke', $organization) }}" class="mt-3 space-y-3">
+                            @csrf
+                            <label for="revoke-reason" class="field-label">Reason (kept in the audit log)</label>
+                            <textarea id="revoke-reason" name="reason" rows="3" required minlength="10" class="field-input">{{ old('reason') }}</textarea>
+                            @error('reason')<p class="field-error">{{ $message }}</p>@enderror
+                            <button type="submit" class="btn-danger">Revoke {{ $active->verification_code }}</button>
+                        </form>
+                    </details>
+                @else
+                    <p class="mt-2 text-sm text-muted">
+                        Not currently accredited.
+                        @if ($organization->accreditations->isNotEmpty())
+                            Last record: {{ ucfirst($organization->accreditations->first()->status) }}.
+                        @endif
+                    </p>
+                @endif
+            </section>
+
+            <section class="panel p-6">
+                <div class="flex items-center gap-3">
+                    <h2 class="card-title">Recent history</h2>
+                    <a href="{{ route('admin.audit.index', ['organization' => $organization->id]) }}" class="ml-auto whitespace-nowrap text-sm font-semibold text-primary hover:underline">Full history</a>
+                </div>
+                @forelse ($history as $entry)
+                    <div class="border-b border-line py-3 text-sm last:border-0">
+                        <p class="text-ink">{{ str_replace(['.', '_'], ' ', ucfirst($entry->action)) }}</p>
+                        <p class="text-xs text-muted">
+                            {{ $entry->actor?->name ?? 'System' }} · {{ $entry->created_at->format('d M Y, H:i') }}
+                            @if (! empty($entry->meta['reason'])) · {{ $entry->meta['reason'] }} @endif
+                        </p>
+                    </div>
+                @empty
+                    <p class="mt-2 text-sm text-muted">No recorded changes yet.</p>
+                @endforelse
+            </section>
+
+            <section class="panel p-6">
+                <h2 class="font-semibold text-ink">Duplicate or mistaken record?</h2>
+                <p class="mt-1 text-sm text-muted">
+                    Merge a duplicate into the record that should stay, or delete a test entry. To keep the record but take
+                    it off the public site, use Hide on the Organizations list instead.
+                </p>
+                <div class="mt-4 flex flex-wrap gap-2">
+                    <button type="button" class="btn-secondary" @click="$dispatch('open-dialog', 'merge-organization')">Merge into another</button>
+                    <button type="button" class="btn-danger" @click="$dispatch('open-dialog', 'delete-organization')">
+                        <x-phosphor-trash class="h-4 w-4" aria-hidden="true" />Delete organization
+                    </button>
+                </div>
+            </section>
+        </div>
     </div>
 
-    @if ($editing)
-        <section class="panel mt-6 p-6">
-            <div class="flex flex-wrap items-end gap-3">
-                <div>
-                    <h2 class="font-semibold text-ink">Activity, last 24 months</h2>
-                    <p class="mt-1 text-sm text-muted">Verified activities per month, including those it joined as a partner.</p>
-                </div>
-                <x-source-legend class="ml-auto" with-unknown />
+    <section class="panel mt-6 p-6">
+        <div class="flex flex-wrap items-end gap-3">
+            <div>
+                <h2 class="font-semibold text-ink">Activity, last 24 months</h2>
+                <p class="mt-1 text-sm text-muted">Verified activities per month, including those it joined as a partner.</p>
             </div>
-            @if ($timeline['longestGap'])
-                <p class="mt-3 inline-flex items-center gap-tight rounded-sm bg-warning-subtle px-3 py-2 text-sm text-warning">
-                    <x-phosphor-warning class="h-4 w-4" aria-hidden="true" />
-                    No verified activity from {{ $timeline['longestGap']['from']->format('M Y') }}
-                    to {{ $timeline['longestGap']['to']->format('M Y') }} ({{ $timeline['longestGap']['months'] }} months)
-                </p>
-            @endif
-            <div class="mt-4">
-                <x-source-columns :series="$timeline['months']" height="6rem"
-                                  :label="'Verified activities per month for '.$organization->name" />
-            </div>
-        </section>
-    @endif
+            <x-source-legend class="ml-auto" with-unknown />
+        </div>
+        @if ($timeline['longestGap'])
+            <p class="mt-3 inline-flex items-center gap-tight rounded-sm bg-warning-subtle px-3 py-2 text-sm text-warning">
+                <x-phosphor-warning class="h-4 w-4" aria-hidden="true" />
+                No verified activity from {{ $timeline['longestGap']['from']->format('M Y') }}
+                to {{ $timeline['longestGap']['to']->format('M Y') }} ({{ $timeline['longestGap']['months'] }} months)
+            </p>
+        @endif
+        <div class="mt-4">
+            <x-source-columns :series="$timeline['months']" height="6rem"
+                              :label="'Verified activities per month for '.$organization->name" />
+        </div>
+    </section>
+
+    @include('admin.organizations.cleanup-dialogs')
 </x-layouts.app>

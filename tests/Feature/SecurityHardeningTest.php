@@ -170,7 +170,7 @@ class SecurityHardeningTest extends TestCase
     {
         $invited = User::factory()->unverified()->create();
         $victim = User::factory()->unverified()->create();
-        $url = \Illuminate\Support\Facades\URL::temporarySignedRoute('invitation.store', now()->addHour(), ['user' => $invited]);
+        $url = \Illuminate\Support\Facades\URL::temporarySignedRoute('invitation.store', now()->addHour(), ['user' => $invited, 'for' => \App\Notifications\AccountInvitation::fingerprint($invited)]);
 
         $this->post(str_replace("/invitation/{$invited->id}", "/invitation/{$victim->id}", $url), [
             'password' => self::PASSWORD, 'password_confirmation' => self::PASSWORD,

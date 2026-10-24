@@ -26,6 +26,7 @@ return [
         'System' => [
             ['route' => 'admin.accounts.index', 'active' => ['admin.accounts.*'], 'label' => 'Accounts', 'icon' => 'users'],
             ['route' => 'admin.audit.index', 'active' => ['admin.audit.*'], 'label' => 'Audit log', 'icon' => 'list-magnifying-glass'],
+            ['route' => 'admin.system-check', 'label' => 'System check', 'icon' => 'shield-check'],
         ],
     ],
 

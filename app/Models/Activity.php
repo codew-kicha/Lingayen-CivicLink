@@ -7,6 +7,9 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class Activity extends Model
 {
@@ -24,7 +27,53 @@ class Activity extends Model
     protected $fillable = [
         'organization_id', 'logged_by', 'verified_by', 'title', 'description',
         'activity_date', 'participants_estimate', 'activity_source', 'status', 'verified_at', 'rejection_reason',
+        'evidence_path', 'evidence_filename', 'evidence_mime',
     ];
+
+    /**
+     * A representative's correction while the activity is still pending (validated StoreActivityRequest
+     * data). A new sign-in sheet replaces the old one; `remove_evidence` drops it.
+     */
+    public function revise(array $data): void
+    {
+        $evidence = $data['evidence'] ?? null;
+        $previous = $this->evidence_path;
+        $attributes = Arr::except($data, ['partners', 'evidence', 'remove_evidence']);
+
+        if ($evidence) {
+            $attributes += [
+                'evidence_path' => $evidence->store("activity-evidence/{$this->organization_id}"),
+                'evidence_filename' => $evidence->getClientOriginalName(),
+                'evidence_mime' => $evidence->getMimeType(),
+            ];
+        } elseif (! empty($data['remove_evidence'])) {
+            $attributes += ['evidence_path' => null, 'evidence_filename' => null, 'evidence_mime' => null];
+        }
+
+        DB::transaction(function () use ($attributes, $data) {
+            $this->update($attributes);
+            $this->partnerOrganizations()->sync($data['partners'] ?? []);
+        });
+
+        if ($previous && $previous !== $this->evidence_path) {
+            Storage::disk('local')->delete($previous);
+        }
+    }
+
+    /** Deletes the activity and its sign-in sheet (partner tags go with it). */
+    public function withdraw(): void
+    {
+        $this->delete();
+
+        if ($this->evidence_path) {
+            Storage::disk('local')->delete($this->evidence_path);
+        }
+    }
+
+    public function evidenceIsImage(): bool
+    {
+        return str_starts_with((string) $this->evidence_mime, 'image/');
+    }
 
     public function sourceLabel(): string
     {

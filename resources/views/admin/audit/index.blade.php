@@ -10,7 +10,7 @@
                 @endforeach
             </select>
         </div>
-        <x-keep-query :only="['account', 'actor', 'organization', 'per_page']" />
+        <x-keep-query :only="['account', 'actor', 'organization']" />
         <button type="submit" class="btn-primary">Filter</button>
         @if (request()->hasAny(['action', 'account', 'actor', 'organization']))
             <a href="{{ route('admin.audit.index') }}" class="btn-ghost">Show everything</a>
@@ -65,7 +65,6 @@
                 </table>
             </div>
         @endif
+        <x-pagination :paginator="$entries" />
     </section>
-
-    <x-pagination :paginator="$entries" :default="50" />
 </x-layouts.app>

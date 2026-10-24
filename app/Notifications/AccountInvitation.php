@@ -14,6 +14,15 @@ class AccountInvitation extends Notification
 
     public const VALID_HOURS = 72;
 
+    /**
+     * Ties a link to the account as it was when the link was sent. Correcting the email (a typo'd
+     * address) or setting a password changes it, so links already sent stop working.
+     */
+    public static function fingerprint(User $user): string
+    {
+        return hash('sha256', $user->email.'|'.$user->getAuthPassword());
+    }
+
     public function via(object $notifiable): array
     {
         return ['mail'];
@@ -21,7 +30,10 @@ class AccountInvitation extends Notification
 
     public function toMail(User $notifiable): MailMessage
     {
-        $url = URL::temporarySignedRoute('invitation.show', now()->addHours(self::VALID_HOURS), ['user' => $notifiable->id]);
+        $url = URL::temporarySignedRoute('invitation.show', now()->addHours(self::VALID_HOURS), [
+            'user' => $notifiable->id,
+            'for' => self::fingerprint($notifiable),
+        ]);
 
         $message = (new MailMessage)
             ->subject('Your Lingayen CivicLink account')

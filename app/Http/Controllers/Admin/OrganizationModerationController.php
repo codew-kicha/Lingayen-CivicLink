@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Exports\OrganizationList;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\ConfirmedOrganizationRequest;
 use App\Http\Requests\Admin\InviteAccountRequest;
 use App\Http\Requests\Admin\ManageOrganizationRequest;
 use App\Http\Requests\Admin\ReasonRequest;
@@ -10,6 +12,7 @@ use App\Models\AuditLog;
 use App\Models\Organization;
 use App\Models\User;
 use App\Notifications\AccountInvitation;
+use App\Services\OrganizationRecords;
 use App\Services\ReportData;
 use App\Support\ListPagination;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -18,6 +21,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
+use Maatwebsite\Excel\Facades\Excel;
 use Symfony\Component\HttpFoundation\Response;
 
 class OrganizationModerationController extends Controller
@@ -36,30 +40,42 @@ class OrganizationModerationController extends Controller
                 // Same definition and period as the analytics at-risk list and its Excel sheet.
                 ->when($request->input('status') === 'at-risk', fn ($q) => $q->whereKey(ReportData::fromRequest($request)->atRisk()->pluck('id')))
                 ->orderBy('name'),
-                $request, 25),
+                $request),
             'inactiveIds' => Organization::inactive()->pluck('id'),
         ]);
     }
 
-    public function create(): View
+    // The CSO list as an Excel file: all registered organizations, or only the accredited ones.
+    // It includes representatives' contact details, so it is admin-only and audited.
+    public function export(Request $request): Response
     {
         $this->authorize('manage', Organization::class);
 
-        return view('admin.organizations.form', [
-            'organization' => new Organization,
-            'sectors' => config('sectors'),
-            'barangays' => config('barangays'),
-        ]);
+        $accreditedOnly = $request->input('scope') === 'accredited';
+        AuditLog::record('organization.list_exported', null, ['scope' => $accreditedOnly ? 'accredited' : 'all']);
+
+        return Excel::download(
+            OrganizationList::sheet($accreditedOnly),
+            ($accreditedOnly ? 'accredited' : 'registered').'-csos-'.now()->format('Y-m-d').'.xlsx',
+        );
     }
 
-    // Registers an organization on a CSO's behalf (walk-ins, imported records). If a representative
-    // is given, their account is created and invited by email; the admin never sets a password.
+    // Registering happens in a dialog; this address opens it on the Organizations list.
+    public function create(): RedirectResponse
+    {
+        $this->authorize('manage', Organization::class);
+
+        return redirect()->route('admin.organizations.index', ['register' => 1]);
+    }
+
+    // Registers an organization on a CSO's behalf (walk-ins, imported records). With "Create a login"
+    // ticked, the representative's account is created and invited by email to set a password.
     public function store(ManageOrganizationRequest $request): RedirectResponse
     {
         $organization = DB::transaction(function () use ($request) {
             $user = null;
 
-            if ($request->filled('rep_email')) {
+            if ($request->validated('rep_email')) {
                 $user = User::create([
                     'name' => $request->validated('rep_name'),
                     'email' => $request->validated('rep_email'),
@@ -94,6 +110,10 @@ class OrganizationModerationController extends Controller
             'sectors' => config('sectors'),
             'barangays' => config('barangays'),
             'timeline' => ReportData::timeline($organization),
+            // For the Delete and Merge dialogs.
+            'footprint' => OrganizationRecords::footprint($organization),
+            'mergeOptions' => Organization::whereKeyNot($organization->id)->orderBy('name')->get(['id', 'name', 'barangay'])
+                ->map(fn ($other) => ['id' => $other->id, 'name' => "{$other->name} · Brgy. {$other->barangay}"])->all(),
             'history' => AuditLog::with('actor:id,name')
                 ->where('subject_type', 'Organization')
                 ->where('subject_id', $organization->id)
@@ -146,6 +166,26 @@ class OrganizationModerationController extends Controller
         $user->notify(new AccountInvitation);
 
         return back()->with('status', "Invitation sent to {$user->email}.");
+    }
+
+    // For test entries and mistakes. Everything belonging to the organization goes with it,
+    // including its representative's login; the audit log keeps its name and what was removed.
+    public function destroy(ConfirmedOrganizationRequest $request, Organization $organization, OrganizationRecords $records): RedirectResponse
+    {
+        $records->delete($organization);
+
+        return redirect()->route('admin.organizations.index')
+            ->with('status', "{$organization->name} and everything filed under it were deleted.");
+    }
+
+    // For duplicates (common after an import): the history moves onto the record that stays.
+    public function merge(ConfirmedOrganizationRequest $request, Organization $organization, OrganizationRecords $records): RedirectResponse
+    {
+        $into = Organization::findOrFail($request->validated('into'));
+        $records->merge($organization, $into);
+
+        return redirect()->route('admin.organizations.edit', $into)
+            ->with('status', "{$organization->name} was merged into {$into->name}. Its applications, activities and documents are now here.");
     }
 
     // PESO had no way to withdraw an accreditation (PRD §2); this records it with a reason.

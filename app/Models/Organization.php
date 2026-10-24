@@ -100,9 +100,13 @@ class Organization extends Model
     public function logActivity(array $data, User $loggedBy): Activity
     {
         return DB::transaction(function () use ($data, $loggedBy) {
-            $activity = $this->activities()->create(Arr::except($data, 'partners') + [
+            $evidence = $data['evidence'] ?? null;
+            $activity = $this->activities()->create(Arr::except($data, ['partners', 'evidence']) + [
                 'logged_by' => $loggedBy->id,
                 'status' => 'pending',
+                'evidence_path' => $evidence?->store("activity-evidence/{$this->id}"),
+                'evidence_filename' => $evidence?->getClientOriginalName(),
+                'evidence_mime' => $evidence?->getMimeType(),
             ]);
             $activity->partnerOrganizations()->sync($data['partners'] ?? []);
 

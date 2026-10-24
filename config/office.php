@@ -18,6 +18,7 @@ return [
     'officials' => [
         ['name' => 'Hon. Josefina “Iday” V. Castañeda', 'position' => 'Municipal Mayor'],
         ['name' => 'Hon. Jay Mark Kevin D. Crisostomo', 'position' => 'Municipal Vice Mayor'],
+        ['name' => 'Cezca Katrina F. Mararac', 'position' => 'PESO Manager'],
         ['name' => 'Van Macley Moulic', 'position' => 'Civil Society Desk Officer'],
     ],
 

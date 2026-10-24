@@ -12,7 +12,8 @@ one set of components. The public site uses the same tokens, with its own look (
 | Shared component classes | `resources/css/app.css` (`@layer components`) |
 | App layout (both roles) | `resources/views/components/layouts/app.blade.php` and `partials/sidebar.blade.php` |
 | Navigation per role | `config/navigation.php` |
-| Blade components | `resources/views/components/` (`status-badge`, `empty-state`, `application-type`, `flash`, `password-field`, charts) |
+| Blade components | `resources/views/components/` (`dialog`, `filter-bar`, `pagination`, `status-badge`, `empty-state`, `application-type`, `flash`, `password-field`, charts) |
+| Behaviour (dialogs, row keyboard support, combobox, tag picker, review queue) | `resources/js/app.js` (Alpine components) |
 | Enforcement | `tests/Feature/DesignTokenComplianceTest.php` (no hard-coded colour, no off-scale spacing) |
 
 ---
@@ -44,6 +45,7 @@ works. Never write a colour value in a view or in `app.css`; the compliance test
 | `border-strong` | `line-strong` | `#8f8f8f` | Input borders (3.18:1, WCAG 1.4.11) |
 | `text` | `ink` | `#2b2522` | Body text (14.9:1) |
 | `text-muted` | `muted` | `#524c48` | Secondary text (8.4:1 on white, 5.0:1 on `band`) |
+| `placeholder` | `placeholder` | `#75706c` | Input placeholders (4.8:1): readable, but clearly lighter than typed text so it is never mistaken for a value |
 | `info` / `info-subtle` | `info`, `info-subtle` | `#296898` / `#deefff` | Submitted (5.1:1) |
 | `warning` / `warning-subtle` | `warning`, `warning-subtle` | `#9d5900` / `#ffebce` | Under review, pending, needs action (4.67:1) |
 | `success` / `success-subtle` | `success`, `success-subtle` | `#187a3b` / `#dbf5df` | Approved, verified, active (4.67:1) |
@@ -136,53 +138,80 @@ To add a page: add a route, add an item under the right group in `config/navigat
 | `btn-primary` | The one main action | 40px; 44px below `lg` or on a coarse pointer (`touch:`) |
 | `btn-secondary` | Other actions | Bordered, maroon text |
 | `btn-ghost` | Low-emphasis actions | Add `btn-sm` for row actions |
-| `btn-danger` | Destructive actions | Behind a password re-check where required |
-| `field-label` / `field-input` / `field-hint` / `field-error` | Every form field | Label above, error below with `aria-describedby`; input border 3:1 |
+| `btn-danger` | Destructive actions | Red outline, never filled: the one filled (maroon) button is the primary action. Behind a password re-check where required |
+| `icon-btn` | Square icon actions (dialog close, previous/next) | 44px |
+| `field-label` / `field-input` / `field-hint` / `field-error` | Every form field | Label above, error below with `aria-describedby`; input border 3:1; inputs 44px tall; placeholder in `placeholder` |
+| `field-required` | Required field labels | Adds a red asterisk; the form starts with a "* Required" legend |
 | `card` + `card-title` | Grouping | 24px padding, 16px when compact |
 | `<x-status-badge :status>` | Every status | One height (24px), never wraps. Submitted = info, Under review / pending = warning, Approved / verified / active = success, Rejected / revoked = danger, draft / expired = neutral |
 | `badge-*` | Other labels | Same shape as status pills |
 | `count-badge` | Nav and tab counts | Gold, tabular numerals |
 | `entity-link` | Names linking to a record | Text colour; maroon and underline on hover |
 | `table-wrap` | Around every table | Scrolls inside its own box; the page never scrolls sideways |
+| `table-scroll` | Around list tables (Applications, Verify activities, News posts) | Scroll box with a sticky header row and sticky first column; capped to the window at `lg` so the page stays short |
+| `table-row-link` + `x-data="tableNav"` on the `tbody` | Rows that open a record | Hover tint, pointer, focus ring; arrow keys / Home / End move between rows (one row in the tab order), Enter opens. `data-href` rows are links; others dispatch `row-open` |
+| `<x-filter-bar :chips search>` | Above every list | Search box plus one-click filter chips (`filter-chip`, current chip `aria-current`). No Status dropdown + Filter button |
+| `<x-dialog name title width>` | Every pop-up | See §3.1 |
+| `<x-admin-password-field id :error>` | Dialogs that change access or delete records (Edit login, Merge, Delete organization) | Re-checks the admin's password (`admin_password`, `current_password` rule) without leaving the dialog; set up so browsers don't fill in a representative's saved password |
+| `toast` / `toast-action` | Confirmation with Undo | Bottom right, above everything |
 | `table-head` / `table-cell` / `table-num` / `table-date` / `table-row` | Tables | 48px rows, cells centred; dates fixed width (`w-32`), one line |
 | `<x-empty-state title icon>` | Empty tables and lists | Optional slot text and `action` slot |
 | `<x-application-type :type>` | Applications | "Renewal" tag in the organization cell; no Type column (New is the default) |
 | `<x-flash>` | Status messages | Rendered by the layout |
 | `<x-pagination>` | Every paginated list | See §4 |
-| `<x-keep-query>` | Filter forms | Carries `per_page` (and chosen keys), never `page` |
-| `table-sticky` | Long tables | Header sticks at `lg`+ only |
+| `<x-keep-query :only>` | Filter forms | Carries chosen keys (a scoped organization, an analytics period), never `page` |
+| `table-sticky` | Long tables without `table-scroll` | Header sticks at `lg`+ only |
 
 All eight states apply to interactive parts: default, hover, focus (visible ring, never removed),
 active, disabled, loading, error, success.
+
+### 3.1 Dialogs
+
+`<x-dialog name="…" title="…" width="sm|md|lg" :open="…">` is the only pop-up. Open it with
+`$dispatch('open-dialog', 'name')`; `close-dialog` closes it.
+
+- **Position:** centred in the content area to the right of the sidebar (at `lg`, padding-left is the
+  sidebar width plus the gutter), not in the full window. The dimmed overlay covers the whole screen.
+- **Size:** `sm` 560px (short forms: Register an organization, Edit login, confirmations), `md` 640px
+  (activity review), `lg` 720px (Write a post). Never taller than 80% of the window. Full screen
+  below `sm`.
+- **Structure:** pinned header (title, optional subtitle, × button) and pinned footer (actions);
+  only `dialog-body` scrolls. A `header` slot replaces the title block when it needs more (previous /
+  next in the review dialog). Forms wrap body and footer: `<form class="flex min-h-0 flex-1 flex-col">`.
+- **Behaviour:** Esc and × close it. A click outside closes it only until something has been typed.
+  Focus is trapped (`x-trap`) and returns to the trigger. `role="dialog"`, `aria-modal`,
+  `aria-labelledby` the title (`dialog-{name}-title`).
+- **Actions:** right-aligned, secondary first and the maroon primary last. Destructive actions are
+  `btn-danger` (red outline). Footer buttons are 44px.
+- **Validation errors:** forms post normally. The form sends `_dialog`; the page comes back with
+  `:open` true, the typed values and the errors in place.
 
 ---
 
 ## 4. Pagination
 
 Every long list uses one server-side pagination: `App\Support\ListPagination` in the controller and
-`<x-pagination>` in the view.
+`<x-pagination>` in the view. Every list shows **10 rows a page**; there is no page-size selector.
 
 ```php
-// Controller: wrap the query; the third argument is the list's default page size.
-'organizations' => ListPagination::paginate(Organization::query()->...->orderBy('name'), $request, 25),
+// Controller: wrap the query.
+'organizations' => ListPagination::paginate(Organization::query()->...->orderBy('name'), $request),
 ```
 
 ```blade
-{{-- View: after the table. `target` is the heading that receives focus after a page change. --}}
-<x-pagination :paginator="$organizations" :default="25" />
-<x-pagination :paginator="$activities" :default="10" target="history" />
+{{-- View: inside the table card, after the table. `target` is the heading that receives focus after a page change. --}}
+<x-pagination :paginator="$organizations" />
+<x-pagination :paginator="$activities" target="history" class="card mt-4" />
 ```
 
 **Behaviour (enforced by `ListPaginationTest` and `PaginationComponentTest`)**
-- Page and size live in the URL (`?page=2&per_page=25`), so pages are linkable and Back works.
-  `per_page` accepts 10, 25 or 50; anything else quietly falls back to the list default.
-  `per_page` is left out of URLs when it equals the default.
+- The page lives in the URL (`?page=2`), so pages are linkable and Back works. A `per_page` in an
+  old link is ignored.
 - A page past the end redirects to the last page.
-- Links keep every filter and sort parameter. Filter forms include `<x-keep-query />` (carries
-  `per_page`, never `page`), so changing a filter returns to page 1 at the same size. Tabs that
-  act as filters (Verify activities) do the same in their links.
-- Changing the page size resets to page 1. The selector has a visible label and works without
-  JavaScript (a `noscript` Apply button); with JavaScript it submits on change.
+- Links keep every filter and sort parameter. The search box and filter chips (`<x-filter-bar>`)
+  never carry `page`, so changing a filter returns to page 1.
+- The bar (`pagination-bar`) is the table card's footer: "Showing 1-10 of N", then Previous / page
+  numbers / Next. It sticks to the bottom of the window while the table is taller than it.
 - After a page change, focus moves to the target heading (`#page-title` by default).
 - Markup: `aria-label="Pagination"`, `aria-current="page"` on the current page, disabled
   Previous/Next are `aria-disabled` text (not links), ellipses are plain text.
@@ -195,16 +224,16 @@ Every long list uses one server-side pagination: `App\Support\ListPagination` in
   filters" with Clear filters, or the list's own "nothing here yet" message.
 - Loading: the app layout's page-load bar.
 
-| List | Default size | Filters kept across pages |
+| List | Order | Filters kept across pages |
 |---|---|---|
-| Audit log | 50 | Event type, actor, account, organization |
-| Applications queue | 25 | Status, SB stage |
-| Verify activities | 10 (tall cards) | Status tab |
-| Organizations | 25 | Search, no login, activity (inactive / at-risk with the analytics period) |
-| Accounts | 25 | Search, role, status |
-| Scorecards | 25 | Name search |
-| News posts | 10 | Status |
-| CSO activities | 10 | Status |
+| Audit log | Newest first | Event type, actor, account, organization |
+| Applications queue | Waiting (submitted, under review) first, then Filed date (newest first; the header toggles) | Search, chip: All / Under review / Approved / Rejected, direction |
+| Verify activities | Waiting: oldest logged first. Verified / Rejected: latest decision first | Search, chip: Waiting / Verified / Rejected |
+| Organizations | Name | Search, no login, activity (inactive / at-risk with the analytics period) |
+| Accounts | Role, name | Search, role, status |
+| Scorecards | Name | Name search |
+| News posts | Newest first | Search, chip: All posts / Published / Draft |
+| CSO activities | Newest first | Status |
 
 **Capped instead of paginated** (the limit is in the query, and the total is named):
 
@@ -258,3 +287,31 @@ gold rule (`section-title`), alternating white and `band` sections at `py-sectio
 and `accent-*` scales exist for these pages only. Images: the Lingayen seal is
 `public/images/brand/lingayen-seal.png` (original in `storage/app/public/logos`); stock photos are
 placeholders listed in `public/images/stock/SOURCES.txt`.
+
+---
+
+## 8. Review screens (Applications, Verify activities, News posts)
+
+One family: `<x-filter-bar>` above a `card` holding a `table-scroll` table and the pagination bar.
+Rows open their record; actions that change data live in dialogs, not in the rows.
+
+- **Applications:** Organization (name, Renewal tag, barangay, documents-to-check badge) · Status (chip,
+  Sangguniang Bayan stage as a grey second line) · Filed (sorted, arrow on the header) · chevron.
+  "Register an organization" (top right) opens the Register dialog (560px): name, barangay (searchable
+  combobox), sector, advocacy, and "Create a login for the representative" (off by default; reveals
+  full name and email, and the account gets a password-setup link). The same dialog is on
+  Organizations and Accounts; `/admin/organizations/create` opens it.
+- **Verify activities:** Activity (title; organization and barangay beneath) · Date · Residents
+  reached · Waiting (days since logged, amber past 30) · chevron. A row opens the review dialog
+  (640px): title, organization and barangay, previous / next with "3 of 10", date and description,
+  Residents reached / Logged by / Claimed source, the sign-in sheet (image preview or PDF tile, Open
+  file), and a required "Verified source" select that starts empty. Verify activity (maroon) unlocks
+  once a source is chosen; Reject (red outline) reveals a reason (10 characters minimum, live count)
+  with Confirm rejection and Cancel. A decision closes the dialog, hides the row, lowers the sidebar
+  badge and shows a toast with Undo. It is sent when the toast times out (6 s), when the next decision
+  is made, or before a link or search leaves the page (a keepalive request if the tab is closed), so
+  Undo never has to reverse a notification or a score.
+- **News posts:** Title · Status chip · Featuring · Published · Delete (red outline, confirmed in a
+  dialog). "Write a post" and a row both open the post dialog (720px): Title, Post content, Featured
+  organizations (tag search). Publish (maroon), Save as draft (outlined), Cancel.
+  `/admin/news/create` and `/admin/news/{id}/edit` open it.

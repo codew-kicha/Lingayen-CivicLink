@@ -9,55 +9,58 @@ use App\Models\NewsPost;
 use App\Models\Organization;
 use App\Models\User;
 use App\Services\ReportData;
+use App\Support\ListPagination;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 /**
- * Every paginated list behaves the same way (docs/DESIGN_SYSTEM.md §4): filters survive page
- * changes, per_page is whitelisted, out-of-range pages redirect, and filtering returns to page 1.
+ * Every paginated list behaves the same way (docs/DESIGN_SYSTEM.md §4): 10 rows a page, filters
+ * survive page changes, out-of-range pages redirect, and filtering returns to page 1.
  */
 class ListPaginationTest extends TestCase
 {
     use RefreshDatabase;
 
     /**
-     * route, role, list default, filters that match the seeded rows, seeder(User $viewer, int $rows).
+     * route, role, filters that match the seeded rows, seeder(User $viewer, int $rows).
      *
-     * @return array<string, array{string, string, int, array<string, string>, \Closure}>
+     * @return array<string, array{string, string, array<string, string>, \Closure}>
      */
     public static function lists(): array
     {
         return [
-            'audit log' => ['admin.audit.index', 'admin', 50, ['action' => 'login'], function (User $viewer, int $rows) {
+            'audit log' => ['admin.audit.index', 'admin', ['action' => 'login'], function (User $viewer, int $rows) {
                 foreach (range(1, $rows) as $i) {
                     AuditLog::create(['actor_id' => $viewer->id, 'action' => 'login', 'subject_type' => 'User', 'subject_id' => $viewer->id]);
                 }
             }],
-            'applications queue' => ['admin.applications.index', 'admin', 25, ['status' => 'submitted'], function (User $viewer, int $rows) {
+            'applications queue' => ['admin.applications.index', 'admin', ['status' => 'review'], function (User $viewer, int $rows) {
                 ApplicationModel::factory()->count($rows)->create(['status' => 'submitted']);
             }],
-            'organizations' => ['admin.organizations.index', 'admin', 25, ['q' => 'Coop'], function (User $viewer, int $rows) {
+            'organizations' => ['admin.organizations.index', 'admin', ['q' => 'Coop'], function (User $viewer, int $rows) {
                 foreach (range(1, $rows) as $i) {
                     Organization::factory()->create(['name' => sprintf('Coop %03d', $i)]);
                 }
             }],
-            'accounts' => ['admin.accounts.index', 'admin', 25, ['role' => 'cso_rep'], function (User $viewer, int $rows) {
+            'accounts' => ['admin.accounts.index', 'admin', ['role' => 'cso_rep'], function (User $viewer, int $rows) {
                 User::factory()->count($rows)->create();
             }],
-            'scorecards' => ['admin.scorecards.index', 'admin', 25, ['q' => 'Coop'], function (User $viewer, int $rows) {
+            'scorecards' => ['admin.scorecards.index', 'admin', ['q' => 'Coop'], function (User $viewer, int $rows) {
                 foreach (range(1, $rows) as $i) {
                     Organization::factory()->create(['name' => sprintf('Coop %03d', $i)]);
                 }
             }],
-            'news posts' => ['admin.news.index', 'admin', 10, ['status' => 'published'], function (User $viewer, int $rows) {
+            'news posts' => ['admin.news.index', 'admin', ['status' => 'published'], function (User $viewer, int $rows) {
                 NewsPost::factory()->count($rows)->create(['author_id' => $viewer->id, 'status' => 'published', 'published_at' => now()]);
             }],
-            'CSO activities' => ['cso.activities.index', 'cso', 10, ['status' => 'verified'], function (User $viewer, int $rows) {
+            'CSO activities' => ['cso.activities.index', 'cso', ['status' => 'verified'], function (User $viewer, int $rows) {
                 Activity::factory()->count($rows)->for($viewer->organization)->verified()->create();
             }],
-            'verify activities' => ['admin.activities.index', 'admin', 10, ['status' => 'verified'], function (User $viewer, int $rows) {
-                Activity::factory()->count($rows)->verified()->create();
+            'verify activities' => ['admin.activities.index', 'admin', ['q' => 'Clean-up'], function (User $viewer, int $rows) {
+                foreach (range(1, $rows) as $i) {
+                    Activity::factory()->create(['title' => "Clean-up {$i}"]);
+                }
             }],
         ];
     }
@@ -75,56 +78,49 @@ class ListPaginationTest extends TestCase
     }
 
     #[DataProvider('lists')]
-    public function test_page_links_keep_the_filters(string $route, string $role, int $default, array $filters, \Closure $seed): void
+    public function test_page_links_keep_the_filters(string $route, string $role, array $filters, \Closure $seed): void
     {
         $viewer = $this->viewer($role);
-        $seed($viewer, $default + 1);
+        $seed($viewer, ListPagination::PER_PAGE + 1);
 
         $html = $this->actingAs($viewer)->get(route($route, $filters))->assertOk()->getContent();
 
         $this->assertStringContainsString('aria-label="Pagination"', $html);
         $this->assertMatchesRegularExpression('/'.preg_quote(http_build_query($filters, '', '&amp;'), '/').'&amp;page=2#(page-title|history)"/', $html);
-        $this->assertStringNotContainsString('per_page='.$default, $html);
     }
 
     #[DataProvider('lists')]
-    public function test_per_page_is_whitelisted_and_out_of_range_pages_redirect(string $route, string $role, int $default, array $filters, \Closure $seed): void
+    public function test_every_list_shows_ten_rows_and_out_of_range_pages_redirect(string $route, string $role, array $filters, \Closure $seed): void
     {
         $viewer = $this->viewer($role);
-        $other = $default === 10 ? 25 : 10;     // a valid size that isn't this list's default
-        $rows = max($default, $other) + 1;
-        $seed($viewer, $rows);
+        $seed($viewer, 26);
 
-        $this->actingAs($viewer)->get(route($route, $filters + ['per_page' => 7]))
-            ->assertOk()->assertSee('Showing 1-'.$default.' of ', false);
-        $this->actingAs($viewer)->get(route($route, $filters + ['per_page' => $other]))
-            ->assertOk()->assertSee('Showing 1-'.$other.' of ', false)->assertSee('per_page='.$other.'&amp;page=2', false);
+        $this->actingAs($viewer)->get(route($route, $filters + ['per_page' => 25]))
+            ->assertOk()->assertSee('Showing 1-10 of 26', false)->assertDontSee('Rows per page');
 
         $this->actingAs($viewer)->get(route($route, $filters + ['page' => 99]))
-            ->assertRedirect(route($route, $filters + ['page' => (int) ceil($rows / $default)]));
+            ->assertRedirect(route($route, $filters + ['page' => 3]));
     }
 
     #[DataProvider('lists')]
-    public function test_changing_a_filter_returns_to_page_one_and_keeps_the_page_size(string $route, string $role, int $default, array $filters, \Closure $seed): void
+    public function test_changing_a_filter_returns_to_page_one(string $route, string $role, array $filters, \Closure $seed): void
     {
         $viewer = $this->viewer($role);
         $seed($viewer, 3);
 
-        $html = $this->actingAs($viewer)->get(route($route, $filters + ['page' => 1, 'per_page' => 25]))->assertOk()->getContent();
+        $html = $this->actingAs($viewer)->get(route($route, $filters + ['page' => 1]))->assertOk()->getContent();
 
-        // Every GET form on the page (filters, page size) drops `page`.
+        // Every GET form (search, filters) and every filter link drops `page`.
         preg_match_all('/<form method="GET".*?<\/form>/s', $html, $forms);
         $this->assertNotEmpty($forms[0]);
         foreach ($forms[0] as $form) {
             $this->assertStringNotContainsString('name="page"', $form);
         }
-        // The filter control keeps the page size: a hidden field in a filter form, or tab links.
-        $this->assertMatchesRegularExpression('/name="per_page" value="25"|href="[^"]*per_page=25[^"]*"/', $html);
-        $this->assertDoesNotMatchRegularExpression('/href="[^"]*[?&]page=1\b/', $html);
+        $this->assertDoesNotMatchRegularExpression('/href="[^"]*[?&](amp;)?page=1\b/', $html);
     }
 
     #[DataProvider('lists')]
-    public function test_empty_lists_say_whether_the_filters_or_the_data_are_empty(string $route, string $role, int $default, array $filters, \Closure $seed): void
+    public function test_empty_lists_say_whether_the_filters_or_the_data_are_empty(string $route, string $role, array $filters, \Closure $seed): void
     {
         $viewer = $this->viewer($role);
 

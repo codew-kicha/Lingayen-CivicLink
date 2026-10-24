@@ -39,7 +39,7 @@
                         <x-dynamic-component :component="'phosphor-'.$item['icon']" class="h-5 w-5 shrink-0" aria-hidden="true" />
                         <span class="truncate">{{ $item['label'] }}</span>
                         @if ($count)
-                            <span class="count-badge ml-auto" aria-label="{{ $count }} waiting">{{ $count }}</span>
+                            <span class="count-badge ml-auto" data-nav-count="{{ $item['count'] }}" aria-label="{{ $count }} waiting">{{ $count }}</span>
                         @endif
                     </a>
                 </li>

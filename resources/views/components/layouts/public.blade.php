@@ -44,7 +44,7 @@
                 <a href="{{ route('home') }}" class="brand-link flex items-center gap-3 rounded-sm">
                     <x-civic-mark class="civic-seal h-14 w-14" />
                     <span class="leading-tight">
-                        <span class="brand-name block font-serif text-lg font-bold text-brand-800">Lingayen CivicLink</span>
+                        <span class="brand-name block font-serif text-lg font-bold text-brand-800">CSO Desk Office</span>
                         <span class="block text-xs text-muted">Municipality of Lingayen, Pangasinan</span>
                     </span>
                 </a>

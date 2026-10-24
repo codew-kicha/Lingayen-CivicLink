@@ -40,7 +40,8 @@ return [
 
         'public' => [
             'driver' => 'local',
-            'root' => storage_path('app/public'),
+            // Hosts without SSH can't run storage:link: PUBLIC_UPLOADS_IN_WEB_ROOT=true keeps logos in public/storage itself.
+            'root' => env('PUBLIC_UPLOADS_IN_WEB_ROOT', false) ? public_path('storage') : storage_path('app/public'),
             'url' => rtrim(env('APP_URL', 'http://localhost'), '/').'/storage',
             'visibility' => 'public',
             'throw' => false,
