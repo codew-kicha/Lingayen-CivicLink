@@ -33,7 +33,9 @@ return [
         'local' => [
             'driver' => 'local',
             'root' => storage_path('app/private'),
-            'serve' => true,
+            // Off: private files (documents, sign-in sheets, reports) are only served by the app's own
+            // authorized routes, never through Laravel's signed /storage URLs.
+            'serve' => false,
             'throw' => false,
             'report' => false,
         ],

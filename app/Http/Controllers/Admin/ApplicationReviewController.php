@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Exports\ReportSheet;
 use App\Http\Controllers\Controller;
+use App\Support\Mailer;
 use App\Http\Requests\RejectApplicationRequest;
 use App\Http\Requests\UpdateSbStageRequest;
 use App\Models\Accreditation;
@@ -102,9 +103,9 @@ class ApplicationReviewController extends Controller
             'status' => $application->status === 'submitted' ? 'under_review' : $application->status,
         ]);
 
-        $application->organization->user?->notify(new ApplicationStatusChanged($application));
+        $sent = Mailer::send($application->organization->user, new ApplicationStatusChanged($application));
 
-        return back()->with('status', 'Reading stage updated.');
+        return back()->with('status', 'Reading stage updated.')->with($sent ? [] : ['error' => Mailer::FAILED]);
     }
 
     /**
@@ -140,11 +141,12 @@ class ApplicationReviewController extends Controller
             ]);
         });
 
-        $application->organization->user?->notify(new ApplicationStatusChanged($application->refresh()));
+        $sent = Mailer::send($application->organization->user, new ApplicationStatusChanged($application->refresh()));
 
         return redirect()
             ->route('admin.applications.show', $application)
-            ->with('status', 'Application approved and accreditation issued.');
+            ->with('status', 'Application approved and accreditation issued.')
+            ->with($sent ? [] : ['error' => Mailer::FAILED]);
     }
 
     public function reject(RejectApplicationRequest $request, ApplicationModel $application): RedirectResponse
@@ -158,10 +160,11 @@ class ApplicationReviewController extends Controller
             'reviewed_at' => now(),
         ]);
 
-        $application->organization->user?->notify(new ApplicationStatusChanged($application));
+        $sent = Mailer::send($application->organization->user, new ApplicationStatusChanged($application));
 
         return redirect()
             ->route('admin.applications.show', $application)
-            ->with('status', 'Application rejected and the organization has been notified.');
+            ->with('status', 'Application rejected and the organization has been notified.')
+            ->with($sent ? [] : ['error' => Mailer::FAILED]);
     }
 }

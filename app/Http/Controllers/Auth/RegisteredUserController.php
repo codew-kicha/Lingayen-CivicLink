@@ -45,9 +45,18 @@ class RegisteredUserController extends Controller
             return $user;
         });
 
-        event(new Registered($user));
-
         Auth::login($user);
+
+        // Sends the confirmation code. If the mail server is down the account still exists and is
+        // signed in, so the person waits on the code page and presses "Send a new code" later.
+        try {
+            event(new Registered($user));
+        } catch (\Throwable $e) {
+            report($e);
+
+            return redirect()->route('verification.notice')
+                ->withErrors(['code' => 'Your account was created, but the code email could not be sent just now. Press "Send a new code" in a few minutes.']);
+        }
 
         return redirect()->route('verification.notice');
     }

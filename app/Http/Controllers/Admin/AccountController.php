@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Support\Mailer;
 use App\Http\Requests\Admin\InviteAccountRequest;
 use App\Http\Requests\Admin\ReasonRequest;
 use App\Http\Requests\Admin\UpdateCredentialsRequest;
@@ -56,11 +57,12 @@ class AccountController extends Controller
             'password' => Str::random(64),
         ]);
 
-        $admin->notify(new AccountInvitation);
+        $sent = Mailer::send($admin, new AccountInvitation);
         AuditLog::record('account.admin_created', $admin, ['email' => $admin->email]);
 
-        return redirect()->route('admin.accounts.index')
-            ->with('status', "Invitation sent to {$admin->email}. The account becomes usable once they set a password.");
+        return redirect()->route('admin.accounts.index')->with($sent
+            ? ['status' => "Invitation sent to {$admin->email}. The account becomes usable once they set a password."]
+            : ['error' => "The account for {$admin->email} was created, but the invitation email could not be sent. Use Resend invitation once mail works."]);
     }
 
     // A representative's login, corrected by the office, optionally with a new password that the admin
@@ -123,7 +125,9 @@ class AccountController extends Controller
     {
         $this->authorize('invite', $user);
 
-        $user->notify(new AccountInvitation);
+        if (! Mailer::send($user, new AccountInvitation)) {
+            return back()->with('error', "The invitation email to {$user->email} could not be sent. Check the mail settings in System check.");
+        }
         AuditLog::record('account.invitation_sent', $user);
 
         return back()->with('status', "A new invitation link was sent to {$user->email}.");

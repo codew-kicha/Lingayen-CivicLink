@@ -218,8 +218,10 @@ class SecurityHardeningTest extends TestCase
         Organization::factory()->for($rep)->create();
 
         // A real file on disk, so the type is sniffed from its content (fake uploads trust the name).
+        // Harmless PHP on purpose: a real web-shell line is quarantined by Windows Defender before
+        // PHP can read it, which made this test fail on Windows for the wrong reason.
         $path = tempnam(sys_get_temp_dir(), 'upl');
-        file_put_contents($path, '<?php system($_GET["c"]); ?>');
+        file_put_contents($path, "<?php\necho 'This is not a receipt.';\n");
 
         $this->actingAs($rep)->post(route('cso.applications.store'), [
             'type' => 'new',

@@ -157,8 +157,10 @@ class GoLiveChecks
 
     private function mail(): array
     {
+        // A fail, not a warning: new organizations confirm their email with a mailed code, so without
+        // mail nobody can finish registering (and invitations, password resets and reminders vanish).
         return in_array(config('mail.default'), ['log', 'array'], true)
-            ? ['label' => 'Email', 'status' => 'warn', 'detail' => 'MAIL_MAILER is "'.config('mail.default').'": invitations and password links would not reach anyone.']
+            ? ['label' => 'Email', 'status' => 'fail', 'detail' => 'MAIL_MAILER is "'.config('mail.default').'": sign-up codes, invitations, password links and reminders would not reach anyone. Fill in the MAIL_ settings.']
             : ['label' => 'Email', 'status' => 'pass', 'detail' => 'Mail goes out through '.config('mail.default').'. Send yourself an invitation to confirm it arrives.'];
     }
 

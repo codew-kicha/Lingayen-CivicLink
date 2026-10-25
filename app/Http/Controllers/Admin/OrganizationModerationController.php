@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Exports\OrganizationList;
 use App\Http\Controllers\Controller;
+use App\Support\Mailer;
 use App\Http\Requests\Admin\ConfirmedOrganizationRequest;
 use App\Http\Requests\Admin\InviteAccountRequest;
 use App\Http\Requests\Admin\ManageOrganizationRequest;
@@ -70,7 +71,9 @@ class OrganizationModerationController extends Controller
             return back()->with('error', "A reminder already went to {$user->email} in the last 24 hours.");
         }
 
-        $user->notify(new AccreditationExpiring($accreditation));
+        if (! Mailer::send($user, new AccreditationExpiring($accreditation))) {
+            return back()->with('error', "The reminder to {$user->email} could not be sent. Check the mail settings in System check.");
+        }
         AuditLog::record('accreditation.reminder_sent', $organization, [
             'email' => $user->email,
             'expires_at' => $accreditation->expires_at->toDateString(),
@@ -137,9 +140,9 @@ class OrganizationModerationController extends Controller
             return $organization->setRelation('user', $user);
         });
 
-        $organization->user?->notify(new AccountInvitation);
+        $sent = Mailer::send($organization->user, new AccountInvitation);
 
-        return redirect()->route('admin.organizations.edit', $organization)->with('status', $organization->user
+        return redirect()->route('admin.organizations.edit', $organization)->with($sent ? [] : ['error' => Mailer::FAILED])->with('status', $organization->user
             ? "{$organization->name} registered. An invitation was sent to {$organization->user->email}."
             : "{$organization->name} registered without a login. Attach a representative when one is known.");
     }
@@ -212,7 +215,9 @@ class OrganizationModerationController extends Controller
             return $user;
         });
 
-        $user->notify(new AccountInvitation);
+        if (! Mailer::send($user, new AccountInvitation)) {
+            return back()->with('error', "The account for {$user->email} was created, but the invitation email could not be sent. Use Resend invitation on the Accounts page once mail works.");
+        }
 
         return back()->with('status', "Invitation sent to {$user->email}.");
     }

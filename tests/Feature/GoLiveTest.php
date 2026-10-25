@@ -55,6 +55,15 @@ class GoLiveTest extends TestCase
         }
     }
 
+    public function test_a_site_without_real_email_is_not_ready(): void
+    {
+        config(['mail.default' => 'log']);
+        $this->assertSame('fail', $this->check((new GoLiveChecks)->run(probeUrls: false), 'Email')['status']);
+
+        config(['mail.default' => 'smtp']);
+        $this->assertSame('pass', $this->check((new GoLiveChecks)->run(probeUrls: false), 'Email')['status']);
+    }
+
     public function test_downloadable_private_files_fail_and_an_unreachable_site_only_warns(): void
     {
         config(['app.url' => 'https://csodesk.example.gov.ph']);

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Support\Mailer;
 use App\Http\Requests\RejectActivityRequest;
 use App\Models\Activity;
 use App\Models\AuditLog;
@@ -71,9 +72,9 @@ class ActivityVerificationController extends Controller
         foreach ($activity->partnerOrganizations->prepend($activity->organization) as $organization) {
             $scores->recalculate($organization);
         }
-        $activity->organization->user?->notify(new ActivityVerified($activity));
+        $sent = Mailer::send($activity->organization->user, new ActivityVerified($activity));
 
-        return $this->done($request, 'Activity verified and the score has been recalculated.');
+        return $this->done($request, 'Activity verified and the score has been recalculated.', $sent);
     }
 
     public function reject(RejectActivityRequest $request, Activity $activity): RedirectResponse|JsonResponse
@@ -87,13 +88,17 @@ class ActivityVerificationController extends Controller
             'rejection_reason' => $request->validated('rejection_reason'),
         ]);
 
-        $activity->organization->user?->notify(new ActivityVerified($activity));
+        $sent = Mailer::send($activity->organization->user, new ActivityVerified($activity));
 
-        return $this->done($request, 'Activity rejected and the organization has been notified.');
+        return $this->done($request, 'Activity rejected and the organization has been notified.', $sent);
     }
 
-    private function done(Request $request, string $message): RedirectResponse|JsonResponse
+    private function done(Request $request, string $message, bool $mailed = true): RedirectResponse|JsonResponse
     {
+        if (! $mailed) {
+            $message .= ' The email to the organization could not be sent.';
+        }
+
         return $request->expectsJson() ? response()->json(['message' => $message]) : back()->with('status', $message);
     }
 }

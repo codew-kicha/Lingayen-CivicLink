@@ -150,6 +150,21 @@ class CsoScreensAndRemindersTest extends TestCase
         Notification::assertNothingSent();
     }
 
+    public function test_a_mail_outage_never_blocks_an_approval(): void
+    {
+        config(['mail.default' => 'smtp', 'mail.mailers.smtp.host' => '127.0.0.1', 'mail.mailers.smtp.port' => 1, 'mail.mailers.smtp.timeout' => 1]);
+        $admin = User::factory()->admin()->create();
+        $rep = $this->rep();
+        $application = ApplicationModel::factory()->for($rep->organization)->create(['status' => 'submitted']);
+
+        $this->actingAs($admin)->post(route('admin.applications.approve', $application))
+            ->assertRedirect(route('admin.applications.show', $application))
+            ->assertSessionHas('status')->assertSessionHas('error', \App\Support\Mailer::FAILED);
+
+        $this->assertSame('approved', $application->fresh()->status);
+        $this->assertSame(1, $rep->organization->accreditations()->where('status', 'active')->count());
+    }
+
     public function test_the_expiring_filter_lists_only_accreditations_ending_within_90_days(): void
     {
         $admin = User::factory()->admin()->create();
