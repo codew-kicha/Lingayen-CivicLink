@@ -99,12 +99,15 @@ ssh -p 65002 uXXXXXXX@your-server-ip
 cd ~/domains/your-domain.me
 git clone https://github.com/codew-kicha/Lingayen-CivicLink.git app
 cd app
-composer install --no-dev --optimize-autoloader
+# Hostinger's PHP blocks proc_open, which Composer's post-install script needs: skip the scripts
+# and run Laravel's one step (package discovery) directly.
+composer install --no-dev --optimize-autoloader --no-scripts
+php artisan package:discover --ansi
 cp .env.production.example .env && nano .env      # APP_URL=https://your-domain.me, database, mail
 php artisan key:generate
 php artisan migrate --force
 php artisan app:create-admin
-php artisan storage:link
+php artisan storage:link   # if symlink() is disabled: ln -s "$PWD/storage/app/public" "$PWD/public/storage"
 php artisan config:cache && php artisan route:cache && php artisan view:cache
 # Serve only public/: replace the empty public_html with a link to it.
 cd .. && mv public_html public_html.bak && ln -s app/public public_html
@@ -120,7 +123,8 @@ project's root `.htaccess` keeps everything except `public/` unreachable).
 
 ```bash
 cd ~/domains/your-domain.me/app && git pull
-composer install --no-dev --optimize-autoloader && php artisan migrate --force
+composer install --no-dev --optimize-autoloader --no-scripts && php artisan package:discover --ansi
+php artisan migrate --force
 php artisan config:cache && php artisan route:cache && php artisan view:cache
 ```
 
