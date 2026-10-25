@@ -1,13 +1,15 @@
 <?php
 
-// Public-page content. Officials, address, and hours confirmed by the client (PRD §11).
-// Phone and email are still pending from the client, so they are deliberately absent.
+// Public-page content. Officials, address, hours, phone and email confirmed by the client (PRD §11).
 return [
 
     'office' => [
         'name' => 'Civil Society Desk Office',
         'parent' => 'Public Employment Service Office, Municipality of Lingayen',
-        'address' => '#1 Bengson Street, Lingayen, Pangasinan 2401',
+        'address' => '2nd Floor, PESO Office, Municipal Hall, Lingayen, Pangasinan',
+        'email' => 'vandeveramoulic@gmail.com',
+        'phone' => '0964 057 4151',
+        'phone_link' => '+639640574151',   // tel: links (tap to call on phones)
         // Unconfirmed whether the office is closed Friday to Sunday or keeps other hours (PRD §11).
         'hours' => 'Monday to Thursday, 7:00 AM to 6:00 PM',
         'facebook' => 'https://www.facebook.com/pesolingayen/',
@@ -16,6 +18,7 @@ return [
     'officials' => [
         ['name' => 'Hon. Josefina “Iday” V. Castañeda', 'position' => 'Municipal Mayor'],
         ['name' => 'Hon. Jay Mark Kevin D. Crisostomo', 'position' => 'Municipal Vice Mayor'],
+        ['name' => 'Cezca Katrina F. Mararac', 'position' => 'PESO Manager'],
         ['name' => 'Van Macley Moulic', 'position' => 'Civil Society Desk Officer'],
     ],
 
@@ -31,7 +34,7 @@ return [
         ],
         [
             'title' => 'PESO review',
-            'detail' => 'The office evaluates the application against the DILG MC 2022-083 criteria.',
+            'detail' => 'The office evaluates the application against the DILG MC No. 2025-060 criteria.',
         ],
         [
             'title' => 'Sangguniang Bayan readings',
@@ -43,18 +46,43 @@ return [
         ],
     ],
 
+    // What each Sangguniang Bayan form asks for, word for word from the CY 2026 forms (resources/forms).
+    'paper_forms' => [
+        'new' => [
+            'title' => 'New application',
+            'note' => 'Submit everything in 2 copies.',
+            'items' => [
+                'Accomplished Accreditation Form',
+                'Updated list of officers and members, including their contact numbers',
+                'Constitution and by-laws',
+                'Official receipt of the accreditation fee from the Municipal Treasury (PHP 1,000.00)',
+                'DOLE or SEC certification (if registered)',
+            ],
+        ],
+        'renewal' => [
+            'title' => 'Renewal',
+            'note' => null,
+            'items' => [
+                'Accomplished Accreditation Form',
+                'Updated list of officers and members, including their contact numbers',
+                'Official receipt of the renewal fee from the Municipal Treasury (PHP 500.00)',
+                'DOLE or SEC certification',
+            ],
+        ],
+    ],
+
     'requirement_notes' => [
         'accreditation_form' => 'The office\'s accreditation form, filled in and signed by your president.',
-        'officers_members_list' => 'Current officers and members, with positions.',
-        'constitution_bylaws' => 'Your organization\'s adopted constitution and by-laws.',
-        'fee_receipt' => 'PHP 1,000 for new applications, paid at the Municipal Treasury. PHP 500 for renewals, which is sometimes waived.',
+        'officers_members_list' => 'Current officers and members, with their positions and contact numbers.',
+        'constitution_bylaws' => 'Your organization\'s adopted constitution and by-laws. New applications only.',
+        'fee_receipt' => 'From the Municipal Treasury: PHP 1,000 for new applications, PHP 500 for renewals.',
         'dole_sec_certification' => 'Submit only if your organization is registered with DOLE or SEC.',
     ],
 
     'faqs' => [
         [
             'question' => 'How long does accreditation last?',
-            'answer' => 'Accreditation runs for three years, after which organizations file a renewal application.',
+            'answer' => 'The Sangguniang Bayan sets how long accreditation lasts. The office currently issues it for three years, after which organizations file a renewal application.',
         ],
         [
             'question' => 'What does the performance score affect?',

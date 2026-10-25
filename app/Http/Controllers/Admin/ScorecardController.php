@@ -5,19 +5,22 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Organization;
 use App\Services\PerformanceScoreCalculator;
+use App\Support\ListPagination;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class ScorecardController extends Controller
 {
-    public function index(): View
+    public function index(Request $request): View
     {
         $this->authorize('viewAny', Organization::class);
 
         return view('admin.scorecards.index', [
-            'organizations' => Organization::with(['performanceScores' => fn ($q) => $q->latest('computed_at')->limit(1)])
-                ->orderBy('name')
-                ->paginate(25),
+            'organizations' => ListPagination::paginate(Organization::with(['performanceScores' => fn ($q) => $q->latest('computed_at')->limit(1)])
+                ->when($request->string('q')->trim()->value(), fn ($q, $term) => $q->where('name', 'like', "%{$term}%"))
+                ->orderBy('name'),
+                $request),
         ]);
     }
 

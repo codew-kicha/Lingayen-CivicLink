@@ -1,4 +1,4 @@
-<x-layouts.admin header="Accounts"
+<x-layouts.app header="Accounts"
                  subheader="Everyone who can sign in: PESO administrators and CSO representatives.">
     <div class="mb-4 flex flex-wrap items-end gap-3">
         <form method="GET" class="flex flex-wrap items-end gap-3">
@@ -31,19 +31,21 @@
         </form>
 
         <div class="ml-auto flex gap-2">
-            <a href="{{ route('admin.organizations.create') }}" class="btn-secondary">Register organization</a>
+            <a href="{{ route('admin.organizations.create') }}" class="btn-secondary"
+               @click.prevent="$dispatch('open-dialog', 'register-organization')">Register an organization</a>
             <a href="{{ route('admin.accounts.create') }}" class="btn-primary">Add PESO admin</a>
         </div>
     </div>
 
-    <section class="panel-flat overflow-hidden">
+    <section class="card">
         @if ($accounts->isEmpty())
-            <p class="px-4 py-14 text-center text-sm text-muted">No accounts match those filters.</p>
+            <x-empty-state :filtered="request()->hasAny(['q', 'role', 'status'])" :clear-url="route('admin.accounts.index')"
+                           title="No accounts yet." icon="users" />
         @else
-            <div class="overflow-x-auto">
+            <div class="table-wrap table-sticky">
                 <table class="w-full">
                     <caption class="sr-only">Accounts</caption>
-                    <thead class="sticky top-0 bg-paper">
+                    <thead>
                         <tr>
                             <th scope="col" class="table-head">Name</th>
                             <th scope="col" class="table-head">Role</th>
@@ -57,14 +59,14 @@
                         @foreach ($accounts as $account)
                             <tr class="table-row">
                                 <td class="table-cell">
-                                    <p class="font-medium text-ink">{{ $account->name }}</p>
+                                    <p class="font-semibold text-ink">{{ $account->name }}</p>
                                     <p class="text-xs text-muted">{{ $account->email }}</p>
                                 </td>
                                 <td class="table-cell text-muted">{{ $account->isAdmin() ? 'PESO admin' : 'CSO representative' }}</td>
                                 <td class="table-cell">
                                     @if ($account->organization)
                                         <a href="{{ route('admin.organizations.edit', $account->organization) }}"
-                                           class="text-navy-700 hover:underline">{{ $account->organization->name }}</a>
+                                           class="entity-link">{{ $account->organization->name }}</a>
                                     @else
                                         <span class="text-muted">None</span>
                                     @endif
@@ -79,17 +81,24 @@
                                         <span class="badge-success">Active</span>
                                     @endif
                                 </td>
-                                <td class="table-cell font-mono text-xs tabular-nums text-muted">
+                                <td class="table-date">
                                     {{ $account->last_login_at?->format('d M Y, H:i') ?? 'Never' }}
                                 </td>
                                 <td class="table-cell">
                                     <div class="flex flex-wrap justify-end gap-1">
-                                        <a href="{{ route('admin.audit.index', ['account' => $account->id]) }}" class="btn-ghost px-3 py-1.5">History</a>
+                                        <a href="{{ route('admin.audit.index', ['account' => $account->id]) }}" class="btn-ghost px-3 py-2">History</a>
+
+                                        @can('manageCredentials', $account)
+                                            <button type="button" class="btn-ghost px-3 py-2"
+                                                    @click="$dispatch('edit-login', @js(['id' => $account->id, 'name' => $account->name, 'email' => $account->email, 'phone' => $account->phone, 'organization' => $account->organization?->name, 'url' => route('admin.accounts.update', $account)]))">
+                                                <x-phosphor-key class="h-4 w-4" aria-hidden="true" />Edit login
+                                            </button>
+                                        @endcan
 
                                         @can('invite', $account)
                                             <form method="POST" action="{{ route('admin.accounts.invitation', $account) }}">
                                                 @csrf
-                                                <button type="submit" class="btn-ghost px-3 py-1.5">Resend invitation</button>
+                                                <button type="submit" class="btn-ghost px-3 py-2">Resend invitation</button>
                                             </form>
                                         @endcan
 
@@ -97,13 +106,13 @@
                                             <form method="POST" action="{{ route('admin.accounts.reactivate', $account) }}">
                                                 @csrf
                                                 @method('PATCH')
-                                                <button type="submit" class="btn-ghost px-3 py-1.5">Reactivate</button>
+                                                <button type="submit" class="btn-ghost px-3 py-2">Reactivate</button>
                                             </form>
                                         @endcan
 
                                         @can('deactivate', $account)
                                             <details class="relative">
-                                                <summary class="btn-ghost cursor-pointer list-none px-3 py-1.5 text-danger-600">Deactivate</summary>
+                                                <summary class="btn-ghost cursor-pointer list-none px-3 py-2 text-danger">Deactivate</summary>
                                                 <form method="POST" action="{{ route('admin.accounts.deactivate', $account) }}"
                                                       class="absolute right-0 z-dropdown mt-1 w-72 space-y-2 rounded-lg border border-line bg-paper p-3 shadow-overlay">
                                                     @csrf
@@ -123,11 +132,13 @@
                 </table>
             </div>
         @endif
+        <x-pagination :paginator="$accounts" />
     </section>
 
     @error('reason')
         <p class="field-error mt-3">{{ $message }}</p>
     @enderror
 
-    <div class="mt-4">{{ $accounts->links() }}</div>
-</x-layouts.admin>
+    @include('admin.accounts.edit-login-dialog')
+    @include('admin.organizations.register-dialog')
+</x-layouts.app>

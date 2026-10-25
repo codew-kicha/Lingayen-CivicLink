@@ -1,11 +1,11 @@
 @props(['status'])
 
 @php
-    // Shared status vocabulary across all three roles (DESIGN_SYSTEM.md §5.4).
+    // Shared status vocabulary across all three roles (docs/DESIGN_SYSTEM.md §3).
     $map = [
         'draft' => ['Draft', 'badge-neutral'],
         'submitted' => ['Submitted', 'badge-info'],
-        'under_review' => ['Under review', 'badge-info'],
+        'under_review' => ['Under review', 'badge-warning'],
         'pending' => ['Pending verification', 'badge-warning'],
         'approved' => ['Approved', 'badge-success'],
         'verified' => ['Verified', 'badge-success'],

@@ -110,7 +110,9 @@ class AccreditationLoopTest extends TestCase
         // profile now carries the verified work.
         $this->actingAs($rep)->get(route('cso.dashboard'))
             ->assertOk()
-            ->assertSee(number_format($score->total_score * 100, 0).'%');
+            ->assertSee(number_format($score->total_score * 100, 0).'%')
+            ->assertSee('Recent activities')
+            ->assertSee('Coastal clean-up drive');
         $this->actingAs($rep)->get(route('cso.activities.index'))
             ->assertOk()
             ->assertSee('Coastal clean-up drive');
@@ -163,6 +165,27 @@ class AccreditationLoopTest extends TestCase
         $this->actingAs($rep)
             ->post(route('cso.applications.store'), ['type' => 'new', 'documents' => $required->except('fee_receipt')->all()])
             ->assertSessionHasErrors('documents.fee_receipt');
+    }
+
+    public function test_renewals_do_not_need_the_constitution_and_by_laws_but_new_applications_do(): void
+    {
+        Storage::fake('local');
+        $file = fn (string $type) => UploadedFile::fake()->create("{$type}.pdf", 100, 'application/pdf');
+        $withoutConstitution = collect(\App\Models\Document::requiredTypes())->reject(fn ($type) => $type === 'constitution_bylaws')
+            ->mapWithKeys(fn ($type) => [$type => $file($type)]);
+
+        $renewing = User::factory()->create();
+        Organization::factory()->for($renewing)->create();
+        $this->actingAs($renewing)
+            ->post(route('cso.applications.store'), ['type' => 'renewal', 'documents' => $withoutConstitution->all()])
+            ->assertSessionHasNoErrors()->assertRedirect();
+        $this->assertSame('renewal', ApplicationModel::firstOrFail()->type);
+
+        $applying = User::factory()->create();
+        Organization::factory()->for($applying)->create();
+        $this->actingAs($applying)
+            ->post(route('cso.applications.store'), ['type' => 'new', 'documents' => $withoutConstitution->all()])
+            ->assertSessionHasErrors('documents.constitution_bylaws');
     }
 
     public function test_unknown_document_keys_are_not_stored(): void

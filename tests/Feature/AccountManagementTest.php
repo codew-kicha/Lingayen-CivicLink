@@ -2,14 +2,17 @@
 
 namespace Tests\Feature;
 
+use App\Exports\ReportSheet;
 use App\Models\Accreditation;
 use App\Models\ApplicationModel;
 use App\Models\Organization;
 use App\Models\User;
 use App\Notifications\AccountInvitation;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\URL;
+use Maatwebsite\Excel\Facades\Excel;
 use Tests\TestCase;
 
 class AccountManagementTest extends TestCase
@@ -36,6 +39,7 @@ class AccountManagementTest extends TestCase
             'name' => 'Baay Pedicab Drivers Association',
             'sector' => 'Pedicab Drivers',
             'barangay' => array_values(config('barangays'))[1],
+            'create_login' => '1',
             'rep_name' => 'Jose Ramos',
             'rep_email' => 'jose@example.ph',
             'rep_phone' => '09181234567',
@@ -60,10 +64,137 @@ class AccountManagementTest extends TestCase
         $this->assertNull(Organization::where('name', 'Tonton Senior Circle')->firstOrFail()->user_id);
     }
 
+    public function test_the_representative_login_is_created_only_when_ticked_and_then_needs_a_name_and_email(): void
+    {
+        Notification::fake();
+        $admin = $this->admin();
+        $organization = ['sector' => 'Senior Citizen', 'barangay' => array_values(config('barangays'))[2]];
+
+        // Unticked: typed representative details are ignored, not half-saved.
+        $this->actingAs($admin)->post(route('admin.organizations.store'), $organization + [
+            'name' => 'Libsong Senior Circle', 'rep_name' => 'Ana Cruz', 'rep_email' => 'ana@example.ph',
+        ])->assertRedirect();
+        $this->assertNull(Organization::where('name', 'Libsong Senior Circle')->firstOrFail()->user_id);
+        $this->assertDatabaseMissing('users', ['email' => 'ana@example.ph']);
+
+        // Ticked: both fields are required, and the page the dialog was on comes back with the errors.
+        $this->actingAs($admin)->from(route('admin.applications.index'))->post(route('admin.organizations.store'), $organization + [
+            'name' => 'Poblacion Senior Circle', 'create_login' => '1', '_dialog' => 'register-organization',
+        ])->assertRedirect(route('admin.applications.index'))->assertSessionHasErrors(['rep_name', 'rep_email']);
+        $this->assertDatabaseMissing('organizations', ['name' => 'Poblacion Senior Circle']);
+    }
+
+    public function test_the_old_register_page_opens_the_dialog(): void
+    {
+        $admin = $this->admin();
+
+        $this->actingAs($admin)->get(route('admin.organizations.create'))
+            ->assertRedirect(route('admin.organizations.index', ['register' => 1]));
+        $this->actingAs($admin)->get(route('admin.organizations.index', ['register' => 1]))
+            ->assertOk()->assertSee('Register an organization')->assertSee('Create a login for the representative');
+    }
+
+    public function test_an_admin_can_correct_a_representatives_login_and_set_a_new_password(): void
+    {
+        $admin = $this->admin();
+        $rep = User::factory()->create(['email' => 'old@example.ph', 'email_verified_at' => null]);
+
+        $this->actingAs($admin)->patch(route('admin.accounts.update', $rep), [
+            'name' => 'Maria Santos', 'email' => 'maria@example.ph', 'phone' => '0917 123 4567',
+            'reset_password' => '1', 'new_password' => self::STRONG, 'admin_password' => 'password',
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        $rep->refresh();
+        $this->assertSame(['Maria Santos', 'maria@example.ph', '+639171234567'], [$rep->name, $rep->email, $rep->phone]);
+        $this->assertTrue(Hash::check(self::STRONG, $rep->password));
+        $this->assertNotNull($rep->email_verified_at, 'A password set by the office makes a pending invitation usable.');
+        $this->assertDatabaseHas('audit_logs', ['action' => 'account.password_reset', 'subject_id' => $rep->id]);
+        $this->assertDatabaseHas('audit_logs', ['action' => 'account.credentials_updated', 'subject_id' => $rep->id]);
+
+        $this->post(route('logout'));
+        $this->post(route('login'), ['email' => 'maria@example.ph', 'password' => self::STRONG]);
+        $this->assertAuthenticatedAs($rep);
+    }
+
+    public function test_changing_a_login_needs_the_admins_own_password_and_a_strong_new_one(): void
+    {
+        $admin = $this->admin();
+        $rep = User::factory()->create(['email' => 'rep@example.ph']);
+        $before = $rep->password;
+
+        $this->actingAs($admin)->patch(route('admin.accounts.update', $rep), [
+            'name' => $rep->name, 'email' => 'rep@example.ph',
+            'reset_password' => '1', 'new_password' => 'short', 'admin_password' => 'wrong-password',
+        ])->assertSessionHasErrors(['new_password', 'admin_password']);
+        $this->assertSame($before, $rep->refresh()->password);
+
+        // Unticked, a typed password is ignored and only the details change.
+        $this->actingAs($admin)->patch(route('admin.accounts.update', $rep), [
+            'name' => 'Renamed Rep', 'email' => 'rep@example.ph', 'new_password' => self::STRONG, 'admin_password' => 'password',
+        ])->assertSessionHasNoErrors();
+        $this->assertSame(['Renamed Rep', $before], [$rep->refresh()->name, $rep->password]);
+    }
+
+    public function test_typing_the_representatives_password_instead_of_your_own_is_explained(): void
+    {
+        $admin = User::factory()->admin()->create(['password' => ' Admin-Pass-2026 ']);
+        $rep = User::factory()->create(['name' => 'Maria Santos', 'email' => 'rep2@example.ph', 'password' => self::STRONG]);
+        $details = ['name' => 'Maria Santos', 'email' => 'rep2@example.ph', 'reset_password' => '1', 'new_password' => 'Brand-New-Pass-77'];
+
+        // The representative's password (what a browser fills in on this form) gets a specific message.
+        $this->actingAs($admin)->patch(route('admin.accounts.update', $rep), $details + ['admin_password' => self::STRONG])
+            ->assertSessionHasErrors(['admin_password' => "That is Maria Santos's current password. Enter your own admin password, the one you signed in with."]);
+
+        // The admin's own password works as typed, spaces included (passwords are never trimmed).
+        $this->actingAs($admin)->patch(route('admin.accounts.update', $rep), $details + ['admin_password' => ' Admin-Pass-2026 '])
+            ->assertSessionHasNoErrors();
+        $this->assertTrue(Hash::check('Brand-New-Pass-77', $rep->refresh()->password));
+    }
+
+    public function test_admin_accounts_and_cso_users_cannot_use_the_login_editor(): void
+    {
+        $admin = $this->admin();
+        $otherAdmin = $this->admin();
+        $rep = User::factory()->create();
+
+        $this->actingAs($admin)->patch(route('admin.accounts.update', $otherAdmin), [
+            'name' => 'X', 'email' => 'x@example.ph', 'admin_password' => 'password',
+        ])->assertForbidden();
+        $this->actingAs($rep)->patch(route('admin.accounts.update', User::factory()->create()), [
+            'name' => 'X', 'email' => 'x@example.ph', 'admin_password' => 'password',
+        ])->assertForbidden();
+    }
+
+    public function test_the_cso_list_downloads_as_excel_all_or_accredited_only(): void
+    {
+        Excel::fake();
+        $admin = $this->admin();
+        $accredited = Organization::factory()->create(['name' => 'Accredited Weavers']);
+        $application = ApplicationModel::factory()->for($accredited)->approved()->create();
+        $accredited->accreditations()->create([
+            'application_id' => $application->id, 'verification_code' => 'XLSX-0001', 'status' => 'active',
+            'active_org_marker' => $accredited->id, 'issued_at' => now(), 'expires_at' => now()->addYears(3),
+        ]);
+        Organization::factory()->create(['name' => 'Registered Farmers']);
+
+        $this->actingAs($admin)->get(route('admin.organizations.export', ['scope' => 'accredited']))->assertOk();
+        Excel::assertDownloaded('accredited-csos-'.now()->format('Y-m-d').'.xlsx', function (ReportSheet $sheet) {
+            return array_column($sheet->array(), 0) === ['Accredited Weavers'] && $sheet->array()[0][5] === 'XLSX-0001';
+        });
+
+        $this->actingAs($admin)->get(route('admin.organizations.export'))->assertOk();
+        Excel::assertDownloaded('registered-csos-'.now()->format('Y-m-d').'.xlsx', function (ReportSheet $sheet) {
+            return array_column($sheet->array(), 0) === ['Accredited Weavers', 'Registered Farmers'];
+        });
+        $this->assertDatabaseHas('audit_logs', ['action' => 'organization.list_exported']);
+
+        $this->actingAs(User::factory()->create())->get(route('admin.organizations.export'))->assertForbidden();
+    }
+
     public function test_an_invitation_sets_the_password_once_and_cannot_be_replayed(): void
     {
         $rep = User::factory()->unverified()->create();
-        $url = URL::temporarySignedRoute('invitation.store', now()->addHours(72), ['user' => $rep->id]);
+        $url = URL::temporarySignedRoute('invitation.store', now()->addHours(72), ['user' => $rep->id, 'for' => AccountInvitation::fingerprint($rep)]);
 
         $this->post($url, ['password' => self::STRONG, 'password_confirmation' => self::STRONG])
             ->assertRedirect(route('dashboard'));
@@ -80,11 +211,29 @@ class AccountManagementTest extends TestCase
         $rep = User::factory()->unverified()->create();
         $other = User::factory()->unverified()->create();
 
-        $url = URL::temporarySignedRoute('invitation.show', now()->addHours(72), ['user' => $rep->id]);
+        $url = URL::temporarySignedRoute('invitation.show', now()->addHours(72), ['user' => $rep->id, 'for' => AccountInvitation::fingerprint($rep)]);
         $this->get(str_replace("/invitation/{$rep->id}", "/invitation/{$other->id}", $url))->assertForbidden();
 
         $expired = URL::temporarySignedRoute('invitation.show', now()->subMinute(), ['user' => $rep->id]);
         $this->get($expired)->assertForbidden();
+    }
+
+    public function test_an_invitation_sent_to_a_mistyped_email_stops_working_once_the_email_is_corrected(): void
+    {
+        $admin = $this->admin();
+        $rep = User::factory()->unverified()->create(['email' => 'ana@gmial.com']);
+        $old = URL::temporarySignedRoute('invitation.store', now()->addHours(72), ['user' => $rep->id, 'for' => AccountInvitation::fingerprint($rep)]);
+
+        $this->actingAs($admin)->patch(route('admin.accounts.update', $rep), [
+            'name' => $rep->name, 'email' => 'ana@gmail.com', 'admin_password' => 'password',
+        ])->assertSessionHasNoErrors();
+        auth()->logout();
+
+        $this->post($old, ['password' => self::STRONG, 'password_confirmation' => self::STRONG])->assertStatus(410);
+        $this->assertNull($rep->refresh()->email_verified_at);
+
+        $fresh = URL::temporarySignedRoute('invitation.store', now()->addHours(72), ['user' => $rep->id, 'for' => AccountInvitation::fingerprint($rep)]);
+        $this->post($fresh, ['password' => self::STRONG, 'password_confirmation' => self::STRONG])->assertRedirect(route('dashboard'));
     }
 
     public function test_deactivation_requires_password_confirmation_and_a_reason(): void

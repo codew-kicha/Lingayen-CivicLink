@@ -1,7 +1,8 @@
 <?php
 
-// Accreditation requirements as confirmed by the Civil Society Desk Office (PRD §19).
-// DOLE/SEC certification is submitted only if the organization has one.
+// Accreditation requirements, as listed on the Sangguniang Bayan's CY 2026 forms (resources/forms).
+// DOLE/SEC certification is submitted only if the organization has one. 'new_only' documents are
+// not asked for on renewals (the renewal form leaves out the constitution and by-laws).
 //
 // 'keywords' drive the OCR pre-check (App\Services\DocumentPrecheck): a document "matches" when at
 // least 'min_matches' of them appear in its text. Matching ignores case, spacing and punctuation,
@@ -22,11 +23,12 @@ return [
     'constitution_bylaws' => [
         'label' => 'Constitution and By-Laws',
         'optional' => false,
+        'new_only' => true,
         'keywords' => ['constitution', 'bylaws', 'article', 'section', 'membership', 'amendment'],
         'min_matches' => 2,
     ],
     'fee_receipt' => [
-        'label' => 'Accreditation Fee Receipt',
+        'label' => 'Official Receipt of the Accreditation Fee',
         'optional' => false,
         'keywords' => ['receipt', 'treasur', 'amount', 'payment', 'paid', 'pesos', 'php'],
         'min_matches' => 2,

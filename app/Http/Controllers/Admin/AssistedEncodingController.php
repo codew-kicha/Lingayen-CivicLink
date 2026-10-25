@@ -16,15 +16,12 @@ use Illuminate\View\View;
  */
 class AssistedEncodingController extends Controller
 {
-    public function createApplication(Organization $organization): View
+    // The form is a dialog on the organization page now; this address opens it there.
+    public function createApplication(Organization $organization): RedirectResponse
     {
         $this->authorize('manage', Organization::class);
 
-        return view('admin.assisted.application', [
-            'organization' => $organization,
-            'documentTypes' => config('document_types'),
-            'hasActiveAccreditation' => $organization->accreditations()->where('status', 'active')->exists(),
-        ]);
+        return redirect()->route('admin.organizations.edit', [$organization, 'file' => 1]);
     }
 
     public function storeApplication(StoreApplicationRequest $request, Organization $organization): RedirectResponse

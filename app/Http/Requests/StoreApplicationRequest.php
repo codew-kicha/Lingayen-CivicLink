@@ -36,7 +36,10 @@ class StoreApplicationRequest extends FormRequest
             'ocr_text.*' => ['nullable', 'string', 'max:20000'],
         ] + collect(config('document_types'))
             ->mapWithKeys(fn (array $type, string $key) => [
-                "documents.{$key}" => [$type['optional'] ? 'nullable' : 'required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
+                "documents.{$key}" => [
+                    ...(! empty($type['new_only']) ? ['exclude_unless:type,new'] : []),
+                    $type['optional'] ? 'nullable' : 'required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120',
+                ],
             ])
             ->all();
     }

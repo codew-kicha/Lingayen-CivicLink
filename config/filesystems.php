@@ -33,14 +33,17 @@ return [
         'local' => [
             'driver' => 'local',
             'root' => storage_path('app/private'),
-            'serve' => true,
+            // Off: private files (documents, sign-in sheets, reports) are only served by the app's own
+            // authorized routes, never through Laravel's signed /storage URLs.
+            'serve' => false,
             'throw' => false,
             'report' => false,
         ],
 
         'public' => [
             'driver' => 'local',
-            'root' => storage_path('app/public'),
+            // Hosts without SSH can't run storage:link: PUBLIC_UPLOADS_IN_WEB_ROOT=true keeps logos in public/storage itself.
+            'root' => env('PUBLIC_UPLOADS_IN_WEB_ROOT', false) ? public_path('storage') : storage_path('app/public'),
             'url' => rtrim(env('APP_URL', 'http://localhost'), '/').'/storage',
             'visibility' => 'public',
             'throw' => false,

@@ -138,6 +138,22 @@ class CollaborationAndRecordsTest extends TestCase
         $this->assertSame('rejected', $application->fresh()->status);
     }
 
+    public function test_a_failed_assisted_application_reopens_its_dialog(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $organization = Organization::factory()->create(['user_id' => null]);
+        $page = route('admin.organizations.edit', $organization);
+
+        $this->actingAs($admin)->from($page)
+            ->post(route('admin.organizations.applications.store', $organization), ['type' => 'new', '_dialog' => 'file-application'])
+            ->assertRedirect($page)->assertSessionHasErrors('documents.accreditation_form');
+
+        $this->actingAs($admin)->get($page)
+            ->assertSee("dialog('file-application', true)", false)
+            ->assertSee('Attach the files again');
+        $this->assertSame(0, $organization->applications()->count());
+    }
+
     public function test_admin_can_log_an_activity_with_partners_for_an_organization(): void
     {
         $admin = User::factory()->admin()->create();

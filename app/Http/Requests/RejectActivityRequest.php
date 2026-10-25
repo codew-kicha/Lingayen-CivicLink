@@ -25,6 +25,7 @@ class RejectActivityRequest extends FormRequest
     {
         return [
             'rejection_reason.required' => 'Give the organization a reason so they know what to correct.',
+            'rejection_reason.min' => 'Write at least 10 characters so the organization knows what to correct.',
         ];
     }
 }

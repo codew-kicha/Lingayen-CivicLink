@@ -14,27 +14,27 @@ class ApplicationController extends Controller
     {
         $this->authorize('viewAny', ApplicationModel::class);
 
+        $organization = auth()->user()->organization;
+
         return view('cso.applications.index', [
-            'applications' => auth()->user()->organization
+            'applications' => $organization
                 ?->applications()
                 ->with('accreditation')
                 ->latest('id')
                 ->get() ?? collect(),
-            'organization' => auth()->user()->organization,
+            'organization' => $organization,
+            // For the Apply dialog.
+            'documentTypes' => config('document_types'),
+            'hasActiveAccreditation' => (bool) $organization?->accreditations()->where('status', 'active')->exists(),
         ]);
     }
 
-    public function create(): View
+    // The form is a dialog on the Applications page now; this address opens it there.
+    public function create(): RedirectResponse
     {
         $this->authorize('create', ApplicationModel::class);
 
-        $organization = auth()->user()->organization;
-
-        return view('cso.applications.create', [
-            'organization' => $organization,
-            'documentTypes' => config('document_types'),
-            'hasActiveAccreditation' => $organization->accreditations()->where('status', 'active')->exists(),
-        ]);
+        return redirect()->route('cso.applications.index', ['apply' => 1]);
     }
 
     public function store(StoreApplicationRequest $request): RedirectResponse

@@ -2,7 +2,7 @@
     <x-slot:title>Choose a new password</x-slot:title>
     <x-slot:heading>Choose a new password</x-slot:heading>
 
-    <form method="POST" action="{{ route('password.store') }}" class="space-y-5">
+    <form method="POST" action="{{ route('password.store') }}" class="space-y-6">
         @csrf
         <input type="hidden" name="token" value="{{ $request->route('token') }}">
 

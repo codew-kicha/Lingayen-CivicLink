@@ -1,4 +1,4 @@
-<x-layouts.admin header="Performance scorecards"
+<x-layouts.app header="Performance scorecards"
                  subheader="Equal-weighted across four components. Informational only: scores do not affect renewal decisions.">
     <x-slot:actions>
         <form method="POST" action="{{ route('admin.scorecards.recalculate') }}">
@@ -7,14 +7,26 @@
         </form>
     </x-slot:actions>
 
-    <section class="panel-flat overflow-hidden">
+    <form method="GET" class="mb-4 flex flex-wrap items-end gap-3">
+        <div>
+            <label for="q" class="field-label">Search</label>
+            <input type="search" id="q" name="q" value="{{ request('q') }}" placeholder="Organization name" class="field-input w-72">
+        </div>
+        <button type="submit" class="btn-primary">Search</button>
+        @if (request()->filled('q'))
+            <a href="{{ route('admin.scorecards.index') }}" class="btn-ghost">Clear</a>
+        @endif
+    </form>
+
+    <section class="card">
         @if ($organizations->isEmpty())
-            <p class="px-4 py-14 text-center text-sm text-muted">No organizations are registered yet.</p>
+            <x-empty-state :filtered="request()->filled('q')" :clear-url="route('admin.scorecards.index')"
+                           title="No organizations are registered yet." icon="gauge" />
         @else
-            <div class="overflow-x-auto">
+            <div class="table-wrap table-sticky">
                 <table class="w-full">
                     <caption class="sr-only">Performance scores by organization</caption>
-                    <thead class="sticky top-0 bg-paper">
+                    <thead>
                         <tr>
                             <th scope="col" class="table-head">Organization</th>
                             <th scope="col" class="table-head text-right">Activity frequency</th>
@@ -28,7 +40,7 @@
                         @foreach ($organizations as $organization)
                             @php $score = $organization->performanceScores->first(); @endphp
                             <tr class="table-row">
-                                <td class="table-cell font-medium">{{ $organization->name }}</td>
+                                <td class="table-cell font-semibold">{{ $organization->name }}</td>
                                 @if ($score)
                                     <td class="table-num">{{ number_format($score->activity_frequency * 100, 0) }}%</td>
                                     <td class="table-num">{{ number_format($score->community_reach * 100, 0) }}%</td>
@@ -48,7 +60,6 @@
                 </table>
             </div>
         @endif
+        <x-pagination :paginator="$organizations" />
     </section>
-
-    <div class="mt-4">{{ $organizations->links() }}</div>
-</x-layouts.admin>
+</x-layouts.app>

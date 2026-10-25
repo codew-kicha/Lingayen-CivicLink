@@ -1,431 +1,332 @@
-# Lingayen CivicLink, Design System
+# Lingayen CivicLink design system
 
-Companion to `docs/PRD_Lingayen_CivicLink_Complete.md` §11. This is the single source of truth
-for color, type, spacing, concept, and component states across all three experiences.
+This is the rulebook for every screen. Admin and CSO screens share one layout, one set of tokens and
+one set of components. The public site uses the same tokens, with its own look (§7).
 
-**This is a visual and content revision pass, not a feature rebuild.** Every route, controller,
-policy, and data flow in Milestone 1 stays exactly as built. Nothing here changes what the
-system does — only what it looks and reads like.
+**Where things live**
 
----
-
-## 0. The Distinct Visual Concept
-
-Don't default to generic SaaS. The brief itself refuses that: this is a municipal accreditation
-and accountability record for real, named barangay organizations in a coastal Pangasinan town,
-not a startup pitching a product. The concept should come from the PRD, not from a template.
-
-**The core idea: a living civic ledger, not a brochure.** Section 2 of the PRD documents a real,
-confirmed finding — organizations have historically received LGU benefits without having to show
-real community work, and nothing has tracked that until now. The site's entire visual identity
-should make that distinction legible at a glance: this isn't a static directory page, it's
-*proof of work, accumulating*. Concretely:
-
-- **The hero doesn't open on an abstract tagline.** It opens on real, specific, rotating evidence
-  — the most recently verified activity, pulled live from the database: *"Verified: Bantayan
-  Women Weavers Cooperative held a skills training in Barangay Bantayan, 3 days ago."* This is
-  the opposite of the banned hero-metric template (big number, small label, gradient accent) —
-  it's a sentence about a real thing that happened, which no generic SaaS template can fake and
-  no stock photo can substitute for.
-- **Specificity over abstraction, everywhere.** Not "Empowering communities" — barangay names,
-  organization names, sector names, real numbers. The PRD already gives you Lingayen's real
-  10-sector taxonomy (fisherfolk, TODA, KALIPI, farmers) and real barangay names — use them in
-  copy and in sector iconography instead of generic "community" language.
-- **Photography treatment, not photography genericness.** Stock images are a temporary stand-in,
-  not a style. Apply one consistent navy-duotone filter treatment (see §9) across every photo,
-  stock or real, so the whole site reads as one deliberate documentary style rather than a stock
-  photo grid. This is also the mechanism that makes swapping stock for real CSO event photos
-  later invisible — the treatment, not the source photo, carries the visual identity.
-- **Icons are sector-specific, not generic.** A fishing net or boat silhouette for fisherfolk, a
-  tricycle/steering wheel for TODA, a woven pattern motif for KALIPI, not one repeated "people"
-  icon recolored five times. Pull these from an approved icon library (§5) by deliberate
-  selection — never hand-rolled SVG paths.
-- **Two distinct conversion paths, not one generic CTA.** A resident verifying whether an
-  organization is legitimately accredited and a CSO representative applying for accreditation are
-  different people with different intents. Each page's primary CTA should match the intent of
-  whoever is actually on it — the directory's primary action is search/verify, the homepage's is
-  split between "browse" and "apply" by audience, not one "Get Started" button doing double duty.
-
----
-
-## 1. Color
-
-**Palette direction: Civic Rose.** Navy carries authority and structure, as before. The accent
-changed from amber to a muted rose/magenta — chosen after seeing the real lingayen.gov.ph site,
-which uses a vivid pink as its primary accent. The client confirmed color choice is open (CSOs
-are apolitical, so there's no sensitivity around matching or not matching the municipality's
-exact brand color). This rose is deliberately in the same family as that pink, visibly related to
-it, but desaturated and darkened so it survives being used across dense admin tables and status
-badges all day, not just a marketing homepage. Two other directions remain easy to swap to if the
-client prefers: a closer match to the municipal site's actual vivid pink, or an institutional
-blue-and-gold scheme common to Philippine government seals generally. Swap by replacing the
-`rose` scale below; nothing else in this document depends on the specific hue.
-
-### Token definitions
-
-Tokens live in `tailwind.config.js` under `theme.extend`. Laravel Breeze's Blade stack pins
-Tailwind v3, so this project uses v3 config objects rather than v4's `@theme` block. The OKLCH
-values are identical either way; only the declaration site differs. Keep this file and
-`tailwind.config.js` in sync.
-
-```js
-navy:  { 50: 'oklch(0.972 0.012 252)', 100: 'oklch(0.932 0.022 253)',
-         200: 'oklch(0.858 0.040 254)', 300: 'oklch(0.755 0.062 255)',
-         400: 'oklch(0.650 0.090 255)', 500: 'oklch(0.540 0.110 256)',
-         600: 'oklch(0.450 0.105 256)', 700: 'oklch(0.360 0.090 254)',
-         800: 'oklch(0.280 0.070 252)', 900: 'oklch(0.210 0.055 250)' }
-
-rose:  { 100: 'oklch(0.950 0.035 005)', 200: 'oklch(0.890 0.065 350)',
-         400: 'oklch(0.780 0.130 348)', 500: 'oklch(0.680 0.165 346)',
-         600: 'oklch(0.580 0.155 345)', 700: 'oklch(0.480 0.130 344)' }
-
-paper: 'oklch(0.990 0.003 252)'   surface: 'oklch(0.975 0.006 252)'
-line:  'oklch(0.900 0.008 252)'   line-strong: 'oklch(0.820 0.010 252)'
-muted: 'oklch(0.500 0.012 252)'   ink: 'oklch(0.250 0.014 252)'
-
-success: { 100: 'oklch(0.945 0.040 150)', 600: 'oklch(0.520 0.130 150)' }
-warning: { 100: 'oklch(0.950 0.045 75)',  600: 'oklch(0.620 0.140 70)'  }
-danger:  { 100: 'oklch(0.945 0.035 27)',  600: 'oklch(0.520 0.170 27)'  }
-info:    { 100: 'oklch(0.945 0.028 245)', 600: 'oklch(0.500 0.100 245)' }
-```
-
-### Contrast rules (non-negotiable)
-
-| Pair | Approx. ratio | Verdict |
-|---|---|---|
-| `ink` on `paper` | 15:1 | Body default |
-| `muted` on `paper` | 5.8:1 | Smallest allowed muted text, do not go lighter |
-| `navy-600` on `paper` | 7.2:1 | Links, primary button fill |
-| `navy-500` on `paper` | 4.9:1 | Floor for text, large text only below this |
-| `rose-500` on `paper` | ~2.4:1 | **Fails.** Never text on light |
-| `rose-500` on `navy-900` | ~5.8:1 | Correct usage — badges, underlines, active-state fills on dark |
-| `paper` on `rose-600` | ~4.6:1 | Minimum for a rose-filled button label; verify in-browser, this is close to the AA floor |
-
-Rose is a fill or a rule, never a foreground on white. Muted text stops at `--color-muted`.
-**Verify `paper` on `rose-600` directly in the browser once implemented** — the approximation
-above is not final sign-off.
-
-### Dark mode
-
-Out of scope for Milestone 1. Shared office desktops in daylight, one rendering path, less to
-verify before the client demo. Tokens are structured so a dark block can be added later by
-swapping `paper` / `surface` / `ink` / `line` only.
-
----
-
-## 2. Typography
-
-**Public Sans** for everything. Commissioned for US federal government use, unusually legible at
-13 to 14px, exactly where admin tables live. **IBM Plex Mono** carries verification codes,
-reference numbers, and tabular figures, where character disambiguation matters (`0` vs `O` in a
-certificate code).
-
-Scale is a 1.25 major third on a 1rem base, defined in `tailwind.config.js`:
-
-```
-xs 0.75rem/1.4    sm 0.875rem/1.45   base 1rem/1.55   lg 1.25rem/1.45
-xl 1.5rem/1.3     2xl 1.95rem/1.2    3xl 2.45rem/1.15  display 3.05rem/1.1
-```
-
-Both families load from one `<link>` in the Blade layout with `display=swap`, and the config
-carries the fallback stacks (`ui-sans-serif, system-ui, "Segoe UI"` and `ui-monospace`).
-
-Rules:
-- Hero h1: `clamp(1.95rem, 5vw, 3.05rem)`, `text-wrap: balance`, two lines maximum.
-- Body prose caps at `max-w-[68ch]`. Admin table cells are exempt.
-- Headings 600 weight, body 400, table column headers 600 at `text-xs` with `tracking-wide`.
-- Numbers in tables, scores, and codes get `font-mono` with `tabular-nums`.
-- Letter-spacing: `-0.02em` on `2xl` and above, `0` elsewhere. No all-caps body copy.
-
-### Copy voice — specific, human, never corporate
-
-- Write like the Civil Society Desk Office would actually speak, not like a SaaS landing page.
-  "See which organizations are active in your barangay" instead of "Empowering community
-  engagement." "Apply for accreditation" instead of "Get Started."
-- Use real names wherever the data provides them: barangay names, sector names, organization
-  names. Never "various organizations" when `{{ $organization->name }}` is sitting right there.
-- No filler verbs (elevate, unlock, streamline, revolutionize). No invented statistics. No
-  "trusted by" claims unless they're literally true and sourced from the database.
-- One voice across all three roles: plain, direct, respectful of the reader's time. The CSO
-  dashboard's "What PESO is waiting on" pattern (already built) is the right tone — say exactly
-  what's true, nothing more.
-
----
-
-## 3. Spacing, radius, elevation
-
-4px base. Tailwind's default scale already matches, so no override is needed.
-
-| Context | Rhythm |
+| What | File |
 |---|---|
-| Public section padding | `py-16` to `py-24`, `gap-8` |
-| Public card / panel padding | `p-6` |
-| CSO dashboard panel padding | `p-5`, `gap-6` |
-| Admin queue row padding | `px-4 py-2.5`, `gap-3` |
-| Form field stack | `space-y-5`, label to input `gap-1.5` |
-
-```
-rounded-sm 0.25rem (badges, inputs)   rounded-md 0.375rem (buttons)
-rounded-lg 0.5rem  (cards, panels)
-
-shadow-panel    0 1px 2px  oklch(0.21 0.055 250 / 0.06)
-shadow-overlay  0 8px 24px oklch(0.21 0.055 250 / 0.14)
-```
-
-One radius system, 8px ceiling. Cards do not nest, ever: inside a panel, separate rows with
-`border-t border-line`, not with more cards. Shadows are reserved for things that genuinely
-float (dropdown, dialog, toast). Admin surfaces use borders only, no shadow.
-
-Z-index scale, semantic, never `9999`: dropdown 10, sticky 20, overlay 30, dialog 40, toast 50.
+| Colour tokens (the only place colour values exist) | `resources/css/tokens.css` |
+| Token-to-class mapping, spacing scale, type scale | `tailwind.config.js` |
+| Shared component classes | `resources/css/app.css` (`@layer components`) |
+| App layout (both roles) | `resources/views/components/layouts/app.blade.php` and `partials/sidebar.blade.php` |
+| Navigation per role | `config/navigation.php` |
+| Blade components | `resources/views/components/` (`dialog`, `filter-bar`, `pagination`, `status-badge`, `empty-state`, `application-type`, `flash`, `password-field`, charts) |
+| Behaviour (dialogs, row keyboard support, combobox, tag picker, review queue) | `resources/js/app.js` (Alpine components) |
+| Enforcement | `tests/Feature/DesignTokenComplianceTest.php` (no hard-coded colour, no off-scale spacing) |
 
 ---
 
-## 4. Motion — dynamic on public pages, calm everywhere else
+## 1. Tokens
 
-Two different MOTION_INTENSITY settings, deliberately: **5 on public pages** (home, directory,
-organization profiles — this is where "dynamic" lives), **2 on admin and CSO screens** (where a
-PESO officer needs speed and predictability, not delight, across dozens of rows a day). This
-split is intentional, not an oversight — see PRD §7 on per-role density.
+### 1.1 Colour
 
-```
-ease-out-strong  cubic-bezier(0.23, 1, 0.32, 1)
-duration-fast    120ms      duration-base   180ms      duration-slow   400ms
-```
+Tokens are CSS variables holding sRGB channels, so Tailwind can apply opacity:
+`tailwind.config.js` reads each one as `rgb(var(--color-x) / <alpha-value>)`. `bg-primary-dark/60`
+works. Never write a colour value in a view or in `app.css`; the compliance test fails if you do.
 
-**Public pages, what's earned (each animation has a stated purpose, per the Iron Law: no motion
-without a reason)**
+| Token (`--color-…`) | Tailwind class | Value | Use |
+|---|---|---|---|
+| `primary` | `primary` | `#8f3339` | Buttons, selected state, focus ring on light surfaces |
+| `primary-hover` | `primary-hover` | `#79242b` | Button hover |
+| `primary-dark` | `primary-dark` | `#470f14` | Sidebar and mobile top bar surface |
+| `primary-dark-hover` | `primary-dark-hover` | `#65171f` | Sidebar hover and active item; public menu bar |
+| `primary-subtle` | `primary-subtle` | `#fdf3f3` | Row hover, ghost-button hover, selected option |
+| `on-primary` | `on-primary` | `#fdfdfd` | Text on `primary` / `primary-dark` |
+| `on-dark` | `on-dark` | `#efc8c6` | Sidebar links (10.2:1) |
+| `on-dark-muted` | `on-dark-muted` | `#dd9e9d` | Sidebar group labels and captions (7.0:1) |
+| `accent` | `accent` | `#eda62e` | Gold: count badges, active-item marker, public call to action |
+| `on-accent` | `accent-fg` | `#470f14` | Text on gold (7.5:1) |
+| `focus` / `focus-on-dark` | `focus`, `focus-on-dark` | `#8f3339` / `#f5bd56` | Focus rings |
+| `surface` | `paper` | `#fdfdfd` | Cards, inputs |
+| `surface-muted` | `canvas` | `#f3f3f3` | App page background, neutral fills |
+| `border` | `line` | `#d9d9d9` | Card borders, dividers |
+| `border-strong` | `line-strong` | `#8f8f8f` | Input borders (3.18:1, WCAG 1.4.11) |
+| `text` | `ink` | `#2b2522` | Body text (14.9:1) |
+| `text-muted` | `muted` | `#524c48` | Secondary text (8.4:1 on white, 5.0:1 on `band`) |
+| `placeholder` | `placeholder` | `#75706c` | Input placeholders (4.8:1): readable, but clearly lighter than typed text so it is never mistaken for a value |
+| `info` / `info-subtle` | `info`, `info-subtle` | `#296898` / `#deefff` | Submitted (5.1:1) |
+| `warning` / `warning-subtle` | `warning`, `warning-subtle` | `#9d5900` / `#ffebce` | Under review, pending, needs action (4.67:1) |
+| `success` / `success-subtle` | `success`, `success-subtle` | `#187a3b` / `#dbf5df` | Approved, verified, active (4.67:1) |
+| `danger` / `danger-subtle` | `danger`, `danger-subtle` | `#b6322d` / `#ffe5e0` | Rejected, revoked, errors (5.0:1) |
+| `neutral` | `neutral`, `neutral-subtle` | `text-muted` / `surface-muted` | Draft, expired, "not checked" |
+| `chart-self` / `chart-lgu` / `chart-unknown` / `chart-bar` | `chart-*` | `#8f3339` / `#efc8c6` / `#b1b1b1` / `#a8494d` | Chart series only |
+| `band` | `band` | `#f5f0ef` | Public site alternating bands only (off-white tinted toward the maroon; muted text 7.6:1) |
 
-- **Hero activity ticker**: the rotating "most recently verified activity" line (§0) fades and
-  slides between real entries every 6 seconds, `duration-slow`, pauses on hover/focus. Purpose:
-  the mechanism that makes the site feel alive, because it's showing something that's actually
-  changing, not animation for decoration's sake.
-- **Stat counters**: transparency numbers (accredited count, verified activities, barangays
-  represented) count up once when scrolled into view, via `IntersectionObserver` with
-  `{ once: true }`. Purpose: draws attention to real figures the PRD treats as a core
-  transparency feature, not a cosmetic flourish.
-- **Directory card stagger**: 30-80ms delay between cards as they enter, same pattern as any
-  list reveal. Purpose: large result sets don't dump on screen at once.
-- **Nav underline, button press, hover states**: standard interaction feedback per §5, unchanged.
+The short class names `paper`, `canvas`, `line`, `ink` and `muted` were kept on purpose (about 300
+uses); they read the spec-named variables shown on the left.
 
-**What stays banned everywhere, public pages included:** scroll-hijacking/pinned sections,
-parallax, auto-playing carousels the user can't pause, GSAP ScrollTrigger choreography, anything
-that fires on every page load without the user doing something to trigger it. This is a
-municipal government site, not an agency portfolio — dynamic means "alive with real data," not
-"cinematic."
+**Rules**
+- Semantic colours carry meaning, never decoration. A status is always a word plus a colour.
+- Maroon is for actions and the current location. Entity names (organizations, activities, files)
+  are `entity-link`: text colour, maroon and underline only on hover.
+- Contrast is checked numerically: text at least 4.5:1, large text and UI parts at least 3:1.
 
-```css
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: 0.01ms !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
-  }
-}
-```
+### 1.2 Spacing
 
-The ticker and counters above must both have a static, correct fallback under this query — show
-the latest activity and final numbers immediately, no animation, not a frozen mid-animation frame.
+Padding, margin, gap and space are limited in `tailwind.config.js` to:
 
----
+| Class step | `1` | `2` | `3` | `4` | `6` | `8` | `12` |
+|---|---|---|---|---|---|---|---|
+| px | 4 | 8 | 12 | 16 | 24 | 32 | 48 |
 
-## 5. Components, all eight states
+Named extras, for one job each: `hair` (2px) and `tight` (6px) for badge padding and icon gaps;
+`section` (80px) for the public site's band rhythm. Anything else does not compile, and the
+compliance test fails on it. Widths and heights keep Tailwind's full scale (`h-11` touch targets,
+`w-64` sidebar).
 
-Focus is the same everywhere: `focus-visible:outline-2 focus-visible:outline-offset-2
-focus-visible:outline-navy-600`. On navy backgrounds, switch the ring to `outline-rose-400`.
-Never remove an outline without a `:focus-visible` replacement. Touch targets are 44px minimum.
+- Cards: `p-6` (24px). Compact cards and table header bars: `p-4` / `px-4` (16px).
+- Stacks inside a card: `space-y-6`; form fields: label `mb-2`, hint and error `mt-2`.
 
-**Icon library:** Phosphor or Tabler, one family for the whole project. Select icons
-deliberately per §0 (sector-specific, not generic) — never hand-roll SVG icon paths.
+### 1.3 Type
 
-### 5.1 Button
+Public Sans everywhere in the app (Merriweather is public-site headings only). Two weights:
+400 and 600 (`font-semibold`).
 
-| State | Primary | Secondary | Ghost | Danger |
-|---|---|---|---|---|
-| Default | `bg-navy-600 text-paper` | `bg-paper text-navy-700 border border-line-strong` | `text-navy-700` | `bg-danger-600 text-paper` |
-| Hover | `bg-navy-700` | `bg-navy-50 border-navy-300` | `bg-navy-50` | `bg-danger-600 brightness-90` |
-| Focus | outline ring, fill unchanged | same | same | same |
-| Active | `bg-navy-800 scale-[0.98]` | `bg-navy-100 scale-[0.98]` | `bg-navy-100` | `brightness-85 scale-[0.98]` |
-| Disabled | `bg-navy-200 text-muted cursor-not-allowed`, no hover | `border-line text-muted` | `text-muted` | `bg-danger-100 text-muted` |
-| Loading | spinner replaces label text, width held, `aria-busy="true"`, button disabled | | | |
-| Error | not a button state, the form owns it | | | |
-| Success | label swaps to a check plus past-tense verb for 2s ("Approved"), then settles | | | |
-
-Base: `inline-flex items-center justify-center gap-2 rounded-md px-4 py-2.5 text-sm font-semibold`.
-Labels are verb plus object: "Submit application", "Verify activity", "Publish post".
-
-### 5.2 Input, select, textarea
-
-| State | Treatment |
-|---|---|
-| Default | `bg-paper border border-line-strong rounded-sm px-3 py-2 text-base` |
-| Hover | `border-navy-300` |
-| Focus | `border-navy-600` plus the standard outline ring |
-| Disabled | `bg-surface text-muted border-line cursor-not-allowed` |
-| Error | `border-danger-600`, message below, `aria-describedby`, `aria-invalid="true"` |
-| Success | `border-success-600` only when a real check ran, not on every valid keystroke |
-
-Labels above inputs, always visible. Validate on blur, not per keystroke.
-
-### 5.3 Card / panel
-
-`bg-paper border border-line rounded-lg p-6 shadow-panel`. Admin variants drop the shadow. A card
-earns its box only when it represents one addressable object. No nested cards, ever.
-
-### 5.4 Badge, the status language
-
-| Domain state | Badge | Token pair |
+| Role | Class | Size / line |
 |---|---|---|
-| `draft` | Draft | `bg-surface text-muted border-line` |
-| `submitted` | Submitted | `bg-info-100 text-info-600` |
-| `under_review` | Under review | `bg-info-100 text-info-600` |
-| `pending` (activity) | Pending verification | `bg-warning-100 text-warning-600` |
-| `approved`, `verified`, `active` | Approved / Verified / Active | `bg-success-100 text-success-600` |
-| `rejected`, `revoked` | Rejected / Revoked | `bg-danger-100 text-danger-600` |
-| `expired` | Expired | `bg-surface text-muted border-line-strong` |
+| Page title | `text-page-title font-semibold` | 24 / 32 |
+| Card title | `card-title` (`text-card-title`) | 18 / 24 |
+| Body | `text-sm` or `text-base` | 14 / 24, 16 / 24.8 |
+| Table header | `table-head` | 12, uppercase, tracked |
+| Caption | `text-xs` | 12 |
 
-SB reading stage is a stepper: current step `navy-700` with a rose underline, completed
-`success-600`, future `muted`. Status is never color alone, the word is always present.
+Numbers and dates use the UI font with `tabular-nums`. Monospace is only for codes (verification
+codes, audit action names, CSV column names).
 
-### 5.5 Table (the admin workhorse)
+### 1.4 Shape, elevation, layers
 
+- One card: `rounded-lg` (8px), `border-line`, `shadow-panel`. `panel` and `panel-flat` are aliases
+  of `card`.
+- Controls: `rounded-md` buttons, `rounded-sm` inputs, badges and nav items.
+- Z-index scale: `z-dropdown` 10, `z-sticky` 20, `z-overlay` 30, `z-dialog` 40, `z-toast` 50.
+
+---
+
+## 2. Layout: one shell for both roles
+
+`<x-layouts.app header="…" subheader="…">` with an optional `<x-slot:actions>`. Admin and CSO
+screens use only this. The two roles differ only in `config/navigation.php`.
+
+- **Sidebar** (`lg` and up): `w-64`, `bg-primary-dark`, sticky, scrolls on its own. Items are grouped
+  under small labels:
+  - Admin: Overview (Dashboard, Analytics & Reports) · Review (Applications, Verify activities) ·
+    Directory (Organizations, Scorecards) · Content (News posts, Annual reports) · System (Accounts,
+    Audit log)
+  - CSO: Overview (Dashboard) · My organization (Organization profile, Activities) ·
+    Accreditation (Applications)
+- **Every item** has an icon. The current page gets `aria-current="page"`, a `primary-dark-hover`
+  fill, semibold text and a 3px gold bar. Counts use `count-badge`.
+- **User block**: initials, name, and "Position, Organization" (from `users.position`), each
+  truncated on one line with the full text in a tooltip. Then Account settings and Log out.
+- **Below `lg`**: a slim top bar (menu button, seal, page title) and an off-canvas drawer with the
+  same contents. The drawer traps focus (`x-trap.noscroll.inert`), Esc and the overlay close it.
+- **Page frame**: `max-w-7xl`, padding 16 / 24 / 32px by breakpoint. Title, subtitle and actions sit
+  in the same place on every page.
+- **Page-load bar**: a thin gold bar while the next page loads (still, under reduced motion).
+
+To add a page: add a route, add an item under the right group in `config/navigation.php` with its
+`active` route patterns, and wrap the view in `<x-layouts.app>`.
+
+---
+
+## 3. Components
+
+| Component | Use | Notes |
+|---|---|---|
+| `btn-primary` | The one main action | 40px; 44px below `lg` or on a coarse pointer (`touch:`) |
+| `btn-secondary` | Other actions | Bordered, maroon text |
+| `btn-ghost` | Low-emphasis actions | Add `btn-sm` for row actions |
+| `btn-danger` | Destructive actions | Red outline, never filled: the one filled (maroon) button is the primary action. Behind a password re-check where required |
+| `icon-btn` | Square icon actions (dialog close, previous/next) | 44px |
+| `field-label` / `field-input` / `field-hint` / `field-error` | Every form field | Label above, error below with `aria-describedby`; input border 3:1; inputs 44px tall; placeholder in `placeholder` |
+| `field-required` | Required field labels | Adds a red asterisk; the form starts with a "* Required" legend |
+| `card` + `card-title` | Grouping | 24px padding, 16px when compact |
+| `<x-status-badge :status>` | Every status | One height (24px), never wraps. Submitted = info, Under review / pending = warning, Approved / verified / active = success, Rejected / revoked = danger, draft / expired = neutral |
+| `badge-*` | Other labels | Same shape as status pills |
+| `count-badge` | Nav and tab counts | Gold, tabular numerals |
+| `entity-link` | Names linking to a record | Text colour; maroon and underline on hover |
+| `table-wrap` | Around every table | Scrolls inside its own box; the page never scrolls sideways |
+| `table-stack` (on the `<table>`) | List tables on phones | Below `sm` each row becomes a block; `data-label` on a cell adds a small label, `stack-hide` hides it (the chevron) |
+| `table-scroll` | Around list tables (Applications, Verify activities, News posts) | Scroll box with a sticky header row and sticky first column; capped to the window at `lg` so the page stays short |
+| `table-row-link` + `x-data="tableNav"` on the `tbody` | Rows that open a record | Hover tint, pointer, focus ring; arrow keys / Home / End move between rows (one row in the tab order), Enter opens. `data-href` rows are links; others dispatch `row-open` |
+| `<x-filter-bar :chips search>` | Above every list | Search box plus one-click filter chips (`filter-chip`, current chip `aria-current`). No Status dropdown + Filter button |
+| `<x-dialog name title width>` | Every pop-up | See §3.1 |
+| `<x-admin-password-field id :error>` | Dialogs that change access or delete records (Edit login, Merge, Delete organization) | Re-checks the admin's password (`admin_password`, `current_password` rule) without leaving the dialog; set up so browsers don't fill in a representative's saved password |
+| `toast` / `toast-action` | Confirmation with Undo | Bottom right, above everything |
+| `table-head` / `table-cell` / `table-num` / `table-date` / `table-row` | Tables | 48px rows, cells centred; dates fixed width (`w-32`), one line |
+| `<x-empty-state title icon>` | Empty tables and lists | Optional slot text and `action` slot |
+| `<x-application-type :type>` | Applications | "Renewal" tag in the organization cell; no Type column (New is the default) |
+| `<x-flash>` | Status messages | Rendered by the layout |
+| `<x-pagination>` | Every paginated list | See §4 |
+| `<x-keep-query :only>` | Filter forms | Carries chosen keys (a scoped organization, an analytics period), never `page` |
+| `table-sticky` | Long tables without `table-scroll` | Header sticks at `lg`+ only |
+
+All eight states apply to interactive parts: default, hover, focus (visible ring, never removed),
+active, disabled, loading, error, success.
+
+### 3.1 Dialogs
+
+`<x-dialog name="…" title="…" width="sm|md|lg" :open="…">` is the only pop-up. Open it with
+`$dispatch('open-dialog', 'name')`; `close-dialog` closes it.
+
+- **Position:** centred in the content area to the right of the sidebar (at `lg`, padding-left is the
+  sidebar width plus the gutter), not in the full window. The dimmed overlay covers the whole screen.
+- **Size:** `sm` 560px (short forms: Register an organization, Edit login, confirmations), `md` 640px
+  (activity review), `lg` 720px (Write a post). Never taller than 80% of the window. Full screen
+  below `sm`.
+- **Structure:** pinned header (title, optional subtitle, × button) and pinned footer (actions);
+  only `dialog-body` scrolls. A `header` slot replaces the title block when it needs more (previous /
+  next in the review dialog). Forms wrap body and footer: `<form class="flex min-h-0 flex-1 flex-col">`.
+- **Behaviour:** Esc and × close it. A click outside closes it only until something has been typed.
+  Focus is trapped (`x-trap`) and returns to the trigger. `role="dialog"`, `aria-modal`,
+  `aria-labelledby` the title (`dialog-{name}-title`).
+- **Actions:** right-aligned, secondary first and the maroon primary last. Destructive actions are
+  `btn-danger` (red outline). Footer buttons are 44px.
+- **Validation errors:** forms post normally. The form sends `_dialog`; the page comes back with
+  `:open` true, the typed values and the errors in place.
+
+---
+
+## 4. Pagination
+
+Every long list uses one server-side pagination: `App\Support\ListPagination` in the controller and
+`<x-pagination>` in the view. Every list shows **10 rows a page**; there is no page-size selector.
+
+```php
+// Controller: wrap the query.
+'organizations' => ListPagination::paginate(Organization::query()->...->orderBy('name'), $request),
 ```
-thead th   text-xs font-semibold tracking-wide text-muted uppercase px-4 py-2 border-b border-line-strong text-left
-tbody td   text-sm px-4 py-2.5 border-b border-line align-middle
-numeric    font-mono tabular-nums text-right
+
+```blade
+{{-- View: inside the table card, after the table. `target` is the heading that receives focus after a page change. --}}
+<x-pagination :paginator="$organizations" />
+<x-pagination :paginator="$activities" target="history" class="card mt-4" />
 ```
 
-Zebra-free. Hover `bg-navy-50` on the whole row. Sticky header past ~15 rows. Every list
-paginates. Empty state names what would appear plus the action that creates it.
+**Behaviour (enforced by `ListPaginationTest` and `PaginationComponentTest`)**
+- The page lives in the URL (`?page=2`), so pages are linkable and Back works. A `per_page` in an
+  old link is ignored.
+- A page past the end redirects to the last page.
+- Links keep every filter and sort parameter. The search box and filter chips (`<x-filter-bar>`)
+  never carry `page`, so changing a filter returns to page 1.
+- The bar (`pagination-bar`) is the table card's footer: "Showing 1-10 of N", then Previous / page
+  numbers / Next. It sticks to the bottom of the window while the table is taller than it.
+- After a page change, focus moves to the target heading (`#page-title` by default).
+- Markup: `aria-label="Pagination"`, `aria-current="page"` on the current page, disabled
+  Previous/Next are `aria-disabled` text (not links), ellipses are plain text.
+- Below `sm`: Previous / "Page X of Y" / Next only. Controls are 36px on desktop, 44px on touch.
+- Look: rectangular, 4px radius (`page-link`), current page solid maroon (`page-link-current`).
+- Long tables use `table-wrap table-sticky`: the header sticks to the viewport at `lg` and up only
+  (below `lg` the table scrolls sideways in its box, where a sticky header can't work). Cards
+  around sticky tables must not use `overflow-hidden`.
+- Empty lists use `<x-empty-state :filtered="…" :clear-url="…" title="…">`: "No results for these
+  filters" with Clear filters, or the list's own "nothing here yet" message.
+- Loading: the app layout's page-load bar.
+
+| List | Order | Filters kept across pages |
+|---|---|---|
+| Audit log | Newest first | Event type, actor, account, organization |
+| Applications queue | Waiting (submitted, under review) first, then Filed date (newest first; the header toggles) | Search, chip: All / Under review / Approved / Rejected, direction |
+| Verify activities | Waiting: oldest logged first. Verified / Rejected: latest decision first | Search, chip: Waiting / Verified / Rejected |
+| Organizations | Name | Search, no login, activity (inactive / at-risk with the analytics period) |
+| Accounts | Role, name | Search, role, status |
+| Scorecards | Name | Name search |
+| News posts | Newest first | Search, chip: All posts / Published / Draft |
+| CSO activities | Newest first | Status |
+
+**Capped instead of paginated** (the limit is in the query, and the total is named):
+
+| List | Cap | Where the rest is |
+|---|---|---|
+| Admin dashboard widgets | 5 | "View all N" links to the queue |
+| Organization page history | 5 | "Full history": audit log filtered to the organization |
+| Analytics at-risk | 10 | "Showing 10 of N at-risk": filtered Organizations list and the Excel workbook (computed from aggregated rows in `ReportData`, so the cap is applied in the controller) |
+| CSO "Tagged as a partner" | 10 | "Showing the latest 10 of N" |
+
+Not paginated by design: Annual reports (one per year), CSO applications (one per three years),
+the CSO dashboard.
+
+**Audit log performance** (MySQL, 50,000 rows): page 1 about 40 ms, page 500 about 83 ms, event
+filter about 25 ms, organization filter about 19 ms, using the existing `created_at`, `action` and
+`(subject_type, subject_id)` indexes. Optional: adding `created_at` to the subject index would
+remove a small in-memory sort on the organization filter.
+
 
 ---
 
-## 6. Per-role application
+## 5. Accessibility
 
-**Public (density 4, motion 5).** Navy-900 header, rose underline on active nav. Hero carries
-the activity ticker (§0, §4). Sections at `py-20`. Directory cards in
-`repeat(auto-fit, minmax(280px, 1fr))`. Skip link to `#main` mandatory.
-
-**PESO Admin (density 7, motion 2).** Persistent left nav, navy-900, 240px. Queues are tables.
-Pending counts in rose badges against the navy nav — the one place rose carries meaning here.
-
-**CSO Representative (density 5, motion 2).** Single-column, `max-w-5xl`, top nav. Dashboard
-answers three questions before any scroll: accreditation status, what PESO is waiting on, current
-score (with its "informational only" caption attached permanently, per PRD §15).
+- Contrast: numeric checks above. Sidebar text on maroon is 7.0:1 or better; gold badge text 7.5:1.
+- Focus: `:focus-visible` ring on everything (`focus` on light, `focus-on-dark` on maroon).
+- Touch: 44px targets below `lg` or on coarse pointers; dense table rows stay compact on desktop.
+- Colour is never the only signal: statuses carry words, the active nav item has weight and a bar.
+- Phones: tables scroll inside `table-wrap`; checked at 360, 768 and 1440px on every admin and CSO
+  page (no page-level horizontal scroll; no wrapped dates, pills or nav labels).
+- Motion: everything respects `prefers-reduced-motion`.
 
 ---
 
-## 7. Anti-generic guardrails
+## 6. Checklist for a new screen
 
-This project already has the `design-taste` skill installed with its own anti-slop catalogue
-(`.claude/skills/design-taste/reference/anti-slop.md`) — that reference is authoritative and
-more exhaustive than this list. These are the project-specific reminders worth restating because
-they're the easiest defaults to slip back into:
-
-**Banned outright, no exceptions:**
-- Purple-blue gradients, or any gradient as a decorative default
-- Glassmorphism / frosted-glass cards
-- Floating dashboard mockups or fake div-built screenshots in the hero
-- Glowing blobs, blurred color orbs, mesh gradients as background texture
-- Generic three-equal-card feature grids
-- A startup-style centered hero over a dark gradient with a "Get Started" button
-- Vague corporate copy ("empowering," "seamless," "unlock your potential") anywhere on the site
-- Em dashes anywhere in shipped copy (see the anti-slop doc §9.G — this is a hard ban, not a
-  style preference)
-
-**What replaces each one, specifically for this project:** real-data hero ticker instead of a
-gradient hero (§0), bordered panels instead of glass cards (§5.3), the real activity feed instead
-of a fake dashboard screenshot, sector-specific icon selection instead of blob decoration (§0),
-asymmetric or zig-zag layout instead of three equal cards where a feature section is genuinely
-needed, plain-spoken PESO-voice copy instead of corporate copy (§2).
-
-**Before calling any public page done, run the design-taste skill's pre-flight check explicitly**
-— don't assume it ran automatically. Ask Claude Code directly: *"Run the design-taste pre-flight
-check against this page before marking it done."*
+1. Wrap it in `<x-layouts.app>` and add the nav item to `config/navigation.php`.
+2. Use only token classes and the spacing scale. Run `php artisan test --filter=DesignTokenCompliance`.
+3. Cards `p-6`, tables inside `table-wrap`, dates `table-date`, statuses `<x-status-badge>`.
+4. Names are `entity-link`; one `btn-primary` per area.
+5. Lists over about 10 rows use `ListPagination` + `<x-pagination>` (§4), or are capped in the query.
+6. Check 360, 768 and 1440px: nothing scrolls sideways, nothing wraps that shouldn't.
 
 ---
 
-## 8. Images — logos and CSO event photography
+## 7. Public site
 
-### Where logos actually go, right now
-
-**Individual CSO logos** already have a working upload path — `OrganizationProfileController`
-stores them via `$request->file('logo')->store('logos', 'public')`, landing in
-`storage/app/public/logos/` and served at `/storage/logos/{filename}` once
-`php artisan storage:link` has been run (standard Laravel setup, almost certainly already done
-since the public disk is configured). For the 202 real organizations, you have two paths:
-1. **Real-world path:** each CSO logs in and uploads their own logo through the existing profile
-   form — correct long-term, but means waiting on 202 individual logins.
-2. **Fast-import path, for getting real data in before your next client check-in:** place the
-   logo files directly into `storage/app/public/logos/` (e.g. `logos/org-{id}.png`) and set
-   `logo_path` to that value directly in your import script/seeder. No new code needed — this
-   uses the exact same field the real upload flow writes to.
-
-**The municipal/office seal** replaces the placeholder in
-`resources/views/components/civic-mark.blade.php` (currently a plain "LC" text badge, built that
-way deliberately per PRD §11 until the real file arrives). Once you have the real seal: if it's
-vector (SVG/AI/EPS), inline it directly in that component for crispness at every size; if it's
-only a raster file (PNG/JPG), place it in `public/images/` and swap the component to an `<img>`
-tag pointing there. Either way, that one component change updates the seal everywhere it's used
-(nav, footer, About Us) since nothing else references it directly.
-
-### Event/activity imagery — stock now, real later, same mechanism
-
-Per the design-taste skill's own rules, prefer `https://picsum.photos/seed/{descriptive-string}/{w}/{h}`
-over hotlinked Unsplash URLs — hotlinks break, picsum with a descriptive seed is stable and still
-gives you varied, real-feeling photography for placeholder purposes. Example:
-`https://picsum.photos/seed/lingayen-coastal-cleanup/1600/900`.
-
-**Set up the swap mechanism now, before you need it:**
-1. Create `public/images/stock/` and `public/images/events/` as two separate folders.
-2. Use stock images (picsum, or downloaded — not hotlinked — Unsplash/Pexels files) in
-   `public/images/stock/` today, with descriptive filenames (`coastal-cleanup.jpg`, not
-   `hero1.jpg`), referenced directly in your Blade views.
-3. When real CSO event photos arrive, drop them into `public/images/events/` with similarly
-   descriptive names, and swap the file paths in the views that use them. Because every photo
-   gets the same navy-duotone CSS treatment (§0) rather than relying on the stock photo's own
-   look, the visual identity doesn't change when the source photos do — only the swap itself.
-
-**The duotone treatment**, applied consistently to every photo on the site:
-```css
-.photo-duotone {
-  filter: grayscale(1) contrast(1.1);
-  position: relative;
-}
-.photo-duotone::after {
-  content: '';
-  position: absolute; inset: 0;
-  background: linear-gradient(180deg, oklch(0.21 0.055 250 / 0.55), oklch(0.21 0.055 250 / 0.15));
-  mix-blend-mode: multiply;
-}
-```
-This is also the exact mechanism from §0 that makes generic stock photography stop looking
-generic — the treatment carries the identity, not the photo.
-
-### How to actually tell Claude Code which images to use
-
-Be specific about paths, don't let it pick: *"Use `public/images/stock/coastal-cleanup.jpg` for
-the hero background, and `public/images/stock/skills-training.jpg`,
-`public/images/stock/youth-assembly.jpg` for the two supporting images in the About section.
-Apply the `.photo-duotone` treatment from DESIGN_SYSTEM.md §8 to all three."* Naming exact
-filenets prevents it from generating a new `picsum.photos` URL per request, which would make the
-same section show different photos on every reload.
+The public pages (home, directory, about, accreditation, resources, contact, sign-in) follow the
+pcnc.com.ph reference: an identity bar over a sticky maroon menu bar, Merriweather headings with a
+gold rule (`section-title`), alternating white and `band` sections at `py-section`, photo banners
+(`page-banner`, `photo-wash`), and the home video hero. They use the same tokens; the raw `brand-*`
+and `accent-*` scales exist for these pages only. Images: the Lingayen seal is
+`public/images/brand/lingayen-seal.png` (original in `storage/app/public/logos`); stock photos are
+placeholders listed in `public/images/stock/SOURCES.txt`.
 
 ---
 
-## 9. Pre-flight before any screen is called done
+## 8. Review screens (Applications, Verify activities, News posts)
 
-- [ ] Design concept check: does this page look like it could only be Lingayen CivicLink, or
-      could it be any generic civic/SaaS site with the logo swapped? If the latter, it's not done.
-- [ ] Contrast verified against §1; `paper` on `rose-600` checked directly in-browser
-- [ ] All eight states present on every interactive element, focus distinct from hover
-- [ ] Labels above inputs, errors below, wired with `aria-describedby`
-- [ ] Status communicated by word plus color, never color alone
-- [ ] Keyboard path complete: skip link, visible focus, logical tab order, 44px targets
-- [ ] Public-page motion (§4) has a stated purpose and a correct reduced-motion fallback
-- [ ] Admin/CSO screens stayed at motion 2 — dynamism wasn't accidentally carried over
-- [ ] No banned pattern from §7 present anywhere on the page
-- [ ] Copy is specific and human (§2) — no filler verbs, no vague claims, real names used
-      wherever the data provides them
-- [ ] Image paths are explicit and point to real files in `public/images/`, not generated on
-      the fly per load
-- [ ] Renders correctly at 1366x768, the realistic municipal office screen
+One family: `<x-filter-bar>` above a `card` holding a `table-scroll` table and the pagination bar.
+Rows open their record; actions that change data live in dialogs, not in the rows.
+
+- **Applications:** Organization (name, Renewal tag, barangay, documents-to-check badge) · Status (chip,
+  Sangguniang Bayan stage as a grey second line) · Filed (sorted, arrow on the header) · chevron.
+  "Register an organization" (top right) opens the Register dialog (560px): name, barangay (searchable
+  combobox), sector, advocacy, and "Create a login for the representative" (off by default; reveals
+  full name and email, and the account gets a password-setup link). The same dialog is on
+  Organizations and Accounts; `/admin/organizations/create` opens it.
+- **Verify activities:** Activity (title; organization and barangay beneath) · Date · Residents
+  reached · Waiting (days since logged, amber past 30) · chevron. A row opens the review dialog
+  (640px): title, organization and barangay, previous / next with "3 of 10", date and description,
+  Residents reached / Logged by / Claimed source, the sign-in sheet (image preview or PDF tile, Open
+  file), and a required "Verified source" select that starts empty. Verify activity (maroon) unlocks
+  once a source is chosen; Reject (red outline) reveals a reason (10 characters minimum, live count)
+  with Confirm rejection and Cancel. A decision closes the dialog, hides the row, lowers the sidebar
+  badge and shows a toast with Undo. It is sent when the toast times out (6 s), when the next decision
+  is made, or before a link or search leaves the page (a keepalive request if the tab is closed), so
+  Undo never has to reverse a notification or a score.
+- **News posts:** Title · Status chip · Featuring · Published · Delete (red outline, confirmed in a
+  dialog). "Write a post" and a row both open the post dialog (720px): Title, Post content, Featured
+  organizations (tag search). Publish (maroon), Save as draft (outlined), Cancel.
+  `/admin/news/create` and `/admin/news/{id}/edit` open it.
+
+### 7.1 Public pages since October 2026
+
+- Section titles (`section-title`) are left-aligned with no gold rule; the rule was repeated on every
+  section and read as a template.
+- Page banners (`<x-page-banner photo="events/cso3.jpg" alt="...">`) use the client's event photos
+  in `public/images/events`, under `photo-wash-banner` (even wash on phones, opening to the right from `lg`).
+- Numbers and dates use Public Sans with `tabular-nums`; monospace is for codes only.
+- Motion (only with `.motion-ok`, so reduced-motion and no-JS visitors see everything still):
+  `reveal` (fade up on scroll, staggered), `reveal-line reveal-line-x|y` (timeline lines draw in),
+  `reveal-photo` (photo eases up and un-zooms), `banner-enter` / `banner-photo` (banner text rises,
+  photo settles on load). Transform and opacity only.
+- Process steps: numbered circles with connecting lines, a row from `lg`, a vertical timeline on phones.
+

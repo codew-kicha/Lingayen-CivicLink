@@ -51,7 +51,7 @@ class ScreenSmokeTest extends TestCase
             'admin.scorecards.index',
             'admin.analytics',
             'admin.accounts.index',
-            'admin.organizations.create',
+            'admin.news.index',
             'admin.audit.index',
             'profile.edit',
         ] as $route) {
@@ -70,7 +70,12 @@ class ScreenSmokeTest extends TestCase
         }
 
         // Assisted encoding and import.
-        $this->actingAs($admin)->get(route('admin.organizations.applications.create', $withoutLogin))->assertOk();
+        // Filing an application is a dialog on the organization page; the old address opens it.
+        $this->actingAs($admin)->get(route('admin.organizations.applications.create', $withoutLogin))
+            ->assertRedirect(route('admin.organizations.edit', [$withoutLogin, 'file' => 1]));
+        $this->actingAs($admin)->get(route('admin.organizations.edit', [$withoutLogin, 'file' => 1]))
+            ->assertOk()->assertSee('File an application')->assertSee('name="documents[accreditation_form]"', false)
+            ->assertSee("dialog('file-application', true)", false);
         $this->actingAs($admin)->get(route('admin.organizations.activities.create', $withoutLogin))
             ->assertOk()->assertSee('Partner organizations');
         $this->actingAs($admin)->get(route('admin.organizations.import'))->assertOk();
@@ -84,12 +89,12 @@ class ScreenSmokeTest extends TestCase
         }
 
         $invited = User::factory()->unverified()->create();
-        $this->get(\Illuminate\Support\Facades\URL::temporarySignedRoute('invitation.show', now()->addHour(), ['user' => $invited]))
+        $this->get(\Illuminate\Support\Facades\URL::temporarySignedRoute('invitation.show', now()->addHour(), ['user' => $invited, 'for' => \App\Notifications\AccountInvitation::fingerprint($invited)]))
             ->assertOk()->assertSee('Set your password');
 
         $used = User::factory()->create();
         $this->get(\Illuminate\Support\Facades\URL::temporarySignedRoute('invitation.show', now()->addHour(), ['user' => $used]))
-            ->assertOk()->assertSee('already been used');
+            ->assertOk()->assertSee('This link no longer works');
     }
 
     public function test_the_analytics_pdf_export_produces_a_pdf(): void
@@ -113,11 +118,15 @@ class ScreenSmokeTest extends TestCase
             'cso.dashboard',
             'cso.profile.edit',
             'cso.applications.index',
-            'cso.applications.create',
             'cso.activities.index',
         ] as $route) {
             $this->actingAs($rep)->get(route($route))->assertOk();
         }
+
+        // Applying is a dialog on the Applications page; the old address opens it.
+        $this->actingAs($rep)->get(route('cso.applications.create'))->assertRedirect(route('cso.applications.index', ['apply' => 1]));
+        $this->actingAs($rep)->get(route('cso.applications.index', ['apply' => 1]))
+            ->assertSee("dialog('apply', true)", false)->assertSee('name="documents[accreditation_form]"', false);
 
         $this->actingAs($rep)->get(route('cso.applications.show', $application))->assertOk();
     }

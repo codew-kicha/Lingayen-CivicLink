@@ -8,13 +8,17 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 /**
- * Used by a CSO logging its own activity and by PESO's assisted encoding, where the
+ * Used by a CSO logging or editing its own activity, and by PESO's assisted encoding, where the
  * organization comes from the route instead of the signed-in user.
  */
 class StoreActivityRequest extends FormRequest
 {
     public function authorize(): bool
     {
+        if ($this->route('activity') instanceof Activity) {
+            return $this->user()->can('update', $this->route('activity'));
+        }
+
         return $this->route('organization') instanceof Organization
             ? $this->user()->can('manage', Organization::class)
             : $this->user()->can('create', Activity::class);
@@ -22,7 +26,7 @@ class StoreActivityRequest extends FormRequest
 
     public function organization(): Organization
     {
-        return $this->route('organization') ?? $this->user()->organization;
+        return $this->route('organization') ?? $this->route('activity')?->organization ?? $this->user()->organization;
     }
 
     /**
@@ -36,6 +40,8 @@ class StoreActivityRequest extends FormRequest
             'activity_date' => ['required', 'date', 'before_or_equal:today'],
             'participants_estimate' => ['nullable', 'integer', 'min:0', 'max:1000000'],
             'activity_source' => ['required', Rule::in(array_keys(Activity::SOURCES))],
+            'evidence' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
+            'remove_evidence' => ['boolean'],
             'partners' => ['nullable', 'array', 'max:10'],
             'partners.*' => [
                 'integer', 'distinct',
@@ -50,6 +56,8 @@ class StoreActivityRequest extends FormRequest
         return [
             'activity_date.before_or_equal' => 'Log activities after they have taken place, not before.',
             'activity_source.required' => 'Say who organized the activity.',
+            'evidence.mimes' => 'The sign-in sheet must be a PDF, JPG, or PNG file.',
+            'evidence.max' => 'The sign-in sheet must be 5 MB or smaller.',
             'partners.max' =>'Tag at most 10 partner organizations.',
             'partners.*.not_in' => 'An organization cannot be its own partner.',
         ];

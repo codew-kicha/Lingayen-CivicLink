@@ -1,104 +1,110 @@
-<x-layouts.admin header="Dashboard" subheader="Everything waiting on the PESO office today.">
-    <section aria-label="Queue summary" class="panel-flat grid grid-cols-2 divide-line md:grid-cols-5 md:divide-x">
-        @php
-            $tiles = [
-                ['Applications to review', $counts['awaiting_review'], route('admin.applications.index')],
-                ['Activities to verify', $counts['pending_activities'], route('admin.activities.index')],
-                ['Active accreditations', $counts['active_accreditations'], route('admin.organizations.index')],
-                ['Expiring within 90 days', $counts['expiring_soon'], route('admin.organizations.index')],
-                ['Inactive CSOs', $counts['inactive'], route('admin.organizations.index', ['status' => 'inactive'])],
-            ];
-        @endphp
-        @foreach ($tiles as [$label, $value, $url])
-            <a href="{{ $url }}"
-               class="px-5 py-4 transition-colors duration-fast ease-out-strong hover:bg-navy-50">
-                <p class="font-mono text-2xl tabular-nums text-navy-800">{{ $value }}</p>
-                <p class="mt-1 text-sm text-muted">{{ $label }}</p>
-            </a>
+<x-layouts.app header="Dashboard" subheader="Everything waiting on the PESO office today.">
+    {{-- Actionable counts are links; the three queues get a warning treatment while they have items. --}}
+    @php
+        $tiles = [
+            ['Applications to review', $counts['awaiting_review'], route('admin.applications.index'), 'clipboard-text', true],
+            ['Activities to verify', $counts['pending_activities'], route('admin.activities.index'), 'check-square', true],
+            ['Expiring within 90 days', $counts['expiring_soon'], route('admin.organizations.index', ['status' => 'expiring']), 'calendar-x', true],
+            ['Inactive CSOs', $counts['inactive'], route('admin.organizations.index', ['status' => 'inactive']), 'warning-circle', false],
+            ['Active accreditations', $counts['active_accreditations'], null, 'seal-check', false],
+        ];
+    @endphp
+    {{-- Two per row on phones (the last spans both), so the counts take half the screen they used to. --}}
+    <section aria-label="Queue summary" class="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-5">
+        @foreach ($tiles as [$label, $value, $url, $icon, $urgent])
+            @php $alert = $urgent && $value > 0; @endphp
+            <{{ $url ? 'a' : 'div' }} @if ($url) href="{{ $url }}" @endif
+                @class([
+                    'card flex items-start gap-3 p-3 sm:gap-4 sm:p-4',
+                    'col-span-2 sm:col-span-1' => $loop->last,
+                    'border-warning/40 bg-warning-subtle' => $alert,
+                    'transition-colors duration-fast ease-out-strong hover:border-primary/40' => $url && ! $alert,
+                    'transition-colors duration-fast ease-out-strong hover:border-warning' => $alert,
+                ])>
+                <x-dynamic-component :component="'phosphor-'.$icon" @class(['h-5 w-5 shrink-0 sm:h-6 sm:w-6', 'text-warning' => $alert, 'text-muted' => ! $alert]) aria-hidden="true" />
+                <div class="min-w-0">
+                    <p @class(['text-page-title font-semibold tabular-nums', 'text-warning' => $alert, 'text-ink' => ! $alert])>{{ $value }}</p>
+                    <p class="text-sm text-muted">{{ $label }}</p>
+                    @if ($url)
+                        <p @class(['mt-1 text-xs font-semibold', 'text-warning' => $alert, 'text-primary' => ! $alert])>
+                            {{ $alert ? 'Review now' : ($urgent ? 'All clear' : 'View') }}
+                        </p>
+                    @endif
+                </div>
+            </{{ $url ? 'a' : 'div' }}>
         @endforeach
     </section>
 
     <div class="mt-6 grid gap-6 xl:grid-cols-2">
-        <section class="panel-flat">
+        <section class="card" aria-labelledby="apps-title">
             <div class="flex items-center gap-3 border-b border-line px-4 py-3">
-                <h2 class="font-semibold text-ink">Applications awaiting review</h2>
-                <a href="{{ route('admin.applications.index') }}"
-                   class="ml-auto text-sm font-semibold text-navy-700 hover:underline">View queue</a>
+                <h2 id="apps-title" class="card-title">Applications awaiting review</h2>
+                <a href="{{ route('admin.applications.index') }}" class="ml-auto whitespace-nowrap text-sm font-semibold text-primary hover:underline">View all {{ $counts['awaiting_review'] }}</a>
             </div>
 
             @if ($recentApplications->isEmpty())
-                <p class="px-4 py-10 text-center text-sm text-muted">
-                    No applications are waiting for review.
-                </p>
+                <x-empty-state title="No applications are waiting for review." icon="clipboard-text" />
             @else
-                <table class="w-full">
-                    <caption class="sr-only">Applications awaiting PESO review</caption>
-                    <thead>
-                        <tr>
-                            <th scope="col" class="table-head">Organization</th>
-                            <th scope="col" class="table-head">Type</th>
-                            <th scope="col" class="table-head">Status</th>
-                            <th scope="col" class="table-head">Filed</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach ($recentApplications as $application)
-                            <tr class="table-row">
-                                <td class="table-cell">
-                                    <a href="{{ route('admin.applications.show', $application) }}"
-                                       class="font-medium text-navy-700 hover:underline">
-                                        {{ $application->organization->name }}
-                                    </a>
-                                </td>
-                                <td class="table-cell capitalize">{{ $application->type }}</td>
-                                <td class="table-cell"><x-status-badge :status="$application->status" /></td>
-                                <td class="table-cell font-mono tabular-nums text-muted">
-                                    {{ $application->submitted_at?->format('d M Y') ?? 'Not filed' }}
-                                </td>
+                <div class="table-wrap">
+                    <table class="table-stack w-full">
+                        <caption class="sr-only">Applications awaiting PESO review</caption>
+                        <thead>
+                            <tr>
+                                <th scope="col" class="table-head">Organization</th>
+                                <th scope="col" class="table-head">Status</th>
+                                <th scope="col" class="table-head w-32">Filed</th>
                             </tr>
-                        @endforeach
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            @foreach ($recentApplications as $application)
+                                <tr class="table-row">
+                                    <td class="table-cell">
+                                        <a href="{{ route('admin.applications.show', $application) }}" class="entity-link">{{ $application->organization->name }}</a>
+                                        <x-application-type :type="$application->type" />
+                                    </td>
+                                    <td class="table-cell"><x-status-badge :status="$application->status" /></td>
+                                    <td class="table-date" data-label="Filed">{{ $application->submitted_at?->format('d M Y') ?? 'Not filed' }}</td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
             @endif
         </section>
 
-        <section class="panel-flat">
+        <section class="card" aria-labelledby="acts-title">
             <div class="flex items-center gap-3 border-b border-line px-4 py-3">
-                <h2 class="font-semibold text-ink">Activities awaiting verification</h2>
-                <a href="{{ route('admin.activities.index') }}"
-                   class="ml-auto text-sm font-semibold text-navy-700 hover:underline">View queue</a>
+                <h2 id="acts-title" class="card-title">Activities awaiting verification</h2>
+                <a href="{{ route('admin.activities.index') }}" class="ml-auto whitespace-nowrap text-sm font-semibold text-primary hover:underline">View all {{ $counts['pending_activities'] }}</a>
             </div>
 
             @if ($recentActivities->isEmpty())
-                <p class="px-4 py-10 text-center text-sm text-muted">
-                    No activities are waiting for verification.
-                </p>
+                <x-empty-state title="No activities are waiting for verification." icon="check-square" />
             @else
-                <table class="w-full">
-                    <caption class="sr-only">Activities awaiting verification</caption>
-                    <thead>
-                        <tr>
-                            <th scope="col" class="table-head">Activity</th>
-                            <th scope="col" class="table-head">Organization</th>
-                            <th scope="col" class="table-head">Date</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach ($recentActivities as $activity)
-                            <tr class="table-row">
-                                <td class="table-cell">
-                                    <a href="{{ route('admin.activities.index') }}"
-                                       class="font-medium text-navy-700 hover:underline">{{ $activity->title }}</a>
-                                </td>
-                                <td class="table-cell text-muted">{{ $activity->organization->name }}</td>
-                                <td class="table-cell font-mono tabular-nums text-muted">
-                                    {{ $activity->activity_date->format('d M Y') }}
-                                </td>
+                <div class="table-wrap">
+                    <table class="table-stack w-full">
+                        <caption class="sr-only">Activities awaiting verification</caption>
+                        <thead>
+                            <tr>
+                                <th scope="col" class="table-head">Activity</th>
+                                <th scope="col" class="table-head">Organization</th>
+                                <th scope="col" class="table-head w-32">Date</th>
                             </tr>
-                        @endforeach
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            @foreach ($recentActivities as $activity)
+                                <tr class="table-row">
+                                    <td class="table-cell">
+                                        <a href="{{ route('admin.activities.index') }}" class="entity-link">{{ $activity->title }}</a>
+                                    </td>
+                                    <td class="table-cell text-muted">{{ $activity->organization->name }}</td>
+                                    <td class="table-date" data-label="Held">{{ $activity->activity_date->format('d M Y') }}</td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
             @endif
         </section>
     </div>
-</x-layouts.admin>
+</x-layouts.app>

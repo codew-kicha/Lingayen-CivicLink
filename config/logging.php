@@ -58,6 +58,14 @@ return [
             'ignore_exceptions' => false,
         ],
 
+        // Contact-form enquiries, kept whatever LOG_LEVEL is (storage/logs/enquiries.log).
+        'enquiries' => [
+            'driver' => 'single',
+            'path' => storage_path('logs/enquiries.log'),
+            'level' => 'info',
+            'replace_placeholders' => true,
+        ],
+
         'single' => [
             'driver' => 'single',
             'path' => storage_path('logs/laravel.log'),

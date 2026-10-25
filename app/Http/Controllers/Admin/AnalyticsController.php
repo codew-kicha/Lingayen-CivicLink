@@ -18,11 +18,21 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class AnalyticsController extends Controller
 {
+    private const AT_RISK_SHOWN = 10;
+
     public function index(Request $request): View
     {
         $this->authorize('viewAny', Organization::class);
 
-        return view('admin.analytics', ReportData::fromRequest($request)->all());
+        $data = ReportData::fromRequest($request)->all();
+
+        // The page shows the 10 least active; the PDF and Excel exports keep the full list. At-risk
+        // is computed from aggregated rows in ReportData, so the cap is applied here, not in SQL.
+        return view('admin.analytics', [
+            ...$data,
+            'atRiskTotal' => $data['atRisk']->count(),
+            'atRisk' => $data['atRisk']->take(self::AT_RISK_SHOWN),
+        ]);
     }
 
     public function export(Request $request): Response

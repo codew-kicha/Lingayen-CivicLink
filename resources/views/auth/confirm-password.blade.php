@@ -6,7 +6,7 @@
         You won't be asked again for the next few hours.
     </x-slot:intro>
 
-    <form method="POST" action="{{ route('password.confirm') }}" class="space-y-5">
+    <form method="POST" action="{{ route('password.confirm') }}" class="space-y-6">
         @csrf
         <x-password-field />
         <button type="submit" class="btn-primary w-full">Confirm and continue</button>

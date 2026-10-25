@@ -1,4 +1,5 @@
-@import url('https://fonts.bunny.net/css?family=public-sans:400,500,600,700|ibm-plex-mono:400,500&display=swap');
+@import url('https://fonts.bunny.net/css?family=public-sans:400,500,600,700|ibm-plex-mono:400,500|merriweather:400,700,900&display=swap');
+@import './tokens.css';
 
 @tailwind base;
 @tailwind components;
@@ -6,7 +7,7 @@
 
 @layer base {
     html {
-        @apply bg-surface text-ink;
+        @apply bg-paper text-ink;
     }
 
     body {
@@ -22,99 +23,483 @@
     }
 
     :focus-visible {
-        @apply outline-2 outline-offset-2 outline-navy-600;
+        @apply outline-2 outline-offset-2 outline-focus;
+    }
+
+    /*
+     * Grid items default to min-width: auto, so one wide table or chart can stretch a single-column
+     * grid past the screen. In the app area every grid child may shrink; tables then scroll inside
+     * their own .table-wrap instead of the page scrolling sideways.
+     */
+    #main :where(.grid) > * {
+        min-width: 0;
     }
 }
 
+/*
+ * Shared components (docs/DESIGN_SYSTEM.md §4). Admin and CSO screens use only these and the tokens;
+ * spacing stays on the 4/8/12/16/24/32/48 scale, with `hair` (2px) and `tight` (6px) for badges.
+ */
 @layer components {
-    /* Buttons. Variants share the base; see DESIGN_SYSTEM.md §5.1. */
+    /* Buttons: 40px on desktop, 44px on touch breakpoints (below lg or a coarse pointer). */
     .btn {
-        @apply inline-flex items-center justify-center gap-2 rounded-md px-4 py-2.5
+        @apply inline-flex min-h-10 items-center justify-center gap-2 whitespace-nowrap rounded-md px-4 py-2
                text-sm font-semibold transition-colors duration-fast ease-out-strong
-               active:scale-[0.98] disabled:pointer-events-none;
+               active:scale-[0.98] disabled:pointer-events-none max-lg:min-h-11 touch:min-h-11;
     }
 
     .btn-primary {
-        @apply btn bg-navy-600 text-paper hover:bg-navy-700 active:bg-navy-800
-               disabled:bg-navy-200 disabled:text-muted;
+        @apply btn bg-primary text-on-primary hover:bg-primary-hover active:bg-primary-dark-hover
+               disabled:bg-primary/30;
     }
 
     .btn-secondary {
-        @apply btn border border-line-strong bg-paper text-navy-700
-               hover:border-navy-300 hover:bg-navy-50 active:bg-navy-100
-               disabled:border-line disabled:text-muted;
+        @apply btn border border-line-strong bg-paper text-primary
+               hover:border-primary/40 hover:bg-primary-subtle disabled:border-line disabled:text-muted;
     }
 
     .btn-ghost {
-        @apply btn text-navy-700 hover:bg-navy-50 active:bg-navy-100 disabled:text-muted;
+        @apply btn text-primary hover:bg-primary-subtle disabled:text-muted;
     }
 
+    /* Destructive actions are red-outlined, never filled: the one filled button is the primary action. */
     .btn-danger {
-        @apply btn bg-danger-600 text-paper hover:brightness-90 active:brightness-75
-               disabled:bg-danger-100 disabled:text-muted;
+        @apply btn border border-danger bg-paper text-danger hover:bg-danger-subtle active:bg-danger-subtle
+               disabled:border-line disabled:text-muted;
     }
 
-    /* Forms. Labels above, errors below, see DESIGN_SYSTEM.md §5.2. */
+    /* Compact row action: same height rules, less horizontal padding. */
+    .btn-sm {
+        @apply px-3;
+    }
+
+    /* Public site only: the gold call to action, and buttons on photos and maroon bands. */
+    .btn-accent {
+        @apply btn bg-accent px-6 text-accent-fg hover:bg-accent-400 active:bg-accent-600;
+    }
+
+    .btn-on-dark {
+        @apply btn border border-brand-300 px-6 text-on-primary hover:bg-primary-dark-hover;
+    }
+
+    /* Forms: labels above, errors below and wired with aria-describedby. */
     .field-label {
-        @apply mb-1.5 block text-sm font-semibold text-ink;
+        @apply mb-2 block text-sm font-semibold text-ink;
     }
 
     .field-input {
-        @apply w-full rounded-sm border border-line-strong bg-paper px-3 py-2 text-base
+        @apply min-h-11 w-full rounded-sm border border-line-strong bg-paper px-3 py-2 text-base
                text-ink transition-colors duration-fast ease-out-strong
-               placeholder:text-muted hover:border-navy-300
-               focus:border-navy-600 focus:ring-0
-               disabled:cursor-not-allowed disabled:bg-surface disabled:text-muted;
+               placeholder:text-placeholder hover:border-primary/60
+               focus:border-primary focus:ring-4 focus:ring-primary/15
+               disabled:cursor-not-allowed disabled:bg-canvas disabled:text-muted;
     }
 
+    /* Required fields: a red asterisk after the label text, explained by a "* Required" legend. */
+    .field-required::after {
+        content: ' *';
+        @apply text-danger;
+    }
+
+    /* Focus is a soft maroon halo; an error is a red border on a faint red fill, so the two never look alike. */
     .field-input-error {
-        @apply border-danger-600;
+        @apply border-danger bg-danger-subtle/40 focus:border-danger focus:ring-danger/15;
     }
 
     .field-error {
-        @apply mt-1.5 text-sm text-danger-600;
+        @apply mt-2 text-sm text-danger;
+    }
+
+    /* File chooser: a field box whose button reads as a soft maroon chip, not the browser's grey default. */
+    .field-file {
+        @apply field-input cursor-pointer py-1 text-sm text-muted
+               file:mr-3 file:cursor-pointer file:rounded-sm file:border-0 file:bg-primary-subtle file:px-3 file:py-tight
+               file:text-sm file:font-semibold file:text-primary hover:file:bg-primary/15;
     }
 
     .field-hint {
-        @apply mt-1.5 text-sm text-muted;
+        @apply mt-2 text-sm text-muted;
     }
 
-    /* Panels. Admin surfaces drop the shadow. */
+    /* Card: one radius, one border, one shadow. Padding is 24px (p-6), or 16px (p-4) when compact. */
+    .card {
+        /* min-w-0: as a grid or flex item a card must be able to shrink, so wide tables scroll inside it. */
+        @apply min-w-0 rounded-lg border border-line bg-paper shadow-panel;
+    }
+
+    /* Older names, kept as aliases of .card so both elevations collapse into one. */
     .panel {
-        @apply rounded-lg border border-line bg-paper shadow-panel;
+        @apply card;
     }
 
     .panel-flat {
-        @apply rounded-lg border border-line bg-paper;
+        @apply card;
     }
 
-    /* Status badges. Word plus color, never color alone. */
+    .card-title {
+        @apply text-card-title font-semibold text-ink;
+    }
+
+    /* Status pill: one height, never wraps, word plus colour (never colour alone). */
     .badge {
-        @apply inline-flex items-center gap-1.5 rounded-sm px-2 py-0.5 text-xs font-semibold;
+        @apply inline-flex h-6 shrink-0 items-center gap-tight whitespace-nowrap rounded-sm px-2
+               text-xs font-semibold;
     }
 
-    .badge-neutral { @apply badge border border-line bg-surface text-muted; }
-    .badge-info    { @apply badge bg-info-100 text-info-600; }
-    .badge-warning { @apply badge bg-warning-100 text-warning-600; }
-    .badge-success { @apply badge bg-success-100 text-success-600; }
-    .badge-danger  { @apply badge bg-danger-100 text-danger-600; }
+    .badge-neutral { @apply badge border border-line bg-neutral-subtle text-neutral; }
+    .badge-info    { @apply badge bg-info-subtle text-info; }
+    .badge-warning { @apply badge bg-warning-subtle text-warning; }
+    .badge-success { @apply badge bg-success-subtle text-success; }
+    .badge-danger  { @apply badge bg-danger-subtle text-danger; }
 
-    /* Tables, the admin workhorse. See DESIGN_SYSTEM.md §5.5. */
+    /* Navigation count (sidebar, tabs): one style everywhere. */
+    .count-badge {
+        @apply inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-sm bg-accent px-tight
+               text-xs font-semibold tabular-nums text-accent-fg;
+    }
+
+    /* Entity names: text colour, maroon only on hover. Maroon is reserved for actions. */
+    .entity-link {
+        @apply font-semibold text-ink underline-offset-2 hover:text-primary hover:underline;
+    }
+
+    /* Tables. Wrap every table in .table-wrap so it scrolls inside its own box, never the page. */
+    /* relative: absolutely positioned children (sr-only labels in headers) stay inside the scroll box
+       instead of escaping it and widening the page. */
+    .table-wrap {
+        @apply relative w-full overflow-x-auto;
+    }
+
     .table-head {
-        @apply border-b border-line-strong px-4 py-2 text-left text-xs font-semibold
+        @apply h-10 whitespace-nowrap border-b border-line-strong px-4 text-left text-xs font-semibold
                uppercase tracking-wide text-muted;
     }
 
     .table-cell {
-        @apply border-b border-line px-4 py-2.5 align-middle text-sm;
+        @apply h-12 border-b border-line px-4 py-2 align-middle text-sm;
     }
 
     .table-num {
-        @apply table-cell text-right font-mono tabular-nums;
+        @apply table-cell whitespace-nowrap text-right tabular-nums;
+    }
+
+    /* Dates: fixed width, one line, same font as the UI with tabular numerals. */
+    .table-date {
+        @apply table-cell w-32 whitespace-nowrap tabular-nums text-muted;
     }
 
     .table-row {
-        @apply transition-colors duration-fast ease-out-strong hover:bg-navy-50;
+        @apply transition-colors duration-fast ease-out-strong hover:bg-primary-subtle;
+    }
+
+    /*
+     * List tables (Applications, Verify activities, News posts). The table scrolls inside its own box:
+     * the header row sticks to the top of the box and the first column to its left edge. At lg the box
+     * is capped to the window, so the page stays short and the pagination bar stays in view.
+     * isolate: the sticky cells' z-index stays inside the box, under the mobile top bar and dialogs.
+     */
+    .table-scroll {
+        @apply relative isolate w-full overflow-auto lg:max-h-[calc(100dvh-17rem)];
+    }
+
+    .table-scroll .table-head {
+        @apply sticky top-0 z-dropdown bg-paper;
+    }
+
+    .table-scroll :is(th, td):first-child {
+        @apply sticky left-0 bg-paper;
+    }
+
+    .table-scroll thead th:first-child {
+        @apply z-sticky;
+    }
+
+    /* A row that opens something: pointer, hover tint (on the cells, so the sticky column tints too),
+       a focus ring, and arrow-key/Enter support from the tableNav script. */
+    .table-row-link {
+        @apply cursor-pointer outline-none;
+    }
+
+    .table-row-link > td {
+        @apply transition-colors duration-fast ease-out-strong;
+    }
+
+    .table-row-link:hover > td,
+    .table-row-link:focus-visible > td {
+        @apply bg-primary-subtle;
+    }
+
+    /* The focus ring is drawn on the cells (an outline on the row would sit under the sticky first cell). */
+    .table-row-link:focus-visible > td {
+        box-shadow: inset 0 2px 0 rgb(var(--color-focus)), inset 0 -2px 0 rgb(var(--color-focus));
+    }
+
+    .table-row-link:focus-visible > td:first-child {
+        box-shadow: inset 2px 0 0 rgb(var(--color-focus)), inset 0 2px 0 rgb(var(--color-focus)), inset 0 -2px 0 rgb(var(--color-focus));
+    }
+
+    .table-row-link:focus-visible > td:last-child {
+        box-shadow: inset -2px 0 0 rgb(var(--color-focus)), inset 0 2px 0 rgb(var(--color-focus)), inset 0 -2px 0 rgb(var(--color-focus));
+    }
+
+    /* The column a list is sorted by. */
+    .table-head-sorted {
+        @apply text-ink;
+    }
+
+    /* Bottom bar of a table card: counts and page links, pinned while the table is taller than the window. */
+    .pagination-bar {
+        @apply sticky bottom-0 z-sticky flex flex-wrap items-center gap-x-6 gap-y-3 rounded-b-lg border-t border-line
+               bg-paper px-4 py-3 text-sm;
+    }
+
+    /* Filter bar above a list: a search box and one-click filter chips. */
+    .filter-chip {
+        @apply inline-flex min-h-9 items-center gap-tight whitespace-nowrap rounded-full border border-line-strong bg-paper px-3
+               text-sm text-ink transition-colors duration-fast ease-out-strong
+               hover:border-primary/60 hover:bg-primary-subtle max-lg:min-h-11 touch:min-h-11;
+    }
+
+    .filter-chip[aria-current="page"] {
+        @apply border-primary bg-primary-subtle font-semibold text-primary;
+    }
+
+    .search-input {
+        @apply field-input pl-12;
+    }
+
+    /*
+     * Dialogs (<x-dialog>). Centred in the content area to the right of the sidebar, while
+     * the overlay covers the whole window. Header and footer are pinned; only the body scrolls. At most
+     * 80% of the window tall; full screen below sm.
+     */
+    .dialog-root {
+        @apply fixed inset-0 z-dialog flex items-center justify-center sm:p-6;
+    }
+
+    /* Beside the sidebar: the sidebar's width plus the usual gutter on the left, so the dialog's centre
+       is the content area's centre. */
+    @media (min-width: theme('screens.lg')) {
+        .dialog-root {
+            padding-left: calc(theme('width.64') + theme('padding.6'));
+        }
+    }
+
+    .dialog-overlay {
+        @apply fixed inset-0 bg-ink/50;
+    }
+
+    .dialog-panel {
+        @apply relative flex h-dvh w-full flex-col bg-paper shadow-overlay
+               sm:h-auto sm:max-h-[80vh] sm:rounded-lg;
+    }
+
+    .dialog-header {
+        @apply flex shrink-0 flex-wrap items-start gap-x-4 gap-y-2 border-b border-line px-6 py-4;
+    }
+
+    /* Square 44px icon button (dialog close, previous/next). */
+    .icon-btn {
+        @apply inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-muted
+               transition-colors duration-fast ease-out-strong hover:bg-primary-subtle hover:text-ink
+               disabled:pointer-events-none disabled:opacity-40;
+    }
+
+    .dialog-close {
+        @apply icon-btn -mr-2 ml-auto;
+    }
+
+    .dialog-body {
+        @apply min-h-0 flex-1 overflow-y-auto px-6 py-6;
+    }
+
+    .dialog-footer {
+        @apply flex shrink-0 flex-wrap items-center justify-end gap-3 border-t border-line px-6 py-4;
+    }
+
+    .dialog-footer :is(.btn-primary, .btn-secondary, .btn-danger, .btn-ghost) {
+        @apply min-h-11;
+    }
+
+    /* Combobox and tag-picker option lists. */
+    .listbox {
+        @apply absolute inset-x-0 top-full z-dropdown mt-1 max-h-60 overflow-y-auto rounded-md border border-line bg-paper
+               py-1 shadow-overlay;
+    }
+
+    .listbox-option {
+        @apply flex min-h-11 cursor-pointer items-center gap-2 px-3 text-sm text-ink;
+    }
+
+    .listbox-option[aria-selected="true"],
+    .listbox-option[data-active] {
+        @apply bg-primary-subtle;
+    }
+
+    /* Toast: bottom right, above everything, with an optional Undo. */
+    .toast {
+        @apply fixed bottom-6 right-6 z-toast flex max-w-[calc(100vw-3rem)] items-center gap-4 rounded-md bg-ink px-4 py-3
+               text-sm text-paper shadow-overlay max-sm:inset-x-4 max-sm:bottom-4 max-sm:right-auto;
+    }
+
+    .toast-action {
+        @apply -my-2 inline-flex min-h-11 items-center rounded-sm px-2 font-semibold text-accent underline underline-offset-2
+               hover:text-accent-400 focus-visible:outline-accent-400;
+    }
+
+    /*
+     * Long lists at lg and up: the table header sticks to the viewport. Below lg the wrapper scrolls
+     * sideways, and a sticky th would only stick inside it, so the header is static there.
+     */
+    .table-sticky {
+        @apply lg:overflow-visible;
+    }
+
+    .table-sticky .table-head {
+        @apply lg:sticky lg:top-0 lg:z-dropdown lg:bg-paper;
+    }
+
+    /* Pagination controls: rectangular, 4px radius, current page in maroon. 36px on desktop. */
+    .page-link {
+        @apply inline-flex min-h-9 min-w-9 items-center justify-center gap-1 rounded-sm border border-line bg-paper px-3
+               text-sm font-semibold tabular-nums text-ink transition-colors duration-fast ease-out-strong
+               hover:border-primary/40 hover:bg-primary-subtle max-lg:min-h-11 max-lg:min-w-11 touch:min-h-11 touch:min-w-11;
+    }
+
+    .page-link-current {
+        @apply border-primary bg-primary text-on-primary hover:border-primary hover:bg-primary;
+    }
+
+    .page-link-disabled {
+        @apply cursor-not-allowed text-muted opacity-60 hover:border-line hover:bg-paper;
+    }
+
+    .num {
+        @apply tabular-nums;
+    }
+    /*
+     * Public-site section titles, after pcnc.com.ph: centered serif heading over a short rose rule.
+     * Used once per section, with no eyebrow above it.
+     */
+    .section-title {
+        @apply font-serif text-[clamp(1.6rem,2.6vw,2.125rem)] font-bold leading-tight text-brand-900;
+    }
+
+
+    /* Full-colour photo with a navy wash on the text side, for the hero and the statistics band. */
+    .photo-wash {
+        @apply relative isolate overflow-hidden bg-brand-900;
+    }
+
+    .photo-wash > img {
+        @apply absolute inset-0 h-full w-full object-cover;
+    }
+
+    .photo-wash::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+        pointer-events: none;
+        background: linear-gradient(90deg, rgb(var(--color-primary-dark) / 0.92) 0%, rgb(var(--color-primary-dark) / 0.7) 45%, rgb(var(--color-primary-dark) / 0.25) 100%);
+    }
+
+    /* Segmented utility buttons in the public identity bar (pcnc.com.ph's Report / Apply / Contact). */
+    /*
+     * Public header hover effects. Each one has the same cue on keyboard focus (:focus-visible),
+     * animates only transform and colour, stays under 200ms, and is instant under reduced motion.
+     */
+
+    /* Utility buttons: fill maroon on hover/focus; the call to action fills gold. */
+    .utility-link {
+        @apply px-6 py-3 text-ink transition-colors duration-fast ease-out-strong first:rounded-l-sm last:rounded-r-sm
+               hover:bg-primary hover:text-on-primary
+               focus-visible:bg-primary focus-visible:text-on-primary focus-visible:outline-focus;
+    }
+
+    .utility-link-cta {
+        @apply font-semibold text-brand-800 hover:bg-accent hover:text-accent-fg
+               focus-visible:bg-accent focus-visible:text-accent-fg;
+    }
+
+    /* Menu bar links: a gold underline grows from the centre; the current page keeps it full. */
+    .nav-link {
+        @apply relative block px-6 py-4 text-[0.9rem] font-medium uppercase tracking-[0.08em]
+               transition-colors duration-fast ease-out-strong focus-visible:outline-accent-400;
+    }
+
+    .nav-link::after {
+        content: '';
+        position: absolute;
+        left: 1.5rem;
+        right: 1.5rem;
+        bottom: 0.5rem;
+        height: 2px;
+        background: rgb(var(--color-accent));
+        transform: scaleX(0);
+        transition: transform 180ms cubic-bezier(0.23, 1, 0.32, 1);
+    }
+
+    .nav-link:hover::after,
+    .nav-link:focus-visible::after,
+    .nav-link[aria-current="page"]::after {
+        transform: scaleX(1);
+    }
+
+    /* Logo: the seal turns slightly and the name darkens. */
+    .brand-link .civic-seal {
+        @apply transition-transform duration-base ease-out-strong;
+    }
+
+    .brand-link:hover .civic-seal,
+    .brand-link:focus-visible .civic-seal {
+        transform: rotate(8deg);
+    }
+
+    .brand-link .brand-name {
+        @apply transition-colors duration-fast ease-out-strong;
+    }
+
+    .brand-link:hover .brand-name,
+    .brand-link:focus-visible .brand-name {
+        @apply text-primary-dark;
+    }
+
+    /* Sidebar nav fallback scroll for very short windows: thin, maroon, unobtrusive. */
+    .sidebar-scroll {
+        scrollbar-width: thin;
+        scrollbar-color: rgb(var(--color-primary-dark-hover)) transparent;
+    }
+
+    .sidebar-scroll::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .sidebar-scroll::-webkit-scrollbar-thumb {
+        background: rgb(var(--color-primary-dark-hover));
+        border-radius: 3px;
+    }
+
+    .hero-control {
+        @apply inline-flex h-11 w-11 items-center justify-center rounded-md bg-primary-dark/60 text-paper
+               transition-colors duration-fast ease-out-strong hover:bg-brand-900 active:scale-[0.97]
+               focus-visible:outline-accent-400;
+    }
+
+    .photo-wash-even::after {
+        background: rgb(var(--color-primary-dark) / 0.82);
+    }
+
+    /* Page banners with real event photos: an even wash on phones (text spans the width), and a
+       left-to-right wash from lg so the photo shows on the right. */
+    .photo-wash-banner::after {
+        background: rgb(var(--color-primary-dark) / 0.84);
+    }
+
+    @media (min-width: theme('screens.lg')) {
+        .photo-wash-banner::after {
+            background: linear-gradient(90deg, rgb(var(--color-primary-dark) / 0.94) 0%, rgb(var(--color-primary-dark) / 0.78) 50%, rgb(var(--color-primary-dark) / 0.35) 100%);
+        }
     }
 
     /*
@@ -122,7 +507,7 @@
      * not the wrapper: a filter on the wrapper would also grayscale the navy ::after layer.
      */
     .photo-duotone {
-        @apply relative isolate overflow-hidden bg-navy-900;
+        @apply relative isolate overflow-hidden bg-brand-900;
     }
 
     .photo-duotone > img {
@@ -137,7 +522,7 @@
         inset: 0;
         z-index: 1;
         pointer-events: none;
-        background: oklch(0.36 0.09 254);
+        background: rgb(var(--color-primary-hover));
         mix-blend-mode: lighten;
     }
 
@@ -147,7 +532,7 @@
         inset: 0;
         z-index: 1;
         pointer-events: none;
-        background: linear-gradient(180deg, oklch(0.21 0.055 250 / 0.55), oklch(0.21 0.055 250 / 0.15));
+        background: linear-gradient(180deg, rgb(var(--color-primary-dark) / 0.55), rgb(var(--color-primary-dark) / 0.15));
         mix-blend-mode: multiply;
     }
 
@@ -159,14 +544,128 @@
     .motion-ok .reveal.is-revealed {
         @apply translate-y-0 opacity-100;
     }
+
+    /*
+     * Public-page motion (MOTION_INTENSITY 5, only with .motion-ok, so reduced-motion and no-JS
+     * visitors see everything still). Transform and opacity only.
+     */
+    /* Banner title and lede rise in once on load. */
+    .motion-ok .banner-enter > * {
+        animation: banner-rise 520ms cubic-bezier(0.23, 1, 0.32, 1) both;
+    }
+
+    .motion-ok .banner-enter > *:nth-child(2) { animation-delay: 60ms; }
+    .motion-ok .banner-enter > *:nth-child(3) { animation-delay: 120ms; }
+
+    /* Banner photo settles from a slight zoom. */
+    .motion-ok .banner-photo {
+        animation: banner-settle 1400ms cubic-bezier(0.23, 1, 0.32, 1) both;
+    }
+
+    /* Timelines: the connecting line draws as the list scrolls in. */
+    .motion-ok .reveal-line {
+        @apply transition-transform duration-[900ms] ease-out-strong;
+    }
+
+    .motion-ok .reveal-line-x { transform: scaleX(0); transform-origin: left; }
+    .motion-ok .reveal-line-y { transform: scaleY(0); transform-origin: top; }
+
+    .motion-ok .reveal-line.is-revealed { transform: none; }
+
+    /* A photo that eases up and un-zooms as it enters. */
+    .motion-ok .reveal-photo {
+        @apply translate-y-4 scale-[1.02] opacity-0 transition duration-[700ms] ease-out-strong;
+    }
+
+    .motion-ok .reveal-photo.is-revealed {
+        @apply translate-y-0 scale-100 opacity-100;
+    }
+
+    /*
+     * Admin list tables on phones (.table-stack): each row becomes a block instead of a table that
+     * hides its last columns off-screen. Cells with data-label get a small label in front.
+     */
+    @media (max-width: 639px) {
+        .table-stack thead {
+            @apply sr-only;
+        }
+
+        .table-stack,
+        .table-stack tbody,
+        .table-stack tr,
+        .table-stack td {
+            display: block;
+            width: 100%;
+        }
+
+        .table-stack tr {
+            @apply border-b border-line px-4 py-3;
+        }
+
+        .table-stack td,
+        .table-scroll .table-stack td:first-child {
+            @apply static h-auto border-0 bg-transparent p-0 text-left;
+        }
+
+        .table-stack td + td {
+            @apply mt-1;
+        }
+
+        .table-stack td[data-label]::before {
+            content: attr(data-label) ' ';
+            @apply text-muted;
+        }
+
+        .table-stack .stack-hide {
+            display: none;
+        }
+
+        .table-stack .table-row-link:hover,
+        .table-stack .table-row-link:focus-visible {
+            @apply bg-primary-subtle;
+        }
+
+        .table-stack .table-row-link:focus-visible {
+            outline: 2px solid rgb(var(--color-focus));
+            outline-offset: -2px;
+        }
+
+        .table-stack .table-row-link > td,
+        .table-stack .table-row-link:focus-visible > td {
+            box-shadow: none;
+            background: transparent;
+        }
+    }
 }
 
 [x-cloak] { display: none !important; }
+
+/* Page-load progress bar (app layout): a segment sliding across. Reduced motion: a still bar. */
+@keyframes banner-rise {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: none; }
+}
+
+@keyframes banner-settle {
+    from { transform: scale(1.06); }
+    to { transform: none; }
+}
+
+@keyframes progress {
+    from { transform: translateX(-100%); }
+    to { transform: translateX(300%); }
+}
 
 @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after {
         animation-duration: 0.01ms !important;
         transition-duration: 0.01ms !important;
         scroll-behavior: auto !important;
+    }
+
+    /* The page-load bar becomes a still, full-width line instead of flickering. */
+    [role="progressbar"] > div {
+        animation: none !important;
+        width: 100%;
     }
 }

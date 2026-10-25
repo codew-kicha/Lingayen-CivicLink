@@ -28,6 +28,13 @@ class UserPolicy
         return $user->isAdmin() && ! $target->is_active;
     }
 
+    // Correcting a representative's login or setting a new password for them (office walk-ins who
+    // lost access). Admin accounts are not edited this way: each admin manages their own.
+    public function manageCredentials(User $user, User $target): bool
+    {
+        return $user->isAdmin() && $target->isCsoRep();
+    }
+
     // Invitations only make sense until the person has set a password (which verifies them).
     public function invite(User $user, User $target): bool
     {

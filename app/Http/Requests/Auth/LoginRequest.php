@@ -45,6 +45,7 @@ class LoginRequest extends FormRequest
 
         if (! Auth::attempt($this->only('email', 'password'), $this->boolean('remember'))) {
             RateLimiter::hit($this->throttleKey());
+            RateLimiter::hit($this->ipThrottleKey());
             AuditLog::record('login.failed', meta: ['email' => $this->string('email')->lower()->value()]);
 
             throw ValidationException::withMessages([
@@ -73,13 +74,17 @@ class LoginRequest extends FormRequest
      */
     public function ensureIsNotRateLimited(): void
     {
-        if (! RateLimiter::tooManyAttempts($this->throttleKey(), 5)) {
+        $key = collect([$this->throttleKey() => 5, $this->ipThrottleKey() => 20])
+            ->filter(fn ($max, $key) => RateLimiter::tooManyAttempts($key, $max))
+            ->keys()->first();
+
+        if ($key === null) {
             return;
         }
 
         event(new Lockout($this));
 
-        $seconds = RateLimiter::availableIn($this->throttleKey());
+        $seconds = RateLimiter::availableIn($key);
 
         throw ValidationException::withMessages([
             'email' => trans('auth.throttle', [
@@ -92,6 +97,12 @@ class LoginRequest extends FormRequest
     /**
      * Get the rate limiting throttle key for the request.
      */
+    /** Failed sign-ins from one address across every email (password spraying). */
+    public function ipThrottleKey(): string
+    {
+        return 'login-ip|'.$this->ip();
+    }
+
     public function throttleKey(): string
     {
         return Str::transliterate(Str::lower($this->string('email')).'|'.$this->ip());

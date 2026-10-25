@@ -135,10 +135,28 @@ class ContentManagementTest extends TestCase
         $admin = User::factory()->admin()->create();
         $post = NewsPost::factory()->create(['author_id' => $admin->id]);
 
-        $this->actingAs($admin)->get(route('admin.news.index'))->assertOk();
-        $this->actingAs($admin)->get(route('admin.news.create'))->assertOk();
-        $this->actingAs($admin)->get(route('admin.news.edit', $post))->assertOk();
+        $this->actingAs($admin)->get(route('admin.news.index'))->assertOk()
+            ->assertSee('Write a post')->assertSee('Featured organizations')->assertSee('Save as draft');
         $this->actingAs($admin)->get(route('admin.annual-reports.index'))->assertOk();
+    }
+
+    public function test_posts_are_written_and_edited_in_the_dialog_on_the_list(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $post = NewsPost::factory()->create(['author_id' => $admin->id, 'title' => 'Barangay assembly recap']);
+
+        // The old create and edit pages now open the dialog on the list.
+        $this->actingAs($admin)->get(route('admin.news.create'))->assertRedirect(route('admin.news.index', ['write' => 1]));
+        $this->actingAs($admin)->get(route('admin.news.edit', $post))->assertRedirect(route('admin.news.index', ['edit' => $post->id]));
+        $this->actingAs($admin)->get(route('admin.news.index', ['edit' => $post->id]))->assertOk()
+            ->assertSee("dialog('post', true)", false)->assertSee('Barangay assembly recap');
+
+        // A validation error comes back to the list with the dialog open and the typed text kept.
+        $this->actingAs($admin)->from(route('admin.news.index'))->post(route('admin.news.store'), [
+            '_dialog' => 'post', 'title' => '', 'body' => 'Draft text to keep', 'status' => 'published',
+        ])->assertRedirect(route('admin.news.index'))->assertSessionHasErrors('title');
+        $this->actingAs($admin)->get(route('admin.news.index'))
+            ->assertSee("dialog('post', true)", false)->assertSee('Draft text to keep');
     }
 
     private function accreditedOrganization(): Organization

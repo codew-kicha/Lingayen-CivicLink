@@ -29,9 +29,12 @@ class RegisterOrganizationRequest extends FormRequest
             'sector' => ['required', Rule::in(config('sectors'))],
             'barangay' => ['required', Rule::in(config('barangays'))],
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', Rule::unique(User::class)],
+            // On the live site the domain must exist and accept mail (DNS lookup); the emailed code then
+            // proves the person can read that inbox.
+            'email' => ['required', 'string', 'lowercase', app()->isProduction() ? 'email:rfc,dns' : 'email', 'max:255', Rule::unique(User::class)],
             'phone' => ['required', 'regex:/^\+639\d{9}$/'],
-            'password' => ['required', 'confirmed', Password::defaults()],
+            // One password field with Show/Hide on the sign-up form, so no second "type it again" field.
+            'password' => ['required', Password::defaults()],
         ];
     }
 

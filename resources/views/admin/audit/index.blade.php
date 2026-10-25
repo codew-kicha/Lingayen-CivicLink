@@ -1,4 +1,4 @@
-<x-layouts.admin header="Audit log"
+<x-layouts.app header="Audit log"
                  subheader="Sign-ins, account changes, and decisions that grant or remove access. Entries cannot be edited.">
     <form method="GET" class="mb-4 flex flex-wrap items-end gap-3">
         <div>
@@ -10,23 +10,28 @@
                 @endforeach
             </select>
         </div>
-        @if (request('account'))
-            <input type="hidden" name="account" value="{{ request('account') }}">
-        @endif
+        <x-keep-query :only="['account', 'actor', 'organization']" />
         <button type="submit" class="btn-primary">Filter</button>
-        @if (request()->hasAny(['action', 'account', 'actor']))
+        @if (request()->hasAny(['action', 'account', 'actor', 'organization']))
             <a href="{{ route('admin.audit.index') }}" class="btn-ghost">Show everything</a>
         @endif
     </form>
 
-    <section class="panel-flat overflow-hidden">
+    @if ($organization)
+        <p class="mb-4 text-sm text-muted">
+            Full history for <a href="{{ route('admin.organizations.edit', $organization) }}" class="entity-link">{{ $organization->name }}</a>.
+        </p>
+    @endif
+
+    <section class="card">
         @if ($entries->isEmpty())
-            <p class="px-4 py-14 text-center text-sm text-muted">No events recorded for this filter.</p>
+            <x-empty-state :filtered="request()->hasAny(['action', 'account', 'actor', 'organization'])" :clear-url="route('admin.audit.index')"
+                           title="No events recorded yet." icon="list-magnifying-glass" />
         @else
-            <div class="overflow-x-auto">
+            <div class="table-wrap table-sticky">
                 <table class="w-full">
                     <caption class="sr-only">Audit log entries</caption>
-                    <thead class="sticky top-0 bg-paper">
+                    <thead>
                         <tr>
                             <th scope="col" class="table-head">When</th>
                             <th scope="col" class="table-head">Event</th>
@@ -38,7 +43,7 @@
                     <tbody>
                         @foreach ($entries as $entry)
                             <tr class="table-row">
-                                <td class="table-cell whitespace-nowrap font-mono text-xs tabular-nums text-muted">
+                                <td class="table-date">
                                     {{ $entry->created_at->format('d M Y, H:i:s') }}
                                 </td>
                                 <td class="table-cell">
@@ -53,14 +58,13 @@
                                         <span class="block">{{ str_replace('_', ' ', $key) }}: {{ is_array($value) ? implode(', ', $value) : $value }}</span>
                                     @endforeach
                                 </td>
-                                <td class="table-cell font-mono text-xs tabular-nums text-muted">{{ $entry->ip_address }}</td>
+                                <td class="table-cell whitespace-nowrap tabular-nums text-muted">{{ $entry->ip_address }}</td>
                             </tr>
                         @endforeach
                     </tbody>
                 </table>
             </div>
         @endif
+        <x-pagination :paginator="$entries" />
     </section>
-
-    <div class="mt-4">{{ $entries->links() }}</div>
-</x-layouts.admin>
+</x-layouts.app>

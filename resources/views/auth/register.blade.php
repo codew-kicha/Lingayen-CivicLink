@@ -1,109 +1,119 @@
+{{--
+    Sign-up in two short steps: the organization, then its representative. Both steps are one form
+    (the hidden step stays in the page), so a single POST sends everything. After a validation error
+    the page reopens on the step that holds the first problem. Without JavaScript both steps show.
+--}}
+@php
+    $orgFields = ['organization_name', 'barangay', 'sector'];
+    $startStep = $errors->hasAny($orgFields) || ! $errors->any() ? 1 : 2;
+@endphp
+
 <x-guest-layout>
     <x-slot:title>Register your organization</x-slot:title>
     <x-slot:heading>Register your organization</x-slot:heading>
-    <x-slot:intro>This creates your organization's record and your account as its representative. One account per organization.</x-slot:intro>
 
-    <x-slot:aside>
-        <p class="text-sm font-semibold text-rose-400">What happens next</p>
-        <ol class="mt-5 space-y-5">
-            @foreach ([
-                ['Confirm your email', 'We send a link to the address you register with.'],
-                ['Upload your requirements', 'Accreditation form, officers list, constitution and by-laws, and fee receipt.'],
-                ['Desk Office review', 'Staff check your documents, then the Sangguniang Bayan deliberates.'],
-                ['Track every stage', 'Your dashboard shows each reading as it happens. No phone calls needed.'],
-            ] as [$step, $detail])
-                <li class="grid grid-cols-[2rem_minmax(0,1fr)] gap-x-3">
-                    <span class="flex h-8 w-8 items-center justify-center rounded-full border border-navy-600 font-mono text-sm text-navy-200">{{ $loop->iteration }}</span>
-                    <div>
-                        <p class="font-semibold">{{ $step }}</p>
-                        <p class="mt-0.5 text-sm text-navy-200">{{ $detail }}</p>
-                    </div>
-                </li>
-            @endforeach
-        </ol>
-        <a href="{{ route('accreditation') }}" class="mt-8 inline-block text-sm font-semibold text-paper underline underline-offset-4 hover:text-rose-200">
-            Read the full accreditation guidelines
-        </a>
-    </x-slot:aside>
-
-    <form method="POST" action="{{ route('register') }}" class="space-y-8">
+    <form method="POST" action="{{ route('register') }}"
+          x-data="{
+              step: {{ $startStep }},
+              next() {
+                  for (const field of this.$refs.organization.querySelectorAll('input:not([type=hidden]), select')) {
+                      if (! field.checkValidity()) { field.reportValidity(); return; }
+                  }
+                  this.step = 2;
+                  this.$nextTick(() => document.getElementById('name').focus());
+              },
+              back() {
+                  this.step = 1;
+                  this.$nextTick(() => document.getElementById('organization_name').focus());
+              },
+          }"
+          @submit="if (step === 1) { $event.preventDefault(); next(); }">
         @csrf
 
-        <fieldset class="space-y-5">
-            <legend class="font-semibold text-ink">Your organization</legend>
+        {{-- Where you are: a short label and a two-part bar. --}}
+        <div class="mb-4" x-cloak>
+            <p class="text-sm font-semibold text-ink" aria-live="polite">
+                <span x-text="step === 1 ? 'Step 1 of 2: Your organization' : 'Step 2 of 2: You, as its representative'">Step {{ $startStep }} of 2</span>
+            </p>
+            <div class="mt-2 grid grid-cols-2 gap-1" aria-hidden="true">
+                <span class="h-1 rounded-full bg-brand-700"></span>
+                <span class="h-1 rounded-full transition-colors duration-base" :class="step === 2 ? 'bg-brand-700' : 'bg-line'"></span>
+            </div>
+        </div>
+
+        <fieldset x-ref="organization" x-show="step === 1" @if ($startStep !== 1) x-cloak @endif class="space-y-4" aria-label="Your organization">
 
             <div>
                 <label for="organization_name" class="field-label">Organization name</label>
-                <input id="organization_name" name="organization_name" value="{{ old('organization_name') }}" required autofocus
+                <input id="organization_name" name="organization_name" value="{{ old('organization_name') }}" required maxlength="255"
+                       @if ($startStep === 1) autofocus @endif placeholder="e.g. Libsong Senior Citizens Association"
                        @error('organization_name') aria-invalid="true" aria-describedby="organization_name-error" @enderror
                        class="field-input @error('organization_name') field-input-error @enderror">
                 @error('organization_name')<p id="organization_name-error" class="field-error">{{ $message }}</p>@enderror
             </div>
 
-            <div class="grid gap-5 sm:grid-cols-2">
-                <div>
-                    <label for="barangay" class="field-label">Barangay</label>
-                    <select id="barangay" name="barangay" required class="field-input @error('barangay') field-input-error @enderror">
-                        <option value="">Choose one</option>
-                        @foreach ($barangays as $barangay)
-                            <option @selected(old('barangay') === $barangay)>{{ $barangay }}</option>
-                        @endforeach
-                    </select>
-                    @error('barangay')<p class="field-error">{{ $message }}</p>@enderror
-                </div>
-                <div>
-                    <label for="sector" class="field-label">Sector</label>
-                    <select id="sector" name="sector" required class="field-input @error('sector') field-input-error @enderror">
-                        <option value="">Choose one</option>
-                        @foreach ($sectors as $sector)
-                            <option @selected(old('sector') === $sector)>{{ $sector }}</option>
-                        @endforeach
-                    </select>
-                    @error('sector')<p class="field-error">{{ $message }}</p>@enderror
-                </div>
+            <x-barangay-combobox :value="old('barangay')" :error="$errors->first('barangay') ?: null" :marked="false" />
+
+            <div>
+                <label for="sector" class="field-label">Sector</label>
+                <select id="sector" name="sector" required
+                        @error('sector') aria-invalid="true" aria-describedby="sector-error" @enderror
+                        class="field-input @error('sector') field-input-error @enderror">
+                    <option value="" disabled @selected(! old('sector'))>Choose a sector</option>
+                    @foreach ($sectors as $sector)
+                        <option @selected(old('sector') === $sector)>{{ $sector }}</option>
+                    @endforeach
+                </select>
+                @error('sector')<p id="sector-error" class="field-error">{{ $message }}</p>@enderror
             </div>
+
+            <button type="button" class="btn-primary w-full" x-cloak @click="next()">
+                Next <x-phosphor-arrow-right class="h-4 w-4" aria-hidden="true" />
+            </button>
         </fieldset>
 
-        <div class="border-t border-line pt-8">
-        <fieldset class="space-y-5">
-            <legend class="font-semibold text-ink">You, as its representative</legend>
+        <fieldset x-show="step === 2" @if ($startStep !== 2) x-cloak @endif class="space-y-4" aria-label="You, as its representative">
 
             <div>
                 <label for="name" class="field-label">Full name</label>
-                <input id="name" name="name" value="{{ old('name') }}" required autocomplete="name"
+                <input id="name" name="name" value="{{ old('name') }}" required autocomplete="name" maxlength="255"
+                       @if ($startStep === 2) autofocus @endif
                        @error('name') aria-invalid="true" aria-describedby="name-error" @enderror
                        class="field-input @error('name') field-input-error @enderror">
                 @error('name')<p id="name-error" class="field-error">{{ $message }}</p>@enderror
             </div>
 
-            <div class="grid gap-5 sm:grid-cols-2">
-                <div>
-                    <label for="email" class="field-label">Email</label>
-                    <input id="email" name="email" type="email" value="{{ old('email') }}" required autocomplete="email"
-                           @error('email') aria-invalid="true" aria-describedby="email-error" @enderror
-                           class="field-input @error('email') field-input-error @enderror">
-                    @error('email')<p id="email-error" class="field-error">{{ $message }}</p>@enderror
-                </div>
-                <div>
-                    <label for="phone" class="field-label">Mobile number</label>
-                    <input id="phone" name="phone" type="tel" value="{{ old('phone') }}" required autocomplete="tel" placeholder="0917 123 4567"
-                           aria-describedby="phone-hint @error('phone') phone-error @enderror"
-                           @error('phone') aria-invalid="true" @enderror
-                           class="field-input @error('phone') field-input-error @enderror">
-                    <p id="phone-hint" class="field-hint">For reminders about your application.</p>
-                    @error('phone')<p id="phone-error" class="field-error">{{ $message }}</p>@enderror
-                </div>
+            <div>
+                <label for="email" class="field-label">Email</label>
+                <input id="email" name="email" type="email" value="{{ old('email') }}" required autocomplete="email" maxlength="255"
+                       placeholder="name@example.com"
+                       @error('email') aria-invalid="true" aria-describedby="email-error" @enderror
+                       class="field-input @error('email') field-input-error @enderror">
+                @error('email')<p id="email-error" class="field-error">{{ $message }}</p>@enderror
+            </div>
+
+            <div>
+                <label for="phone" class="field-label">Mobile number</label>
+                <input id="phone" name="phone" type="tel" value="{{ old('phone') }}" required autocomplete="tel" placeholder="0917 123 4567"
+                       @error('phone') aria-describedby="phone-error" @enderror
+                       @error('phone') aria-invalid="true" @enderror
+                       class="field-input @error('phone') field-input-error @enderror">
+                @error('phone')<p id="phone-error" class="field-error">{{ $message }}</p>@enderror
             </div>
 
             <x-password-field autocomplete="new-password" checklist />
-            <x-password-field name="password_confirmation" label="Type the password again" autocomplete="new-password" />
+
+            <div class="flex flex-wrap gap-3">
+                <button type="button" class="btn-secondary" x-cloak @click="back()">
+                    <x-phosphor-arrow-left class="h-4 w-4" aria-hidden="true" />Back
+                </button>
+                <button type="submit" class="btn-primary flex-1">Register organization</button>
+            </div>
         </fieldset>
-        </div>
-
-        <button type="submit" class="btn-primary w-full">Register organization</button>
-
-        <p class="text-center text-sm text-muted">
-            Already registered? <a href="{{ route('login') }}" class="font-semibold text-navy-700 hover:underline">Sign in</a>
-        </p>
     </form>
+
+    <x-slot:footer>
+        Already registered?
+        <a href="{{ route('login') }}" class="font-semibold text-brand-700 hover:underline">Sign in</a>
+    </x-slot:footer>
 </x-guest-layout>

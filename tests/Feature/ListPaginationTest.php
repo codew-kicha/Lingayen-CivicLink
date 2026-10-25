@@ -1,0 +1,166 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Models\Activity;
+use App\Models\ApplicationModel;
+use App\Models\AuditLog;
+use App\Models\NewsPost;
+use App\Models\Organization;
+use App\Models\User;
+use App\Services\ReportData;
+use App\Support\ListPagination;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPUnit\Framework\Attributes\DataProvider;
+use Tests\TestCase;
+
+/**
+ * Every paginated list behaves the same way (docs/DESIGN_SYSTEM.md §4): 10 rows a page, filters
+ * survive page changes, out-of-range pages redirect, and filtering returns to page 1.
+ */
+class ListPaginationTest extends TestCase
+{
+    use RefreshDatabase;
+
+    /**
+     * route, role, filters that match the seeded rows, seeder(User $viewer, int $rows).
+     *
+     * @return array<string, array{string, string, array<string, string>, \Closure}>
+     */
+    public static function lists(): array
+    {
+        return [
+            'audit log' => ['admin.audit.index', 'admin', ['action' => 'login'], function (User $viewer, int $rows) {
+                foreach (range(1, $rows) as $i) {
+                    AuditLog::create(['actor_id' => $viewer->id, 'action' => 'login', 'subject_type' => 'User', 'subject_id' => $viewer->id]);
+                }
+            }],
+            'applications queue' => ['admin.applications.index', 'admin', ['status' => 'review'], function (User $viewer, int $rows) {
+                ApplicationModel::factory()->count($rows)->create(['status' => 'submitted']);
+            }],
+            'organizations' => ['admin.organizations.index', 'admin', ['q' => 'Coop'], function (User $viewer, int $rows) {
+                foreach (range(1, $rows) as $i) {
+                    Organization::factory()->create(['name' => sprintf('Coop %03d', $i)]);
+                }
+            }],
+            'accounts' => ['admin.accounts.index', 'admin', ['role' => 'cso_rep'], function (User $viewer, int $rows) {
+                User::factory()->count($rows)->create();
+            }],
+            'scorecards' => ['admin.scorecards.index', 'admin', ['q' => 'Coop'], function (User $viewer, int $rows) {
+                foreach (range(1, $rows) as $i) {
+                    Organization::factory()->create(['name' => sprintf('Coop %03d', $i)]);
+                }
+            }],
+            'news posts' => ['admin.news.index', 'admin', ['status' => 'published'], function (User $viewer, int $rows) {
+                NewsPost::factory()->count($rows)->create(['author_id' => $viewer->id, 'status' => 'published', 'published_at' => now()]);
+            }],
+            'CSO activities' => ['cso.activities.index', 'cso', ['status' => 'verified'], function (User $viewer, int $rows) {
+                Activity::factory()->count($rows)->for($viewer->organization)->verified()->create();
+            }],
+            'verify activities' => ['admin.activities.index', 'admin', ['q' => 'Clean-up'], function (User $viewer, int $rows) {
+                foreach (range(1, $rows) as $i) {
+                    Activity::factory()->create(['title' => "Clean-up {$i}"]);
+                }
+            }],
+        ];
+    }
+
+    private function viewer(string $role): User
+    {
+        if ($role === 'admin') {
+            return User::factory()->admin()->create();
+        }
+
+        $rep = User::factory()->create();
+        Organization::factory()->for($rep)->create();
+
+        return $rep;
+    }
+
+    #[DataProvider('lists')]
+    public function test_page_links_keep_the_filters(string $route, string $role, array $filters, \Closure $seed): void
+    {
+        $viewer = $this->viewer($role);
+        $seed($viewer, ListPagination::PER_PAGE + 1);
+
+        $html = $this->actingAs($viewer)->get(route($route, $filters))->assertOk()->getContent();
+
+        $this->assertStringContainsString('aria-label="Pagination"', $html);
+        $this->assertMatchesRegularExpression('/'.preg_quote(http_build_query($filters, '', '&amp;'), '/').'&amp;page=2#(page-title|history)"/', $html);
+    }
+
+    #[DataProvider('lists')]
+    public function test_every_list_shows_ten_rows_and_out_of_range_pages_redirect(string $route, string $role, array $filters, \Closure $seed): void
+    {
+        $viewer = $this->viewer($role);
+        $seed($viewer, 26);
+
+        $this->actingAs($viewer)->get(route($route, $filters + ['per_page' => 25]))
+            ->assertOk()->assertSee('Showing 1-10 of 26', false)->assertDontSee('Rows per page');
+
+        $this->actingAs($viewer)->get(route($route, $filters + ['page' => 99]))
+            ->assertRedirect(route($route, $filters + ['page' => 3]));
+    }
+
+    #[DataProvider('lists')]
+    public function test_changing_a_filter_returns_to_page_one(string $route, string $role, array $filters, \Closure $seed): void
+    {
+        $viewer = $this->viewer($role);
+        $seed($viewer, 3);
+
+        $html = $this->actingAs($viewer)->get(route($route, $filters + ['page' => 1]))->assertOk()->getContent();
+
+        // Every GET form (search, filters) and every filter link drops `page`.
+        preg_match_all('/<form method="GET".*?<\/form>/s', $html, $forms);
+        $this->assertNotEmpty($forms[0]);
+        foreach ($forms[0] as $form) {
+            $this->assertStringNotContainsString('name="page"', $form);
+        }
+        $this->assertDoesNotMatchRegularExpression('/href="[^"]*[?&](amp;)?page=1\b/', $html);
+    }
+
+    #[DataProvider('lists')]
+    public function test_empty_lists_say_whether_the_filters_or_the_data_are_empty(string $route, string $role, array $filters, \Closure $seed): void
+    {
+        $viewer = $this->viewer($role);
+
+        $this->actingAs($viewer)->get(route($route, $filters))->assertOk()
+            ->assertSee('No results for these filters')->assertSee('Clear filters');
+        $this->actingAs($viewer)->get(route($route))->assertOk()
+            ->assertDontSee('No results for these filters');
+    }
+
+    public function test_the_at_risk_filter_matches_the_analytics_definition(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $quiet = Organization::factory()->create(['name' => 'Quiet Association']);
+        $busy = Organization::factory()->create(['name' => 'Busy Cooperative']);
+        foreach ([$quiet, $busy] as $organization) {
+            $application = ApplicationModel::factory()->for($organization)->approved()->create();
+            $organization->accreditations()->create([
+                'application_id' => $application->id, 'verification_code' => 'RISK-'.$organization->id, 'status' => 'active',
+                'active_org_marker' => $organization->id, 'issued_at' => now()->subYear(), 'expires_at' => now()->addYear(),
+            ]);
+        }
+        Activity::factory()->count(3)->for($busy)->verified()->create(['activity_source' => 'independent', 'activity_date' => now()->subMonth()]);
+
+        $expected = ReportData::fromRequest(request())->atRisk()->pluck('name')->all();
+        $this->assertSame(['Quiet Association'], $expected);
+
+        $this->actingAs($admin)->get(route('admin.organizations.index', ['status' => 'at-risk']))
+            ->assertOk()->assertSee('Quiet Association')->assertDontSee('Busy Cooperative');
+    }
+
+    public function test_the_audit_log_can_show_one_organizations_history(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $mine = Organization::factory()->create(['name' => 'Pangapisan Fisherfolk Association']);
+        $other = Organization::factory()->create();
+        AuditLog::create(['actor_id' => $admin->id, 'action' => 'organization.updated', 'subject_type' => 'Organization', 'subject_id' => $mine->id]);
+        AuditLog::create(['actor_id' => $admin->id, 'action' => 'organization.hidden', 'subject_type' => 'Organization', 'subject_id' => $other->id]);
+
+        $this->actingAs($admin)->get(route('admin.audit.index', ['organization' => $mine->id]))
+            ->assertOk()->assertSee('Full history for')->assertSee('Pangapisan Fisherfolk Association')
+            ->assertSee('organization.updated')->assertDontSee('organization.hidden');
+    }
+}
