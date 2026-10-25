@@ -135,6 +135,14 @@ return [
     */
 
     'allow_demo_data' => (bool) env('ALLOW_DEMO_DATA', false),
+
+    /*
+    | Some hosts patch PHP in place without raising its version number (Hostinger announced its
+    | PHP2Shell fix this way in October 2026). Set PHP_PATCHED_BY_HOST=true only after the host has
+    | confirmed the fix; System check then accepts the older number and says why.
+    */
+
+    'php_patched_by_host' => (bool) env('PHP_PATCHED_BY_HOST', false),
     'demo_password' => env('DEMO_PASSWORD'),
 
 ];

@@ -26,7 +26,8 @@ return [
         'System' => [
             ['route' => 'admin.accounts.index', 'active' => ['admin.accounts.*'], 'label' => 'Accounts', 'icon' => 'users'],
             ['route' => 'admin.audit.index', 'active' => ['admin.audit.*'], 'label' => 'Audit log', 'icon' => 'list-magnifying-glass'],
-            ['route' => 'admin.system-check', 'label' => 'System check', 'icon' => 'shield-check'],
+            // SHOW_SYSTEM_CHECK=false hides it from the menu (for a demo); /admin/system-check still works.
+            ...(env('SHOW_SYSTEM_CHECK', true) ? [['route' => 'admin.system-check', 'label' => 'System check', 'icon' => 'shield-check']] : []),
         ],
     ],
 
