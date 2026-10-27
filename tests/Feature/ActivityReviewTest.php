@@ -78,7 +78,7 @@ class ActivityReviewTest extends TestCase
         Storage::fake('local');
         $admin = User::factory()->admin()->create();
         $rep = User::factory()->create();
-        $organization = Organization::factory()->for($rep)->create();
+        $organization = Organization::factory()->for($rep)->accredited()->create();
 
         $this->actingAs($rep)->post(route('cso.activities.store'), [
             'title' => 'Mangrove planting',
@@ -103,7 +103,7 @@ class ActivityReviewTest extends TestCase
     public function test_the_sign_in_sheet_must_be_a_pdf_or_image(): void
     {
         $rep = User::factory()->create();
-        Organization::factory()->for($rep)->create();
+        Organization::factory()->for($rep)->accredited()->create();
 
         $this->actingAs($rep)->post(route('cso.activities.store'), [
             'title' => 'Seminar', 'description' => 'A seminar.', 'activity_date' => now()->toDateString(),

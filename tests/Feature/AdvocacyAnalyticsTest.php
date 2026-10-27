@@ -59,7 +59,7 @@ class AdvocacyAnalyticsTest extends TestCase
     public function test_the_source_is_required_on_the_cso_form_and_in_assisted_encoding(): void
     {
         $rep = User::factory()->create();
-        $organization = Organization::factory()->for($rep)->create();
+        $organization = Organization::factory()->for($rep)->accredited()->create();
         $payload = ['title' => 'Clean-up', 'description' => 'Shoreline.', 'activity_date' => now()->subDay()->toDateString()];
 
         $this->actingAs($rep)->post(route('cso.activities.store'), $payload)->assertSessionHasErrors('activity_source');

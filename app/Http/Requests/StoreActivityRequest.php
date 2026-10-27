@@ -19,8 +19,9 @@ class StoreActivityRequest extends FormRequest
             return $this->user()->can('update', $this->route('activity'));
         }
 
+        // Office staff encoding for an organization: it must be accredited, as for the CSO itself.
         return $this->route('organization') instanceof Organization
-            ? $this->user()->can('manage', Organization::class)
+            ? $this->user()->can('manage', Organization::class) && $this->route('organization')->isAccredited()
             : $this->user()->can('create', Activity::class);
     }
 
@@ -45,7 +46,7 @@ class StoreActivityRequest extends FormRequest
             'partners' => ['nullable', 'array', 'max:10'],
             'partners.*' => [
                 'integer', 'distinct',
-                Rule::exists('organizations', 'id'),
+                Rule::exists('accreditations', 'organization_id')->where('status', 'active'),
                 Rule::notIn([$this->organization()->id]),
             ],
         ];
@@ -60,6 +61,7 @@ class StoreActivityRequest extends FormRequest
             'evidence.max' => 'The sign-in sheet must be 5 MB or smaller.',
             'partners.max' =>'Tag at most 10 partner organizations.',
             'partners.*.not_in' => 'An organization cannot be its own partner.',
+            'partners.*.exists' => 'Only accredited organizations can be tagged as partners.',
         ];
     }
 }

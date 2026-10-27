@@ -41,9 +41,14 @@ class AssistedEncodingController extends Controller
             ->with('status', "Application encoded for {$organization->name}. It is now in the review queue.");
     }
 
-    public function createActivity(Organization $organization): View
+    public function createActivity(Organization $organization): View|RedirectResponse
     {
         $this->authorize('manage', Organization::class);
+
+        if (! $organization->isAccredited()) {
+            return redirect()->route('admin.organizations.edit', $organization)
+                ->with('error', 'Only accredited organizations can log activities. Approve an application for it first.');
+        }
 
         return view('admin.assisted.activity', [
             'organization' => $organization,

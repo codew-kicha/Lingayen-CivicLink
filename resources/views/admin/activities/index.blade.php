@@ -1,6 +1,6 @@
 @php
     $pending = $currentStatus === 'pending';
-    $filtered = request()->filled('q');
+    $filtered = request()->filled('q') || $from || $to;
 
     // Everything the review dialog shows, in table order (data-index points into this list).
     $items = $activities->getCollection()->values()->map(fn ($activity) => [
@@ -29,9 +29,35 @@
 @endphp
 
 <x-layouts.app header="Verify activities"
-               subheader="Logged activities count toward an organization's score only after verification. The oldest wait first.">
+               subheader="Logged activities count toward an organization's score only after verification. Sort the list or narrow it to the dates the activities were held.">
     <x-filter-bar search="Search activity, organization or barangay" :chips="\App\Http\Controllers\Admin\ActivityVerificationController::FILTERS"
-                  :counts="['pending' => $pendingCount]" />
+                  :counts="['pending' => $pendingCount]" :keep="['sort', 'from', 'to']" />
+
+    {{-- Sort and "held between" dates; keeps the status chip and the search. --}}
+    <form method="GET" class="mb-4 flex flex-wrap items-end gap-3">
+        <input type="hidden" name="status" value="{{ $currentStatus }}">
+        @if (request()->filled('q'))<input type="hidden" name="q" value="{{ request('q') }}">@endif
+        <div>
+            <label for="sort" class="field-label">Sort by</label>
+            <select id="sort" name="sort" class="field-input w-auto" x-data @change="$el.form.requestSubmit()">
+                @foreach ($sorts as $value => $label)
+                    <option value="{{ $value }}" @selected($currentSort === $value)>{{ $label }}</option>
+                @endforeach
+            </select>
+        </div>
+        <div>
+            <label for="from" class="field-label">Held from</label>
+            <input type="date" id="from" name="from" value="{{ $from }}" max="{{ now()->toDateString() }}" class="field-input w-auto">
+        </div>
+        <div>
+            <label for="to" class="field-label">to</label>
+            <input type="date" id="to" name="to" value="{{ $to }}" max="{{ now()->toDateString() }}" class="field-input w-auto">
+        </div>
+        <button type="submit" class="btn-secondary">Apply</button>
+        @if ($from || $to || request()->filled('sort'))
+            <a href="{{ route('admin.activities.index', array_filter(['status' => $currentStatus, 'q' => request('q')])) }}" class="btn-ghost">Clear dates and sort</a>
+        @endif
+    </form>
 
     <div x-data="activityReview(@js($items))" @row-open="show($event.detail.index)">
         <section class="card">

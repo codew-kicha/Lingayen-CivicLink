@@ -42,9 +42,11 @@
             @elseif (! $accreditation)
                 <a href="{{ route('cso.applications.index', ['apply' => 1]) }}" class="btn-secondary">Apply for accreditation</a>
             @endif
-            <a href="{{ route('cso.activities.index', ['log' => 1]) }}" class="btn-primary">
-                <x-phosphor-plus class="h-4 w-4" aria-hidden="true" />Log an activity
-            </a>
+            @if ($accreditation)
+                <a href="{{ route('cso.activities.index', ['log' => 1]) }}" class="btn-primary">
+                    <x-phosphor-plus class="h-4 w-4" aria-hidden="true" />Log an activity
+                </a>
+            @endif
         </x-slot:actions>
 
         <section aria-label="Summary" class="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">

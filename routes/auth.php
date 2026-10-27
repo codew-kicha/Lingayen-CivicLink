@@ -17,7 +17,7 @@ Route::middleware('guest')->group(function () {
         ->name('register');
 
     // Limits per IP address: each registration and reset request sends an email.
-    Route::post('register', [RegisteredUserController::class, 'store'])->middleware('throttle:6,60');
+    Route::post('register', [RegisteredUserController::class, 'store'])->middleware('throttle:6,60,register');
 
     Route::get('login', [AuthenticatedSessionController::class, 'create'])
         ->name('login');
@@ -28,14 +28,14 @@ Route::middleware('guest')->group(function () {
         ->name('password.request');
 
     Route::post('forgot-password', [PasswordResetLinkController::class, 'store'])
-        ->middleware('throttle:6,1')
+        ->middleware('throttle:6,1,password-email')
         ->name('password.email');
 
     Route::get('reset-password/{token}', [NewPasswordController::class, 'create'])
         ->name('password.reset');
 
     Route::post('reset-password', [NewPasswordController::class, 'store'])
-        ->middleware('throttle:6,1')
+        ->middleware('throttle:6,1,password-reset')
         ->name('password.store');
 });
 
@@ -44,21 +44,21 @@ Route::middleware('auth')->group(function () {
         ->name('verification.notice');
 
     Route::get('verify-email/{id}/{hash}', VerifyEmailController::class)
-        ->middleware(['signed', 'throttle:6,1'])
+        ->middleware(['signed', 'throttle:6,1,verify-link'])
         ->name('verification.verify');
 
     Route::post('verify-email', VerifyEmailCodeController::class)
-        ->middleware('throttle:10,1')
+        ->middleware('throttle:10,1,verify-code')
         ->name('verification.code');
 
     Route::post('email/verification-notification', [EmailVerificationNotificationController::class, 'store'])
-        ->middleware('throttle:6,1')
+        ->middleware('throttle:6,1,verify-resend')
         ->name('verification.send');
 
     Route::get('confirm-password', [ConfirmablePasswordController::class, 'show'])
         ->name('password.confirm');
 
-    Route::post('confirm-password', [ConfirmablePasswordController::class, 'store'])->middleware('throttle:6,1');
+    Route::post('confirm-password', [ConfirmablePasswordController::class, 'store'])->middleware('throttle:6,1,confirm-password');
 
     Route::put('password', [PasswordController::class, 'update'])->name('password.update');
 

@@ -13,6 +13,8 @@ use App\Support\ListPagination;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Arr;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -21,11 +23,25 @@ class ActivityVerificationController extends Controller
     /** Filter chips: the review queue first, then what was already decided. */
     public const FILTERS = ['pending' => 'Waiting', 'verified' => 'Verified', 'rejected' => 'Rejected'];
 
+    /** Sort orders for the list. The waiting queue defaults to "waiting longest", decided lists to the latest decisions. */
+    public const SORTS = [
+        'waiting' => 'Waiting longest',
+        'logged' => 'Logged most recently',
+        'held_new' => 'Held: newest first',
+        'held_old' => 'Held: oldest first',
+        'decided' => 'Decided most recently',
+    ];
+
     public function index(Request $request): View
     {
         $this->authorize('viewAny', Activity::class);
 
         $status = array_key_exists($request->string('status')->value(), self::FILTERS) ? $request->string('status')->value() : 'pending';
+        $sorts = $status === 'pending' ? Arr::except(self::SORTS, 'decided') : self::SORTS;
+        $sort = array_key_exists($request->string('sort')->value(), $sorts) ? $request->string('sort')->value() : ($status === 'pending' ? 'waiting' : 'decided');
+        // "Held from / to" bounds on the activity date; anything that isn't a real date is ignored.
+        $date = fn (string $key) => rescue(fn () => Carbon::createFromFormat('Y-m-d', $request->string($key)->value())->toDateString(), null, false);
+        [$from, $to] = [$request->filled('from') ? $date('from') : null, $request->filled('to') ? $date('to') : null];
 
         return view('admin.activities.index', [
             'activities' => ListPagination::paginate(Activity::with(['organization', 'loggedBy', 'verifiedBy:id,name', 'partnerOrganizations:id,name'])
@@ -33,12 +49,21 @@ class ActivityVerificationController extends Controller
                 ->when($request->string('q')->trim()->value(), fn ($q, $term) => $q->where(fn ($q) => $q
                     ->where('title', 'like', "%{$term}%")
                     ->orWhereHas('organization', fn ($q) => $q->where('name', 'like', "%{$term}%")->orWhere('barangay', 'like', "%{$term}%"))))
-                // The queue is worked oldest first; decided activities show the latest decisions first.
-                ->when($status === 'pending',
-                    fn ($q) => $q->oldest('created_at')->oldest('id'),
-                    fn ($q) => $q->latest('verified_at')->latest('id')),
+                ->when($from, fn ($q, $from) => $q->whereDate('activity_date', '>=', $from))
+                ->when($to, fn ($q, $to) => $q->whereDate('activity_date', '<=', $to))
+                ->tap(fn ($q) => match ($sort) {
+                    'logged' => $q->latest('created_at')->latest('id'),
+                    'held_new' => $q->latest('activity_date')->latest('id'),
+                    'held_old' => $q->oldest('activity_date')->oldest('id'),
+                    'decided' => $q->latest('verified_at')->latest('id'),
+                    default => $q->oldest('created_at')->oldest('id'),   // waiting longest: the fair queue order
+                }),
                 $request),
             'currentStatus' => $status,
+            'sorts' => $sorts,
+            'currentSort' => $sort,
+            'from' => $from,
+            'to' => $to,
             'pendingCount' => Activity::where('status', 'pending')->count(),
         ]);
     }

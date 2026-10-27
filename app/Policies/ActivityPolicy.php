@@ -17,9 +17,11 @@ class ActivityPolicy
         return $user->isAdmin() || $activity->organization->user_id === $user->id;
     }
 
+    // Activities are the record of an accredited organization's work, so logging needs an active
+    // accreditation. Pending activities stay editable even if the accreditation lapses meanwhile.
     public function create(User $user): bool
     {
-        return $user->isCsoRep() && $user->organization;
+        return $user->isCsoRep() && $user->organization && $user->organization->isAccredited();
     }
 
     public function update(User $user, Activity $activity): bool

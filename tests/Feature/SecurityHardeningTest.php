@@ -72,7 +72,7 @@ class SecurityHardeningTest extends TestCase
     public function test_a_rep_cannot_log_an_activity_as_already_verified_or_for_another_organization(): void
     {
         $rep = User::factory()->create();
-        $mine = Organization::factory()->for($rep)->create();
+        $mine = Organization::factory()->for($rep)->accredited()->create();
         $theirs = Organization::factory()->create();
 
         $this->actingAs($rep)->post(route('cso.activities.store'), [

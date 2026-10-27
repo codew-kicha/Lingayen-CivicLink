@@ -115,9 +115,18 @@ class Organization extends Model
     }
 
     /** @return array<int, string> every other organization, id => name, for the partner picker */
+    /** Holds an active accreditation: the condition for logging activities and being tagged as a partner. */
+    public function isAccredited(): bool
+    {
+        return $this->activeAccreditation()->exists();
+    }
+
+    // Partners must be accredited too, since tagged activities count toward their score.
     public static function partnerOptions(Organization $except): array
     {
-        return static::whereKeyNot($except->id)->orderBy('name')->pluck('name', 'id')->all();
+        return static::whereKeyNot($except->id)
+            ->whereHas('accreditations', fn ($q) => $q->where('status', 'active'))
+            ->orderBy('name')->pluck('name', 'id')->all();
     }
 
     public function user(): BelongsTo

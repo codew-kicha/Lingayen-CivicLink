@@ -77,6 +77,10 @@ class ScreenSmokeTest extends TestCase
             ->assertOk()->assertSee('File an application')->assertSee('name="documents[accreditation_form]"', false)
             ->assertSee("dialog('file-application', true)", false);
         $this->actingAs($admin)->get(route('admin.organizations.activities.create', $withoutLogin))
+            ->assertRedirect(route('admin.organizations.edit', $withoutLogin))->assertSessionHas('error');
+        $accredited = Organization::factory()->accredited()->create(['user_id' => null]);
+        Organization::factory()->accredited()->create(); // someone to tag as a partner
+        $this->actingAs($admin)->get(route('admin.organizations.activities.create', $accredited))
             ->assertOk()->assertSee('Partner organizations');
         $this->actingAs($admin)->get(route('admin.organizations.import'))->assertOk();
         $this->actingAs($admin)->get(route('admin.organizations.import.template'))->assertOk();

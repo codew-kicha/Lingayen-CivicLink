@@ -11,11 +11,23 @@
             </x-empty-state>
         </section>
     @else
-        <x-slot:actions>
-            <button type="button" class="btn-primary" @click="$dispatch('open-dialog', 'log-activity')">
-                <x-phosphor-plus class="h-4 w-4" aria-hidden="true" />Log an activity
-            </button>
-        </x-slot:actions>
+        @if ($canLog)
+            <x-slot:actions>
+                <button type="button" class="btn-primary" @click="$dispatch('open-dialog', 'log-activity')">
+                    <x-phosphor-plus class="h-4 w-4" aria-hidden="true" />Log an activity
+                </button>
+            </x-slot:actions>
+        @else
+            {{-- Logging opens once the organization is accredited; earlier entries stay listed below. --}}
+            <section class="card mb-6 flex flex-wrap items-center gap-4 p-6">
+                <x-phosphor-seal-check class="h-8 w-8 shrink-0 text-muted" aria-hidden="true" />
+                <div class="min-w-0 flex-1 basis-64">
+                    <h2 class="card-title">Activities are logged once you are accredited</h2>
+                    <p class="mt-1 text-sm text-muted">The Desk Office records the work of accredited organizations. Apply for accreditation, or renew it if it has ended, to start logging.</p>
+                </div>
+                <a href="{{ route('cso.applications.index', ['apply' => 1]) }}" class="btn-primary">Apply for accreditation</a>
+            </section>
+        @endif
 
         <section class="card" aria-labelledby="history">
             <div class="flex flex-wrap items-center gap-3 border-b border-line px-6 py-4">
@@ -156,7 +168,9 @@
             </section>
         @endif
 
-        @include('cso.activities.log-dialog')
+        @if ($canLog)
+            @include('cso.activities.log-dialog')
+        @endif
         @include('cso.activities.withdraw-dialog')
     @endif
 </x-layouts.app>

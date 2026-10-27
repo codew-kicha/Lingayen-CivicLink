@@ -235,7 +235,11 @@
                         <button type="button" class="btn-secondary" @click="$dispatch('open-dialog', 'file-application')">
                             <x-phosphor-upload-simple class="h-4 w-4" aria-hidden="true" />File an application
                         </button>
-                        <a href="{{ route('admin.organizations.activities.create', $organization) }}" class="btn-secondary">Log an activity</a>
+                        @if ($active)
+                            <a href="{{ route('admin.organizations.activities.create', $organization) }}" class="btn-secondary">Log an activity</a>
+                        @else
+                            <button type="button" class="btn-secondary" disabled title="Only accredited organizations can log activities">Log an activity</button>
+                        @endif
                     </div>
 
                     <p class="mt-6 text-sm font-semibold text-ink">Printable forms</p>

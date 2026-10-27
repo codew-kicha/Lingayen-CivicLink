@@ -15,18 +15,20 @@ Route::get('/about', [PublicController::class, 'about'])->name('about');
 Route::get('/accreditation', [PublicController::class, 'accreditation'])->name('accreditation');
 // The Sangguniang Bayan's own forms (resources/forms): {type} is "new" or "renewal".
 Route::get('/accreditation/forms/{type}', [PublicController::class, 'applicationForm'])
-    ->whereIn('type', ['new', 'renewal'])->middleware('throttle:20,1')->name('accreditation.form');
+    ->whereIn('type', ['new', 'renewal'])->middleware('throttle:20,1,forms')->name('accreditation.form');
 Route::get('/accredited-csos', [PublicController::class, 'directory'])->name('directory');
 Route::get('/accredited-csos/{organization}', [PublicController::class, 'organization'])->name('directory.show');
 Route::get('/resources', [PublicController::class, 'resources'])->name('resources');
 Route::get('/contact', [PublicController::class, 'contact'])->name('contact');
+// Each throttle names its own counter (third argument): unnamed limits share one counter per IP,
+// so downloads could exhaust the contact form for everyone on an office network.
 Route::post('/contact', [ContactController::class, 'send'])
-    ->middleware('throttle:5,1')->name('contact.send');
+    ->middleware('throttle:5,1,contact')->name('contact.send');
 Route::get('/annual-reports/{annualReport}/download', [AnnualReportController::class, 'download'])
     ->name('annual-reports.download');
 
 // Admin-sent invitation: signed, expiring, and single-use (see InvitationController).
-Route::middleware(['signed', 'throttle:10,1'])->group(function () {
+Route::middleware(['signed', 'throttle:10,1,invitation'])->group(function () {
     Route::get('/invitation/{user}', [Auth\InvitationController::class, 'show'])->name('invitation.show');
     Route::post('/invitation/{user}', [Auth\InvitationController::class, 'store'])->name('invitation.store');
 });

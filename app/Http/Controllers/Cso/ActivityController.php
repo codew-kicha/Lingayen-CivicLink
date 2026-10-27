@@ -35,6 +35,7 @@ class ActivityController extends Controller
                 ->limit(10)
                 ->get() ?? collect(),
             'taggedInTotal' => $organization?->partneredActivities()->count() ?? 0,
+            'canLog' => (bool) $organization?->isAccredited(),
         ]);
     }
 

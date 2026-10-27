@@ -57,6 +57,7 @@ class CsoScreensAndRemindersTest extends TestCase
     public function test_activities_log_in_a_dialog_and_list_one_row_each(): void
     {
         $rep = $this->rep();
+        $this->accredit($rep->organization);
         $page = route('cso.activities.index');
         Activity::factory()->for($rep->organization)->create(['title' => 'Coastal clean-up']);
 
