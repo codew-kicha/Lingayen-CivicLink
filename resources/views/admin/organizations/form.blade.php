@@ -185,7 +185,34 @@
                             <x-status-badge status="active" />
                             <span class="font-mono text-sm text-muted">{{ $active->verification_code }}</span>
                         </p>
-                        <p class="mt-2 text-sm text-muted">Valid until {{ $active->expires_at->format('d M Y') }}</p>
+                        <p class="mt-2 text-sm text-muted">
+                            Valid until <span class="font-semibold text-ink">{{ $active->expires_at->format('d M Y') }}</span>
+                            ({{ (int) now()->startOfDay()->diffInDays($active->expires_at, false) }} days left)
+                        </p>
+
+                        <details class="mt-3" @if ($errors->has('expires_at') || $errors->has('expiry_reason')) open @endif>
+                            <summary class="btn-ghost btn-sm -ml-3 cursor-pointer list-none">
+                                <x-phosphor-calendar-blank class="h-4 w-4" aria-hidden="true" />Change expiry date
+                            </summary>
+                            <form method="POST" action="{{ route('admin.organizations.expiry', $organization) }}" class="mt-3 space-y-3">
+                                @csrf
+                                @method('PATCH')
+                                <div>
+                                    <label for="expires_at" class="field-label">New expiry date</label>
+                                    <input type="date" id="expires_at" name="expires_at" required
+                                           value="{{ old('expires_at', $active->expires_at->toDateString()) }}"
+                                           min="{{ now()->addDay()->toDateString() }}" max="{{ now()->addYears(10)->toDateString() }}"
+                                           class="field-input @error('expires_at') field-input-error @enderror">
+                                    @error('expires_at')<p class="field-error">{{ $message }}</p>@enderror
+                                </div>
+                                <div>
+                                    <label for="expiry_reason" class="field-label">Reason <span class="font-normal text-muted">(optional, kept in the audit log)</span></label>
+                                    <input type="text" id="expiry_reason" name="expiry_reason" value="{{ old('expiry_reason') }}" maxlength="500"
+                                           placeholder="e.g. Extended by SB Resolution No. 2026-41" class="field-input">
+                                </div>
+                                <button type="submit" class="btn-secondary">Save expiry date</button>
+                            </form>
+                        </details>
 
                         @php $canEmail = $organization->user?->email_verified_at && $organization->user->is_active; @endphp
                         <form method="POST" action="{{ route('admin.organizations.remind', $organization) }}" class="mt-4">

@@ -45,7 +45,7 @@ class ActivityController extends Controller
 
         return redirect()
             ->route('cso.activities.index')
-            ->with('status', 'Activity logged. It will count toward your score once PESO verifies it.');
+            ->with('status', 'Activity logged. It will count toward your score once the Desk Office verifies it.');
     }
 
     // Editable (and withdrawable) only while pending: once PESO has decided, the record stands.

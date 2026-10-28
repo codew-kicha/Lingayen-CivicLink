@@ -258,6 +258,34 @@ class OrganizationModerationController extends Controller
         return back()->with('status', "Accreditation {$accreditation->verification_code} has been revoked.");
     }
 
+    // Sets a new expiry date for the active accreditation (e.g. the SB extended or shortened it).
+    // Ending it now is a revocation, so the date must be in the future. Audited with the old date.
+    public function updateExpiry(Request $request, Organization $organization): RedirectResponse
+    {
+        $this->authorize('manage', Organization::class);
+
+        $accreditation = $organization->accreditations()->where('status', 'active')->firstOrFail();
+        $data = $request->validate([
+            'expires_at' => ['required', 'date', 'after:today', 'before:'.now()->addYears(10)->toDateString()],
+            'expiry_reason' => ['nullable', 'string', 'max:500'],
+        ], [
+            'expires_at.after' => 'Choose a date after today. To end the accreditation now, revoke it instead.',
+            'expires_at.before' => 'Choose an expiry date within ten years.',
+        ]);
+
+        $from = $accreditation->expires_at->toDateString();
+        $accreditation->update(['expires_at' => $data['expires_at']]);
+
+        AuditLog::record('accreditation.expiry_changed', $organization, array_filter([
+            'verification_code' => $accreditation->verification_code,
+            'from' => $from,
+            'to' => $accreditation->expires_at->toDateString(),
+            'reason' => $data['expiry_reason'] ?? null,
+        ]));
+
+        return back()->with('status', "Accreditation {$accreditation->verification_code} now runs until {$accreditation->expires_at->format('d M Y')}.");
+    }
+
     public function toggleVisibility(Organization $organization): RedirectResponse
     {
         $this->authorize('moderate', $organization);

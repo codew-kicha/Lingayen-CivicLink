@@ -50,7 +50,7 @@ class ApplicationController extends Controller
 
         return redirect()
             ->route('cso.applications.show', $application)
-            ->with('status', 'Application submitted. PESO will review it and you will be notified of any change.');
+            ->with('status', 'Application submitted. The Desk Office will review it and you will be notified of any change.');
     }
 
     public function show(ApplicationModel $application): View

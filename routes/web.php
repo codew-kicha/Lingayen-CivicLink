@@ -21,6 +21,7 @@ Route::get('/accredited-csos', [PublicController::class, 'directory'])->name('di
 Route::get('/accredited-csos/{organization}', [PublicController::class, 'organization'])->name('directory.show');
 Route::get('/resources', [PublicController::class, 'resources'])->name('resources');
 Route::get('/contact', [PublicController::class, 'contact'])->name('contact');
+Route::view('/privacy', 'public.privacy')->name('privacy');
 // Each throttle names its own counter (third argument): unnamed limits share one counter per IP,
 // so downloads could exhaust the contact form for everyone on an office network.
 Route::post('/contact', [ContactController::class, 'send'])
@@ -84,6 +85,7 @@ Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->name('ad
     Route::post('/organizations/{organization}/account',[Admin\OrganizationModerationController::class, 'attachAccount'])->name('organizations.account');
     Route::patch('/organizations/{organization}/visibility', [Admin\OrganizationModerationController::class, 'toggleVisibility'])->name('organizations.visibility');
     Route::post('/organizations/{organization}/remind', [Admin\OrganizationModerationController::class, 'remind'])->name('organizations.remind');
+    Route::patch('/organizations/{organization}/accreditation-expiry', [Admin\OrganizationModerationController::class, 'updateExpiry'])->name('organizations.expiry');
     // Both re-check the admin's password inside the dialog (ConfirmedOrganizationRequest).
     Route::delete('/organizations/{organization}', [Admin\OrganizationModerationController::class, 'destroy'])->name('organizations.destroy');
     Route::post('/organizations/{organization}/merge', [Admin\OrganizationModerationController::class, 'merge'])->name('organizations.merge');

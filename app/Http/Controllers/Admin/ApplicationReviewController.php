@@ -115,9 +115,15 @@ class ApplicationReviewController extends Controller
      * the whole thing rolls back, so an organization can never end up approved without a
      * matching accreditation record (PRD §8).
      */
-    public function approve(ApplicationModel $application): RedirectResponse
+    public function approve(Request $request, ApplicationModel $application): RedirectResponse
     {
         $this->authorize('review', $application);
+
+        // The Desk Officer sets how long the accreditation runs; three years unless the SB decided otherwise.
+        $expiresAt = $request->validate([
+            'expires_at' => ['nullable', 'date', 'after:today', 'before:'.now()->addYears(10)->toDateString()],
+        ], ['expires_at.after' => 'The expiry date must be after today.', 'expires_at.before' => 'Choose an expiry date within ten years.'])['expires_at']
+            ?? now()->addYears(3)->toDateString();
 
         abort_unless(in_array($application->status, ['submitted', 'under_review'], true), 422);
 
@@ -127,7 +133,7 @@ class ApplicationReviewController extends Controller
                 .strtolower(ApplicationModel::SB_STAGES[$application->sb_stage] ?? $application->sb_stage).'.');
         }
 
-        DB::transaction(function () use ($application) {
+        DB::transaction(function () use ($application, $expiresAt) {
             $application->organization->accreditations()
                 ->where('status', 'active')
                 ->update(['status' => 'expired', 'active_org_marker' => null]);
@@ -138,7 +144,7 @@ class ApplicationReviewController extends Controller
                 'status' => 'active',
                 'active_org_marker' => $application->organization_id,
                 'issued_at' => now()->toDateString(),
-                'expires_at' => now()->addYears(3)->toDateString(),
+                'expires_at' => $expiresAt,
             ]);
 
             $application->update([

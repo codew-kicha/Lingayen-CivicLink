@@ -31,6 +31,10 @@
         @foreach ($documentTypes as $key => $type)
             <div class="grid gap-3 py-4 sm:grid-cols-[minmax(0,1fr)_11rem]"
                  @if (! empty($type['new_only'])) x-show="type === 'new'" @endif>
+                @php
+                    // "DOLE or SEC Certification" reads as "the DOLE or SEC certification": lowercase all but acronyms.
+                    $lowerLabel = preg_replace_callback('/\b[A-Za-z][a-z]+\b/', fn ($m) => strtolower($m[0]), $type['label']);
+                @endphp
                 <div x-data="documentPrecheck(@js($type['checks'] ?? []))" class="min-w-0">
                     <label for="doc-{{ $key }}" class="field-label">
                         {{ $type['label'] }}
@@ -83,9 +87,9 @@
                            'text-warning': state === 'mismatch' || state === 'unreadable',
                        }">
                         <span x-show="state === 'reading'">Reading the document. You can keep filling in the form.</span>
-                        <span x-show="state === 'matched'">This looks like the {{ Str::lower($type['label']) }}.</span>
+                        <span x-show="state === 'matched'">This looks like the {{ $lowerLabel }}.</span>
                         <span x-show="state === 'mismatch'">
-                            This may not be the {{ Str::lower($type['label']) }}: we couldn't find
+                            This may not be the {{ $lowerLabel }}: we couldn't find
                             <span x-text="missing.join('; ')"></span> in it. Check that you chose the right file.
                             You can still submit it; the Desk Office will review it.
                         </span>

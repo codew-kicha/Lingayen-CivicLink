@@ -21,6 +21,30 @@ class Accreditation extends Model
         ];
     }
 
+    /**
+     * Marks every active accreditation whose expiry date has passed as expired, so the organization
+     * leaves the public directory and must renew before logging activities. Shared hosting has no
+     * scheduler, so the ExpireLapsedAccreditations middleware runs this once a day on the first visit.
+     */
+    public static function expireLapsed(): int
+    {
+        $lapsed = self::where('status', 'active')->whereDate('expires_at', '<', now()->toDateString())->get();
+
+        foreach ($lapsed as $accreditation) {
+            $accreditation->update(['status' => 'expired', 'active_org_marker' => null]);
+            // Recorded as the system (no actor), not as whoever made the day's first visit.
+            AuditLog::create([
+                'actor_id' => null,
+                'action' => 'accreditation.expired',
+                'subject_type' => 'Organization',
+                'subject_id' => $accreditation->organization_id,
+                'meta' => ['verification_code' => $accreditation->verification_code, 'expired_on' => $accreditation->expires_at->toDateString()],
+            ]);
+        }
+
+        return $lapsed->count();
+    }
+
     public static function generateVerificationCode(): string
     {
         do {

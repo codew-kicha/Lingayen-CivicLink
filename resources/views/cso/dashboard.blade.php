@@ -205,7 +205,11 @@
                         <ul class="divide-y divide-line px-6">
                             @foreach ($notifications as $notification)
                                 <li class="py-3">
-                                    <p class="text-sm font-semibold text-ink">{{ $notification->data['headline'] ?? 'Update' }}</p>
+                                    <p class="flex items-center gap-2 text-sm font-semibold text-ink">
+                                        {{ $notification->data['headline'] ?? 'Update' }}
+                                        @unless ($notification->read_at)<span class="badge-info">New</span>@endunless
+                                        <span class="ml-auto text-xs font-normal text-muted">{{ $notification->created_at->diffForHumans() }}</span>
+                                    </p>
                                     <p class="mt-1 text-sm text-muted">{{ $notification->data['body'] ?? '' }}</p>
                                 </li>
                             @endforeach

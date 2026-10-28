@@ -199,10 +199,17 @@
                             @php $endorsed = $application->sb_stage === 'endorsed'; @endphp
                             <form method="POST" action="{{ route('admin.applications.approve', $application) }}" class="mt-6 border-t border-line pt-6">
                                 @csrf
+                                <label for="expires_at" class="field-label">Accreditation valid until</label>
+                                <input type="date" id="expires_at" name="expires_at" required
+                                       value="{{ old('expires_at', now()->addYears(3)->toDateString()) }}"
+                                       min="{{ now()->addDay()->toDateString() }}" max="{{ now()->addYears(10)->toDateString() }}"
+                                       @disabled(! $endorsed)
+                                       class="field-input mb-3 @error('expires_at') field-input-error @enderror">
+                                @error('expires_at')<p class="field-error mb-3">{{ $message }}</p>@enderror
                                 <button type="submit" class="btn-primary w-full" @disabled(! $endorsed)>Approve application</button>
                                 <p class="field-hint">
                                     @if ($endorsed)
-                                        Issues an accreditation valid for three years, with its reference code, and lists the organization in the public directory.
+                                        Issues the accreditation until the date above (three years by default), with its reference code, and lists the organization in the public directory.
                                     @else
                                         Opens once the Sangguniang Bayan has endorsed the application (after the third reading).
                                     @endif

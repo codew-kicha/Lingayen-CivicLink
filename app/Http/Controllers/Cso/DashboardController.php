@@ -10,6 +10,9 @@ class DashboardController extends Controller
     public function __invoke(): View
     {
         $organization = auth()->user()->organization;
+        // The latest updates, read or not; the unread ones are marked "New" this once, then read.
+        $notifications = auth()->user()->notifications()->latest()->limit(5)->get();
+        auth()->user()->unreadNotifications()->update(['read_at' => now()]);
 
         return view('cso.dashboard', [
             'organization' => $organization,
@@ -25,7 +28,7 @@ class DashboardController extends Controller
                 ->where('expires_at', '<=', now()->addDays(60))
                 ->orderBy('expires_at')
                 ->get() ?? collect(),
-            'notifications' => auth()->user()->unreadNotifications()->limit(5)->get(),
+            'notifications' => $notifications,
         ]);
     }
 }

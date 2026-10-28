@@ -35,6 +35,12 @@ Artisan::command('app:go-live-check {--no-probe : Skip requesting private files 
     return 0;
 })->purpose('Check that this server is safe to put online');
 
+// Same as the daily check the website runs on its first visit; useful right after changing dates.
+Artisan::command('accreditations:expire', function () {
+    $count = \App\Models\Accreditation::expireLapsed();
+    $this->info("Expired {$count} accreditation(s) past their expiry date.");
+})->purpose('Mark accreditations past their expiry date as expired');
+
 // The live site is never seeded (the demo password is public), so the first administrator is made here.
 Artisan::command('app:create-admin', function () {
     $name = $this->ask('Full name');

@@ -1,5 +1,5 @@
 <x-layouts.app header="Edit activity"
-               subheader="You can correct or withdraw an activity until PESO verifies it. Partners are credited once it is verified.">
+               subheader="You can correct or withdraw an activity until the Desk Office verifies it. Partners are credited once it is verified.">
     <form method="POST" action="{{ route('cso.activities.update', $activity) }}" enctype="multipart/form-data"
           class="panel max-w-2xl space-y-6 p-6">
         <p class="text-sm text-muted">All fields required unless marked optional.</p>

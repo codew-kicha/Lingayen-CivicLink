@@ -20,7 +20,7 @@ class RegistrationTest extends TestCase
             'name' => 'Ana Reyes',
             'email' => 'ana@example.ph',
             'phone' => '0917 123 4567',
-            'password' => 'Lingayen-Coast-2026',
+            'password' => 'Lingayen-Coast-2026', 'privacy_consent' => '1',
         ];
     }
 

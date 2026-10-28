@@ -35,6 +35,8 @@ class RegisterOrganizationRequest extends FormRequest
             'phone' => ['required', 'regex:/^\+639\d{9}$/'],
             // One password field with Show/Hide on the sign-up form, so no second "type it again" field.
             'password' => ['required', Password::defaults()],
+            // Data Privacy Act (RA 10173): consent to the privacy notice before personal data is stored.
+            'privacy_consent' => ['accepted'],
         ];
     }
 
@@ -42,6 +44,7 @@ class RegisterOrganizationRequest extends FormRequest
     {
         return [
             'phone.regex' => 'Enter a Philippine mobile number, for example 0917 123 4567.',
+            'privacy_consent.accepted' => 'Agree to the privacy notice to register.',
         ];
     }
 

@@ -103,6 +103,17 @@
 
             <x-password-field autocomplete="new-password" checklist />
 
+            <div>
+                <label for="privacy_consent" class="flex items-start gap-3 text-sm text-ink">
+                    <input id="privacy_consent" name="privacy_consent" type="checkbox" value="1" required @checked(old('privacy_consent'))
+                           class="mt-hair h-5 w-5 shrink-0 rounded-sm border-line-strong text-primary"
+                           @error('privacy_consent') aria-invalid="true" aria-describedby="privacy_consent-error" @enderror>
+                    <span>I have read the <a href="{{ route('privacy') }}" target="_blank" rel="noopener" class="font-semibold text-primary underline underline-offset-2">privacy notice</a>
+                        and agree to the Desk Office processing my and my organization's information for accreditation.</span>
+                </label>
+                @error('privacy_consent')<p id="privacy_consent-error" class="field-error">{{ $message }}</p>@enderror
+            </div>
+
             <div class="flex flex-wrap gap-3">
                 <button type="button" class="btn-secondary" x-cloak @click="back()">
                     <x-phosphor-arrow-left class="h-4 w-4" aria-hidden="true" />Back

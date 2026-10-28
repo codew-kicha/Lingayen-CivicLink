@@ -50,7 +50,7 @@ class EmailVerificationTest extends TestCase
             'name' => 'Ana Reyes',
             'email' => 'ana@example.ph',
             'phone' => '0917 123 4567',
-            'password' => 'Lingayen-Coast-2026',
+            'password' => 'Lingayen-Coast-2026', 'privacy_consent' => '1',
         ])->assertRedirect(route('verification.notice'));
 
         $user = User::where('email', 'ana@example.ph')->firstOrFail();
@@ -137,7 +137,7 @@ class EmailVerificationTest extends TestCase
             'name' => 'Maria Santos',
             'email' => 'maria@example.ph',
             'phone' => '0917 555 1234',
-            'password' => 'Balococ-Group-2026!',
+            'password' => 'Balococ-Group-2026!', 'privacy_consent' => '1',
         ])->assertRedirect(route('verification.notice'))->assertSessionHasErrors('code');
 
         $this->assertAuthenticatedAs(User::where('email', 'maria@example.ph')->firstOrFail());

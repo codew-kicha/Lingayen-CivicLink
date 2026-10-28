@@ -171,6 +171,7 @@
 
             <p class="mt-12 border-t border-brand-700 pt-6 text-xs text-brand-300">
                 &copy; {{ now()->year }} Municipality of Lingayen, Pangasinan · Civil Society Desk Office
+                · <a href="{{ route('privacy') }}" class="hover:text-paper hover:underline">Privacy notice</a>
             </p>
         </div>
     </footer>

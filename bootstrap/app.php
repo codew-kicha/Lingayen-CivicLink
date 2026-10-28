@@ -19,6 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->trimStrings(except: ['admin_password', 'new_password']);
 
         $middleware->web(append: [
+            \App\Http\Middleware\ExpireLapsedAccreditations::class,
             \App\Http\Middleware\EnsureAccountActive::class,
             \App\Http\Middleware\SecurityHeaders::class,
         ]);

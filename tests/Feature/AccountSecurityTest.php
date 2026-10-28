@@ -26,6 +26,7 @@ class AccountSecurityTest extends TestCase
             'phone' => '0917 123 4567',
             'password' => self::STRONG,
             'password_confirmation' => self::STRONG,
+            'privacy_consent' => '1',
         ], $overrides);
     }
 

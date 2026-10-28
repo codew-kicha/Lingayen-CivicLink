@@ -33,6 +33,7 @@ class RegisteredUserController extends Controller
                 'password' => $request->validated('password'),
                 'role' => 'cso_rep',
             ]);
+            $user->forceFill(['privacy_consented_at' => now()])->save();
 
             $user->organization()->create([
                 'name' => $request->validated('organization_name'),

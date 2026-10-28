@@ -83,7 +83,7 @@
 @if ($partnerOptions)
     <fieldset x-data="{ q: '', picked: @js(array_map('intval', old('partners', $activity?->partnerOrganizations->pluck('id')->all() ?? []))) }">
         <legend class="field-label">Partner organizations <span class="font-normal text-muted">(optional)</span></legend>
-        <p class="field-hint mt-0">Organizations that ran this with you. Each is credited once PESO verifies the activity.</p>
+        <p class="field-hint mt-0">Organizations that ran this with you. Each is credited once the Desk Office verifies the activity.</p>
         <label for="partner-search" class="sr-only">Search organizations</label>
         <input type="search" id="partner-search" x-model="q" placeholder="Search by name" class="field-input mt-2">
         <div class="mt-2 max-h-48 overflow-y-auto rounded-sm border border-line">
