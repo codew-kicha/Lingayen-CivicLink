@@ -7,6 +7,7 @@ use App\Http\Controllers\ContactController;
 use App\Http\Controllers\Cso;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\RequirementFormatController;
 use App\Http\Controllers\PublicController;
 use Illuminate\Support\Facades\Route;
 
@@ -47,6 +48,13 @@ Route::middleware('auth')->group(function () {
         ->name('documents.download');
     Route::get('/activities/{activity}/evidence', [DocumentController::class, 'evidence'])
         ->name('activities.evidence');
+
+    // Downloadable formats for the requirements an organization prepares itself.
+    Route::get('/requirements/{document}/format.{format}', [RequirementFormatController::class, 'show'])
+        ->whereIn('document', ['officers_members_list', 'constitution_bylaws'])
+        ->whereIn('format', ['pdf', 'xlsx'])
+        ->middleware('throttle:30,1,requirement-formats')
+        ->name('requirements.format');
 });
 
 Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {

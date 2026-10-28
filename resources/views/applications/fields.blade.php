@@ -48,6 +48,32 @@
                     <input type="hidden" name="ocr_text[{{ $key }}]" :value="text">
                     <p id="doc-{{ $key }}-hint" class="field-hint">{{ config("office.requirement_notes.{$key}") }}</p>
 
+                    {{-- Formats to download before uploading: the SB's own form, or a generated format. --}}
+                    @if (! empty($type['official_form']) || ! empty($type['formats']))
+                        <p class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+                            <span class="text-muted">Get the format:</span>
+                            @if (! empty($type['official_form']))
+                                <a href="{{ route('accreditation.form', 'new') }}" x-show="type === 'new'" class="inline-flex items-center gap-1 font-semibold text-primary hover:underline">
+                                    <x-phosphor-download-simple class="h-4 w-4" aria-hidden="true" />Official form, new application (PDF)
+                                </a>
+                                <a href="{{ route('accreditation.form', 'renewal') }}" x-show="type === 'renewal'" x-cloak class="inline-flex items-center gap-1 font-semibold text-primary hover:underline">
+                                    <x-phosphor-download-simple class="h-4 w-4" aria-hidden="true" />Official form, renewal (PDF)
+                                </a>
+                            @endif
+                            @foreach ($type['formats'] ?? [] as $format)
+                                <a href="{{ route('requirements.format', array_filter(['document' => $key, 'format' => $format, 'organization' => auth()->user()?->isAdmin() ? ($organization->id ?? null) : null])) }}"
+                                   class="inline-flex items-center gap-1 font-semibold text-primary hover:underline">
+                                    <x-phosphor-download-simple class="h-4 w-4" aria-hidden="true" />{{ $format === 'xlsx' ? 'Excel' : 'PDF' }}
+                                </a>
+                            @endforeach
+                            @if ($key === 'officers_members_list')
+                                <span class="text-xs text-muted">(filled in with the officers saved in the profile)</span>
+                            @elseif ($key === 'constitution_bylaws')
+                                <span class="text-xs text-muted">(sample to adapt)</span>
+                            @endif
+                        </p>
+                    @endif
+
                     {{-- Advisory only: never blocks submitting. PESO sees the server's own verdict. --}}
                     <p id="doc-{{ $key }}-check" aria-live="polite" x-cloak x-show="state !== 'idle'"
                        class="mt-2 flex items-start gap-tight text-sm"

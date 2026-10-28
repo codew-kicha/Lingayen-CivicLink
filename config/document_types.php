@@ -7,16 +7,22 @@
 // 'keywords' drive the OCR pre-check (App\Services\DocumentPrecheck): a document "matches" when at
 // least 'min_matches' of them appear in its text. Matching ignores case, spacing and punctuation,
 // so "By-Laws", "bylaws" and "BY LAWS" are the same word. The check is advisory only.
+//
+// 'official_form' links the Sangguniang Bayan's own form (resources/forms) for the chosen
+// application type; 'formats' are downloadable formats the system generates
+// (RequirementFormatController). Receipts and certificates are issued by other offices, so none.
 return [
     'accreditation_form' => [
         'label' => 'Accomplished Accreditation Form',
         'optional' => false,
+        'official_form' => true,
         'keywords' => ['accreditation', 'application', 'organization', 'name', 'signature', 'barangay'],
         'min_matches' => 2,
     ],
     'officers_members_list' => [
         'label' => 'Updated List of Officers and Members',
         'optional' => false,
+        'formats' => ['pdf', 'xlsx'],
         'keywords' => ['officers', 'members', 'president', 'secretary', 'treasurer', 'auditor', 'position'],
         'min_matches' => 2,
     ],
@@ -24,6 +30,7 @@ return [
         'label' => 'Constitution and By-Laws',
         'optional' => false,
         'new_only' => true,
+        'formats' => ['pdf'],
         'keywords' => ['constitution', 'bylaws', 'article', 'section', 'membership', 'amendment'],
         'min_matches' => 2,
     ],
