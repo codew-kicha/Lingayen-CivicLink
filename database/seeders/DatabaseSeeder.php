@@ -498,7 +498,7 @@ class DatabaseSeeder extends Seeder
     private function documents(Organization $organization, ApplicationModel $application, bool $expiring = false, array $ocr = []): void
     {
         $readText = [
-            'accreditation_form' => "Application for CSO Accreditation. Name of organization: {$organization->name}. Barangay {$organization->barangay}. Signature of president.",
+            'accreditation_form' => "ACCREDITATION FORM For New Application (CSO). Name of Organization: {$organization->name}. Name of Representative. Place of Operation: Barangay {$organization->barangay}.",
             'officers_members_list' => 'List of Officers and Members. Position: President, Secretary, Treasurer, Auditor.',
             'constitution_bylaws' => "Constitution and By-Laws of {$organization->name}. Article I. Section 1. Membership.",
             'fee_receipt' => 'Official Receipt. Office of the Municipal Treasurer. Amount: PHP 1,000.00. Payment received.',

@@ -14,13 +14,19 @@
         default => ['badge-neutral', 'Not checked'],
     };
 
+    // Named checks (current format): say what was found or missing. Older records stored only the
+    // words found, so they keep that wording.
     $explanation = null;
     if ($details) {
+        $checks = $details['checks'] ?? null;
+        $missing = $checks ? array_keys(array_filter($checks, fn ($ok) => ! $ok)) : [];
         $explanation = match (true) {
             $document->ocr_status === 'unreadable' => 'Too little text could be read. It may be handwritten or blurry.',
-            (bool) $details['found'] => 'Found: '.implode(', ', $details['found']).'.',
+            $checks !== null && $missing === [] => 'Found '.implode('; ', array_keys($checks)).'.',
+            $checks !== null => 'Missing '.implode('; ', $missing).'.',
+            ! empty($details['found']) => 'Found: '.implode(', ', $details['found']).'.',
             default => 'None of the expected words were found.',
-        }.($details['organization_named'] ? ' Names the organization.' : '');
+        }.(! empty($details['organization_named']) ? ' Names the organization.' : '');
     }
     $quiet = $compact && $document->ocr_status === 'matched';
 @endphp

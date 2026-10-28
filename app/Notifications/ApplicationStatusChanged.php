@@ -68,7 +68,8 @@ class ApplicationStatusChanged extends Notification
     {
         return match ($this->application->status) {
             'approved' => 'Your organization is now accredited and listed in the public directory. Your accreditation runs until '
-                .$this->application->accreditation?->expires_at?->format('d F Y').'.',
+                .$this->application->accreditation?->expires_at?->format('d F Y')
+                .'. Its reference code is '.$this->application->accreditation?->verification_code.'; quote it when you deal with the Desk Office.',
             'rejected' => 'Your application was not approved. You may correct the issues raised and file again.',
             default => 'Your application is now at the '.Str::lower(Str::headline($this->application->sb_stage))
                 .' stage with the Sangguniang Bayan.',

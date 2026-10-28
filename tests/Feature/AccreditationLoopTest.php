@@ -45,16 +45,25 @@ class AccreditationLoopTest extends TestCase
         $this->assertCount(count(config('document_types')), $application->documents);
         Notification::assertNothingSentTo($rep);
 
-        // Review: advance the SB stage.
+        // Review: record each Sangguniang Bayan stage in turn. Skipping ahead is refused.
         $this->actingAs($admin)
             ->patch(route('admin.applications.stage', $application), ['sb_stage' => 'second_reading'])
-            ->assertRedirect();
+            ->assertSessionHasErrors('sb_stage');
+        $this->actingAs($admin)
+            ->post(route('admin.applications.approve', $application))
+            ->assertSessionHas('error');
+        $this->assertSame('submitted', $application->refresh()->status);
 
-        $this->assertSame('second_reading', $application->refresh()->sb_stage);
+        foreach (['first_reading', 'second_reading', 'third_reading', 'endorsed'] as $stage) {
+            $this->actingAs($admin)
+                ->patch(route('admin.applications.stage', $application), ['sb_stage' => $stage])
+                ->assertSessionHasNoErrors();
+            $this->assertSame($stage, $application->refresh()->sb_stage);
+        }
         $this->assertSame('under_review', $application->status);
         Notification::assertSentTo($rep, ApplicationStatusChanged::class);
 
-        // Approve: issues the accreditation in the same transaction.
+        // Approve (now that the SB has endorsed it): issues the accreditation in the same transaction.
         $this->actingAs($admin)
             ->post(route('admin.applications.approve', $application))
             ->assertRedirect();
@@ -125,7 +134,7 @@ class AccreditationLoopTest extends TestCase
         $admin = User::factory()->admin()->create();
 
         foreach (range(1, 2) as $ignored) {
-            $application = ApplicationModel::factory()->for($organization)->create();
+            $application = ApplicationModel::factory()->for($organization)->create(['status' => 'under_review', 'sb_stage' => 'endorsed']);
             $this->actingAs($admin)->post(route('admin.applications.approve', $application))->assertRedirect();
         }
 

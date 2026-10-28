@@ -98,6 +98,8 @@ class ApplicationReviewController extends Controller
 
     public function updateStage(UpdateSbStageRequest $request, ApplicationModel $application): RedirectResponse
     {
+        abort_unless(in_array($application->status, ['submitted', 'under_review'], true), 422);
+
         $application->update([
             'sb_stage' => $request->validated('sb_stage'),
             'status' => $application->status === 'submitted' ? 'under_review' : $application->status,
@@ -118,6 +120,12 @@ class ApplicationReviewController extends Controller
         $this->authorize('review', $application);
 
         abort_unless(in_array($application->status, ['submitted', 'under_review'], true), 422);
+
+        // The Sangguniang Bayan decides; the office issues the accreditation only after its endorsement.
+        if ($application->sb_stage !== 'endorsed') {
+            return back()->with('error', 'Approve once the Sangguniang Bayan has endorsed the application. Record each reading first; it is now at '
+                .strtolower(ApplicationModel::SB_STAGES[$application->sb_stage] ?? $application->sb_stage).'.');
+        }
 
         DB::transaction(function () use ($application) {
             $application->organization->accreditations()

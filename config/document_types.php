@@ -4,9 +4,11 @@
 // DOLE/SEC certification is submitted only if the organization has one. 'new_only' documents are
 // not asked for on renewals (the renewal form leaves out the constitution and by-laws).
 //
-// 'keywords' drive the OCR pre-check (App\Services\DocumentPrecheck): a document "matches" when at
-// least 'min_matches' of them appear in its text. Matching ignores case, spacing and punctuation,
-// so "By-Laws", "bylaws" and "BY LAWS" are the same word. The check is advisory only.
+// 'checks' drive the document pre-check (App\Services\DocumentPrecheck, resources/js/ocr.js). Each
+// check is something the right document always shows, written as what a person would look for, with
+// the words that count as finding it. A file "looks right" only when every check is found, so a
+// receipt in the by-laws slot is caught. Matching ignores case, spacing and punctuation ("By-Laws",
+// "bylaws" and "BY LAWS" are the same word). The result is advice for the reviewer, never a block.
 //
 // 'official_form' links the Sangguniang Bayan's own form (resources/forms) for the chosen
 // application type; 'formats' are downloadable formats the system generates
@@ -16,34 +18,45 @@ return [
         'label' => 'Accomplished Accreditation Form',
         'optional' => false,
         'official_form' => true,
-        'keywords' => ['accreditation', 'application', 'organization', 'name', 'signature', 'barangay'],
-        'min_matches' => 2,
+        'checks' => [
+            'the title "Accreditation Form"' => ['accreditation form'],
+            'the form\'s fields (name of organization, representative, place of operation)' => ['name of organization', 'name of representative', 'place of operation'],
+        ],
     ],
     'officers_members_list' => [
         'label' => 'Updated List of Officers and Members',
         'optional' => false,
         'formats' => ['pdf', 'xlsx'],
-        'keywords' => ['officers', 'members', 'president', 'secretary', 'treasurer', 'auditor', 'position'],
-        'min_matches' => 2,
+        'checks' => [
+            'the word "officers"' => ['officer'],
+            'the word "members"' => ['member'],
+            'officer positions (president, secretary, treasurer)' => ['president', 'secretary', 'treasurer'],
+        ],
     ],
     'constitution_bylaws' => [
         'label' => 'Constitution and By-Laws',
         'optional' => false,
         'new_only' => true,
         'formats' => ['pdf'],
-        'keywords' => ['constitution', 'bylaws', 'article', 'section', 'membership', 'amendment'],
-        'min_matches' => 2,
+        'checks' => [
+            'the title "Constitution" or "By-Laws"' => ['constitution', 'bylaws'],
+            'numbered articles or sections' => ['article', 'section'],
+        ],
     ],
     'fee_receipt' => [
         'label' => 'Official Receipt of the Accreditation Fee',
         'optional' => false,
-        'keywords' => ['receipt', 'treasur', 'amount', 'payment', 'paid', 'pesos', 'php'],
-        'min_matches' => 2,
+        'checks' => [
+            'the word "receipt"' => ['receipt'],
+            'the Treasury or an amount paid' => ['treasur', 'amount', 'paid', 'pesos', 'php'],
+        ],
     ],
     'dole_sec_certification' => [
         'label' => 'DOLE or SEC Certification',
         'optional' => true,
-        'keywords' => ['certif', 'registration', 'registered', 'securities', 'exchange', 'commission', 'labor', 'employment', 'dole'],
-        'min_matches' => 2,
+        'checks' => [
+            'a certificate or certification' => ['certif'],
+            'DOLE or SEC as the issuing office' => ['labor and employment', 'dole', 'securities and exchange'],
+        ],
     ],
 ];

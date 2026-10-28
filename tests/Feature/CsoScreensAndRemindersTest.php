@@ -156,7 +156,7 @@ class CsoScreensAndRemindersTest extends TestCase
         config(['mail.default' => 'smtp', 'mail.mailers.smtp.host' => '127.0.0.1', 'mail.mailers.smtp.port' => 1, 'mail.mailers.smtp.timeout' => 1]);
         $admin = User::factory()->admin()->create();
         $rep = $this->rep();
-        $application = ApplicationModel::factory()->for($rep->organization)->create(['status' => 'submitted']);
+        $application = ApplicationModel::factory()->for($rep->organization)->create(['status' => 'under_review', 'sb_stage' => 'endorsed']);
 
         $this->actingAs($admin)->post(route('admin.applications.approve', $application))
             ->assertRedirect(route('admin.applications.show', $application))

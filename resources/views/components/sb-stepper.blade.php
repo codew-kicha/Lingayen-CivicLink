@@ -1,13 +1,7 @@
 @props(['stage'])
 
 @php
-    $stages = [
-        'not_endorsed' => 'Not endorsed',
-        'first_reading' => 'First reading',
-        'second_reading' => 'Second reading',
-        'third_reading' => 'Third reading',
-        'endorsed' => 'Endorsed',
-    ];
+    $stages = \App\Models\ApplicationModel::SB_STAGES;
     $keys = array_keys($stages);
     $currentIndex = array_search($stage, $keys, true);
 @endphp

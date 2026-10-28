@@ -18,9 +18,13 @@ class UpdateSbStageRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'sb_stage' => ['required', Rule::in([
-                'not_endorsed', 'first_reading', 'second_reading', 'third_reading', 'endorsed',
-            ])],
+            // One reading at a time: forward to the next stage, or back one to correct a mistake.
+            'sb_stage' => ['required', Rule::in(array_filter($this->route('application')->neighbouringStages()))],
         ];
+    }
+
+    public function messages(): array
+    {
+        return ['sb_stage.in' => 'Record the readings one at a time: the next stage, or one back to correct a mistake.'];
     }
 }

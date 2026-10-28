@@ -24,15 +24,29 @@ class DocumentPrecheckTest extends TestCase
 
         $this->assertSame('matched', $result['status']);
         $this->assertSame(['constitution', 'bylaws', 'article', 'section'], $result['details']['found']);
+        $this->assertNotContains(false, $result['details']['checks']);
         $this->assertTrue($result['details']['organization_named']);
     }
 
-    public function test_a_document_in_the_wrong_slot_is_a_mismatch(): void
+    public function test_a_document_in_the_wrong_slot_is_a_mismatch_that_names_what_is_missing(): void
     {
         $result = DocumentPrecheck::evaluate('constitution_bylaws', self::RECEIPT);
 
         $this->assertSame('mismatch', $result['status']);
-        $this->assertSame([], $result['details']['found']);
+        $this->assertFalse($result['details']['checks']['the title "Constitution" or "By-Laws"']);
+    }
+
+    public function test_common_words_alone_no_longer_pass(): void
+    {
+        // The old word count let any form with "name", "organization" and "president" pass as anything.
+        $generic = 'Name of organization: Wawa Weavers. Barangay Wawa. Signed by the president and secretary.';
+
+        $this->assertSame('mismatch', DocumentPrecheck::evaluate('accreditation_form', $generic)['status']);
+        $this->assertSame('mismatch', DocumentPrecheck::evaluate('officers_members_list', $generic)['status']);
+
+        // The official form itself passes.
+        $form = 'ACCREDITATION FORM For New Application (CSO). Name of Organization: Wawa Weavers. Name of Representative. Place of Operation.';
+        $this->assertSame('matched', DocumentPrecheck::evaluate('accreditation_form', $form)['status']);
     }
 
     public function test_too_little_text_is_unreadable_and_no_text_is_not_checked(): void
@@ -42,11 +56,13 @@ class DocumentPrecheckTest extends TestCase
         $this->assertSame('not_checked', DocumentPrecheck::evaluate('fee_receipt', "  \n ")['status']);
     }
 
-    public function test_every_requirement_has_keywords(): void
+    public function test_every_requirement_has_named_checks(): void
     {
         foreach (config('document_types') as $key => $type) {
-            $this->assertNotEmpty($type['keywords'] ?? [], "{$key} has no pre-check keywords");
-            $this->assertLessThanOrEqual(count($type['keywords']), $type['min_matches'], "{$key} can never match");
+            $this->assertNotEmpty($type['checks'] ?? [], "{$key} has no pre-check");
+            foreach ($type['checks'] as $label => $words) {
+                $this->assertNotEmpty($words, "{$key}: '{$label}' has no words");
+            }
         }
     }
 
@@ -94,7 +110,7 @@ class DocumentPrecheckTest extends TestCase
 
         $this->actingAs($admin)->get(route('admin.applications.index'))->assertSee('1 document to check');
         $this->actingAs($admin)->get(route('admin.applications.show', $application))
-            ->assertSee('Check content')->assertSee('None of the expected words were found.');
+            ->assertSee('Check content')->assertSee('Missing the title "Constitution" or "By-Laws"');
     }
 
     public function test_oversized_ocr_text_is_rejected(): void

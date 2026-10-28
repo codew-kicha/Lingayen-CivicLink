@@ -31,7 +31,7 @@
         @foreach ($documentTypes as $key => $type)
             <div class="grid gap-3 py-4 sm:grid-cols-[minmax(0,1fr)_11rem]"
                  @if (! empty($type['new_only'])) x-show="type === 'new'" @endif>
-                <div x-data="documentPrecheck(@js($type['keywords'] ?? []), {{ $type['min_matches'] ?? 1 }})" class="min-w-0">
+                <div x-data="documentPrecheck(@js($type['checks'] ?? []))" class="min-w-0">
                     <label for="doc-{{ $key }}" class="field-label">
                         {{ $type['label'] }}
                         @if ($type['optional'])
@@ -85,12 +85,13 @@
                         <span x-show="state === 'reading'">Reading the document. You can keep filling in the form.</span>
                         <span x-show="state === 'matched'">This looks like the {{ Str::lower($type['label']) }}.</span>
                         <span x-show="state === 'mismatch'">
-                            This doesn't look like the {{ Str::lower($type['label']) }}. Check that you chose the right file.
-                            You can still submit it; PESO will review it.
+                            This may not be the {{ Str::lower($type['label']) }}: we couldn't find
+                            <span x-text="missing.join('; ')"></span> in it. Check that you chose the right file.
+                            You can still submit it; the Desk Office will review it.
                         </span>
                         <span x-show="state === 'unreadable'">
                             Very little text could be read, which happens with handwriting or blurry photos.
-                            You can still submit it; PESO will review it.
+                            You can still submit it; the Desk Office will review it.
                         </span>
                         <span x-show="state === 'failed'">The document could not be checked here. You can still submit it.</span>
                     </p>

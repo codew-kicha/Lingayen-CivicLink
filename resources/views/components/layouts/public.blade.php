@@ -170,7 +170,7 @@
             </div>
 
             <p class="mt-12 border-t border-brand-700 pt-6 text-xs text-brand-300">
-                &copy; {{ now()->year }} Municipality of Lingayen. Demonstration build.
+                &copy; {{ now()->year }} Municipality of Lingayen, Pangasinan · Civil Society Desk Office
             </p>
         </div>
     </footer>

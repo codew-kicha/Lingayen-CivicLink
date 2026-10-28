@@ -14,6 +14,27 @@ class ApplicationModel extends Model
 
     protected $table = 'applications';
 
+    /**
+     * The Sangguniang Bayan stages, in order. The office records them one at a time; an application
+     * can be approved (accreditation issued) only once it has reached 'endorsed'.
+     */
+    public const SB_STAGES = [
+        'not_endorsed' => 'Not endorsed',
+        'first_reading' => 'First reading',
+        'second_reading' => 'Second reading',
+        'third_reading' => 'Third reading',
+        'endorsed' => 'Endorsed',
+    ];
+
+    /** The stage before and after the current one (null at either end). */
+    public function neighbouringStages(): array
+    {
+        $keys = array_keys(self::SB_STAGES);
+        $i = array_search($this->sb_stage, $keys, true);
+
+        return [$i > 0 ? $keys[$i - 1] : null, $i !== false && $i < count($keys) - 1 ? $keys[$i + 1] : null];
+    }
+
     protected $fillable = [
         'organization_id', 'type', 'status', 'submission_channel', 'sb_stage',
         'submitted_by', 'reviewed_by', 'rejection_reason', 'submitted_at', 'reviewed_at',

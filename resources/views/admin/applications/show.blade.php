@@ -168,24 +168,45 @@
                             <h2 id="review-title" class="card-title">Advance the review</h2>
                         </div>
                         <div class="p-6">
-                            <form method="POST" action="{{ route('admin.applications.stage', $application) }}">
-                                @csrf
-                                @method('PATCH')
-                                <label for="sb_stage" class="field-label">Sangguniang Bayan stage</label>
-                                <div class="flex gap-2">
-                                    <select id="sb_stage" name="sb_stage" class="field-input">
-                                        @foreach (['not_endorsed', 'first_reading', 'second_reading', 'third_reading', 'endorsed'] as $stage)
-                                            <option value="{{ $stage }}" @selected($application->sb_stage === $stage)>{{ Str::headline($stage) }}</option>
-                                        @endforeach
-                                    </select>
-                                    <button type="submit" class="btn-secondary shrink-0">Update</button>
-                                </div>
-                            </form>
+                            @php
+                                [$previousStage, $nextStage] = $application->neighbouringStages();
+                                $stages = \App\Models\ApplicationModel::SB_STAGES;
+                            @endphp
+                            <p class="field-label">Sangguniang Bayan stage</p>
+                            <p class="text-sm text-ink">Now at <strong>{{ $stages[$application->sb_stage] ?? $application->sb_stage }}</strong>.</p>
+                            <div class="mt-3 flex flex-wrap items-center gap-2">
+                                @if ($nextStage)
+                                    <form method="POST" action="{{ route('admin.applications.stage', $application) }}">
+                                        @csrf
+                                        @method('PATCH')
+                                        <input type="hidden" name="sb_stage" value="{{ $nextStage }}">
+                                        <button type="submit" class="btn-secondary">
+                                            Record: {{ $stages[$nextStage] }} <x-phosphor-arrow-right class="h-4 w-4" aria-hidden="true" />
+                                        </button>
+                                    </form>
+                                @endif
+                                @if ($previousStage)
+                                    <form method="POST" action="{{ route('admin.applications.stage', $application) }}">
+                                        @csrf
+                                        @method('PATCH')
+                                        <input type="hidden" name="sb_stage" value="{{ $previousStage }}">
+                                        <button type="submit" class="btn-ghost btn-sm">Back to {{ strtolower($stages[$previousStage]) }}</button>
+                                    </form>
+                                @endif
+                            </div>
+                            @error('sb_stage')<p class="field-error">{{ $message }}</p>@enderror
 
+                            @php $endorsed = $application->sb_stage === 'endorsed'; @endphp
                             <form method="POST" action="{{ route('admin.applications.approve', $application) }}" class="mt-6 border-t border-line pt-6">
                                 @csrf
-                                <button type="submit" class="btn-primary w-full">Approve application</button>
-                                <p class="field-hint">Issues an accreditation valid for three years and lists the organization in the public directory.</p>
+                                <button type="submit" class="btn-primary w-full" @disabled(! $endorsed)>Approve application</button>
+                                <p class="field-hint">
+                                    @if ($endorsed)
+                                        Issues an accreditation valid for three years, with its reference code, and lists the organization in the public directory.
+                                    @else
+                                        Opens once the Sangguniang Bayan has endorsed the application (after the third reading).
+                                    @endif
+                                </p>
                             </form>
 
                             <form method="POST" action="{{ route('admin.applications.reject', $application) }}" class="mt-6 border-t border-line pt-6">
