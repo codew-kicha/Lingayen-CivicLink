@@ -166,6 +166,19 @@ Alpine.data('documentPrecheck', (checks) => ({
     },
 }));
 
+// <x-file-field>: the × beside a file input. Clearing fires `change` so listeners (the pre-check)
+// reset as if the person had cleared it themselves; focus returns to the input.
+Alpine.data('fileField', () => ({
+    has: false,
+
+    clear() {
+        const input = this.$root.querySelector('input[type=file]');
+        input.value = '';
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+        input.focus();
+    },
+}));
+
 // Dialogs (<x-dialog>, DESIGN_SYSTEM.md §3). Opened with $dispatch('open-dialog', name). Esc and the
 // close button always close it; a click outside closes it only while nothing has been typed.
 // x-trap keeps focus inside and returns it to the trigger on close.

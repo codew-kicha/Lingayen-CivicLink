@@ -53,10 +53,11 @@
             </label>
         </div>
     @endif
-    <input type="file" id="evidence" name="evidence" accept=".pdf,.jpg,.jpeg,.png"
-           aria-describedby="evidence-hint{{ $errors->has('evidence') ? ' evidence-error' : '' }}"
-           class="block w-full text-sm text-ink file:mr-4 file:min-h-11 file:rounded-md file:border file:border-line-strong
-                  file:bg-paper file:px-4 file:text-sm file:font-semibold file:text-primary hover:file:bg-primary-subtle">
+    <x-file-field>
+        <input type="file" id="evidence" name="evidence" accept=".pdf,.jpg,.jpeg,.png"
+               aria-describedby="evidence-hint{{ $errors->has('evidence') ? ' evidence-error' : '' }}"
+               class="field-file @error('evidence') field-input-error @enderror">
+    </x-file-field>
     <p id="evidence-hint" class="field-hint">A photo or scan of the attendance sheet (PDF, JPG or PNG, up to 5 MB). PESO checks it before verifying.@if ($activity?->evidence_path) Choosing a file replaces the current one.@endif</p>
     @error('evidence')<p id="evidence-error" class="field-error">{{ $message }}</p>@enderror
 </div>

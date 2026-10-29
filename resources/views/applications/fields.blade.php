@@ -42,13 +42,15 @@
                             <span class="font-normal text-muted">(optional)</span>
                         @endif
                     </label>
-                    <input type="file" id="doc-{{ $key }}" name="documents[{{ $key }}]"
-                           accept=".pdf,.jpg,.jpeg,.png" @change="check($event)"
-                           aria-describedby="doc-{{ $key }}-hint doc-{{ $key }}-check @error("documents.{$key}") doc-{{ $key }}-error @enderror"
-                           class="field-file @error("documents.{$key}") field-input-error @enderror"
-                           @error("documents.{$key}") aria-invalid="true" @enderror
-                           @if (! empty($type['new_only'])) :disabled="type !== 'new'" @endif
-                           @required(! $type['optional'])>
+                    <x-file-field>
+                        <input type="file" id="doc-{{ $key }}" name="documents[{{ $key }}]"
+                               accept=".pdf,.jpg,.jpeg,.png" @change="check($event)"
+                               aria-describedby="doc-{{ $key }}-hint doc-{{ $key }}-check @error("documents.{$key}") doc-{{ $key }}-error @enderror"
+                               class="field-file @error("documents.{$key}") field-input-error @enderror"
+                               @error("documents.{$key}") aria-invalid="true" @enderror
+                               @if (! empty($type['new_only'])) :disabled="type !== 'new'" @endif
+                               @required(! $type['optional'])>
+                    </x-file-field>
                     <input type="hidden" name="ocr_text[{{ $key }}]" :value="text">
                     <p id="doc-{{ $key }}-hint" class="field-hint">{{ config("office.requirement_notes.{$key}") }}</p>
 
