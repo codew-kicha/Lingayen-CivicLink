@@ -59,6 +59,7 @@ class ScreenSmokeTest extends TestCase
         }
 
         $this->actingAs($admin)->get(route('admin.applications.show', $application))->assertOk();
+        config(['app.admin_invites' => true]);
         $this->actingAs($admin)->withSession(['auth.password_confirmed_at' => time()])
             ->get(route('admin.accounts.create'))->assertOk();
 

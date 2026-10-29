@@ -13,12 +13,23 @@ use App\Notifications\AccountInvitation;
 use App\Support\ListPagination;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Controllers\HasMiddleware;
+use Illuminate\Routing\Controllers\Middleware;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 
-class AccountController extends Controller
+class AccountController extends Controller implements HasMiddleware
 {
+    // Adding an administrator is switched off unless config('app.admin_invites') (FEATURE_ADD_ADMIN).
+    // Checked before the form request, which is shared with attaching a representative's account.
+    public static function middleware(): array
+    {
+        return [
+            new Middleware(fn ($request, $next) => config('app.admin_invites') ? $next($request) : abort(404), only: ['create', 'store']),
+        ];
+    }
+
     public function index(Request $request): View
     {
         $this->authorize('viewAny', User::class);

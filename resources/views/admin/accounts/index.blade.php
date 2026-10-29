@@ -33,7 +33,9 @@
         <div class="ml-auto flex gap-2">
             <a href="{{ route('admin.organizations.create') }}" class="btn-secondary"
                @click.prevent="$dispatch('open-dialog', 'register-organization')">Register an organization</a>
-            <a href="{{ route('admin.accounts.create') }}" class="btn-primary">Add PESO admin</a>
+            @if (config('app.admin_invites'))
+                <a href="{{ route('admin.accounts.create') }}" class="btn-primary">Add PESO admin</a>
+            @endif
         </div>
     </div>
 

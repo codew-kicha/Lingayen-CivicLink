@@ -8,6 +8,7 @@
     the existing sticky top bar, which already names the page. Every page has the banig band across the
     top: the full one with `woven` (dashboards), a slim one otherwise. On desktop the sidebar collapses
     to an icon rail (its menu button) so the page uses the full width; remembered in this browser.
+    CSO representatives get the amber theme (theme-cso in app.css) so their accounts look distinct.
 --}}
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
@@ -21,7 +22,7 @@
     <script>try { if (localStorage.getItem('sidebar') === 'collapsed') document.documentElement.dataset.sidebar = 'collapsed'; } catch (e) {}</script>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="min-h-screen bg-canvas text-ink" x-data="appShell" @keydown.escape.window="drawer = false">
+<body @class(['min-h-screen bg-canvas text-ink', 'theme-cso' => auth()->user()?->isCsoRep()]) x-data="appShell" @keydown.escape.window="drawer = false">
     <a href="#main"
        class="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-toast focus:rounded-md
               focus:bg-primary-dark focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-on-primary">
@@ -57,7 +58,7 @@
             <aside x-show="drawer" x-trap.noscroll.inert="drawer"
                    x-transition:enter="transition duration-base ease-out-strong" x-transition:enter-start="-translate-x-full"
                    x-transition:leave="transition duration-fast ease-out-strong" x-transition:leave-end="-translate-x-full"
-                   class="relative flex h-dvh w-72 max-w-[85vw] flex-col bg-primary-dark">
+                   class="app-drawer relative flex h-dvh w-72 max-w-[85vw] flex-col bg-primary-dark">
                 <button type="button" @click="drawer = false"
                         class="absolute right-2 top-3 inline-flex h-11 w-11 items-center justify-center rounded-sm text-on-primary
                                hover:bg-primary-dark-hover focus-visible:outline-focus-on-dark">
@@ -69,7 +70,7 @@
         </div>
 
         <div class="flex min-w-0 flex-1 flex-col">
-            <div class="sticky top-0 z-sticky flex items-center gap-3 bg-primary-dark px-2 py-2 text-on-primary lg:hidden">
+            <div class="app-topbar sticky top-0 z-sticky flex items-center gap-3 bg-primary-dark px-2 py-2 text-on-primary lg:hidden">
                 <button type="button" @click="drawer = true" :aria-expanded="drawer.toString()"
                         class="inline-flex h-11 w-11 items-center justify-center rounded-sm hover:bg-primary-dark-hover focus-visible:outline-focus-on-dark">
                     <x-phosphor-list class="h-6 w-6" aria-hidden="true" />

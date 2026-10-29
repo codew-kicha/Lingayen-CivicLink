@@ -448,6 +448,33 @@
         mask-image: linear-gradient(to bottom, rgb(var(--color-text) / 0.85), rgb(var(--color-text) / 0.35) 45%, transparent);
     }
 
+    /*
+     * CSO representatives' theme: an amber sidebar (the Apply now colour) with maroon as the second
+     * colour, so a representative's screens never look like the admin's. The sidebar, phone drawer and
+     * top bar remap the role tokens they already use to the amber and maroon scales; primary buttons
+     * turn amber with maroon text and secondary buttons take a maroon outline. Contrast: brand-900 on
+     * accent-500 is 7.5:1, on accent-600 6.3:1; brand-700 captions on accent-500 are 4.9:1.
+     */
+    .theme-cso :is(.app-sidebar, .app-drawer, .app-topbar) {
+        --color-primary-dark: var(--color-accent-500);
+        --color-primary-dark-hover: var(--color-accent-600);
+        --color-on-primary: var(--color-brand-900);
+        --color-on-dark: var(--color-brand-900);
+        --color-on-dark-muted: var(--color-brand-700);
+        --color-focus-on-dark: var(--color-brand-900);
+        /* The gold accents (active bar, count badges, rail dots) become maroon on the amber ground. */
+        --color-accent: var(--color-brand-600);
+        --color-on-accent: var(--color-surface);
+    }
+
+    .theme-cso .btn-primary {
+        @apply bg-accent text-accent-fg hover:bg-accent-400 active:bg-accent-600 disabled:bg-accent/40;
+    }
+
+    .theme-cso .btn-secondary {
+        @apply border-primary hover:border-primary;
+    }
+
     /* Slim band for every other signed-in page: the same lattice, smaller and fainter, gone by 3.5rem. */
     .woven-band-slim {
         @apply h-14;

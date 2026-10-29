@@ -143,6 +143,14 @@ return [
     */
 
     'php_patched_by_host' => (bool) env('PHP_PATCHED_BY_HOST', false),
+
+    /*
+    | "Add PESO admin" on the Accounts page. Off: the button is hidden and its pages answer 404, so
+    | the office runs with its one administrator. Set FEATURE_ADD_ADMIN=true to bring it back.
+    | `php artisan app:create-admin` on the server works either way.
+    */
+
+    'admin_invites' => (bool) env('FEATURE_ADD_ADMIN', false),
     'demo_password' => env('DEMO_PASSWORD'),
 
 ];

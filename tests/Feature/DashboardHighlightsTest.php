@@ -67,6 +67,15 @@ class DashboardHighlightsTest extends TestCase
         $this->actingAs($rep)->get(route('cso.activities.index'))->assertSee('class="woven-band woven-band-slim"', false);
     }
 
+    public function test_representatives_get_the_amber_theme_and_admins_do_not(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $rep = Organization::factory()->accredited()->create()->user;
+
+        $this->actingAs($rep)->get(route('cso.dashboard'))->assertSee('theme-cso');
+        $this->actingAs($admin)->get(route('admin.dashboard'))->assertDontSee('theme-cso');
+    }
+
     public function test_a_lapsed_organization_is_pointed_to_a_renewal(): void
     {
         $this->seed(ExpiredAccreditationSeeder::class);

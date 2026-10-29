@@ -275,9 +275,25 @@ class AccountManagementTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_adding_an_admin_is_hidden_until_switched_on(): void
+    {
+        $admin = $this->admin();
+
+        $this->actingAs($admin)->get(route('admin.accounts.index'))->assertOk()->assertDontSee('Add PESO admin');
+        $this->actingAs($admin)->withSession($this->confirmed())->get(route('admin.accounts.create'))->assertNotFound();
+        $this->actingAs($admin)->withSession($this->confirmed())
+            ->post(route('admin.accounts.store'), ['name' => 'New Admin', 'email' => 'staff@lingayen.gov.ph'])
+            ->assertNotFound();
+        $this->assertDatabaseMissing('users', ['email' => 'staff@lingayen.gov.ph']);
+
+        config(['app.admin_invites' => true]);
+        $this->actingAs($admin)->get(route('admin.accounts.index'))->assertSee('Add PESO admin');
+    }
+
     public function test_creating_an_admin_requires_password_confirmation(): void
     {
         Notification::fake();
+        config(['app.admin_invites' => true]);
         $admin = $this->admin();
 
         $this->actingAs($admin)->post(route('admin.accounts.store'), ['name' => 'New Admin', 'email' => 'staff@lingayen.gov.ph'])
