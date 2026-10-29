@@ -31,8 +31,8 @@ Alpine.data('activityTicker', (count) => ({
     },
 }));
 
-// Signed-in layout: the phone drawer, and the desktop sidebar that collapses to give the page the full
-// width. The collapsed state lives on <html data-sidebar> (set before first paint from localStorage) so
+// Signed-in layout: the phone drawer, and the desktop sidebar that collapses to an icon rail to give the
+// page the full width. The collapsed state lives on <html data-sidebar> (set before first paint from localStorage) so
 // the CSS in app.css applies it without a flash.
 Alpine.data('appShell', () => ({
     drawer: false,
@@ -46,8 +46,6 @@ Alpine.data('appShell', () => ({
             delete document.documentElement.dataset.sidebar;
         }
         try { localStorage.setItem('sidebar', this.collapsed ? 'collapsed' : 'open'); } catch (e) { /* private mode */ }
-        // Move focus to the control that now exists, so keyboard users aren't left on a hidden button.
-        this.$nextTick(() => document.querySelector(this.collapsed ? '.sidebar-reopen' : '#app-sidebar button')?.focus());
     },
 }));
 

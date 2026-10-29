@@ -448,32 +448,80 @@
         mask-image: linear-gradient(to bottom, rgb(var(--color-text) / 0.85), rgb(var(--color-text) / 0.35) 45%, transparent);
     }
 
-    /* Collapsible desktop sidebar (app layout): the width animates; the page column grows with it. */
+    /* Slim band for every other signed-in page: the same lattice, smaller and fainter, gone by 3.5rem. */
+    .woven-band-slim {
+        @apply h-14;
+    }
+
+    .woven-band-slim::after {
+        background-size: 20px 20px;
+        -webkit-mask-image: linear-gradient(to bottom, rgb(var(--color-text) / 0.55), transparent);
+        mask-image: linear-gradient(to bottom, rgb(var(--color-text) / 0.55), transparent);
+    }
+
+    /*
+     * Collapsible desktop sidebar (app layout): the width animates from 16rem to a 4rem icon rail and
+     * the page column grows with it. Text marked .sidebar-fade fades; icons stay where they are.
+     */
     .app-sidebar {
         width: 16rem;
         transition: width 400ms cubic-bezier(0.23, 1, 0.32, 1);
+    }
+
+    .app-sidebar .sidebar-fade {
+        transition: opacity 200ms ease-out;
     }
 
     .app-main {
         transition: max-width 400ms cubic-bezier(0.23, 1, 0.32, 1);
     }
 
-    .sidebar-reopen {
-        display: none;
+    /* A gold dot on a nav icon, shown only in the rail where the count badge is out of view. */
+    .nav-dot {
+        @apply pointer-events-none absolute left-8 top-2 h-2 w-2 rounded-full bg-accent opacity-0 transition-opacity duration-base;
     }
+
+    /* Menu icon: three bars; while collapsed the outer two fold into an arrow pointing at the page. */
+    .burger {
+        @apply relative block h-3.5 w-[18px];
+    }
+
+    .burger > span {
+        @apply absolute left-0 block h-0.5 w-[18px] rounded-full bg-current;
+        transform-origin: right center;
+        transition: transform 400ms cubic-bezier(0.23, 1, 0.32, 1), width 400ms cubic-bezier(0.23, 1, 0.32, 1);
+    }
+
+    .burger > span:nth-child(1) { top: 0; }
+    .burger > span:nth-child(2) { top: 6px; }
+    .burger > span:nth-child(3) { top: 12px; }
 
     @media (min-width: 1024px) {
         [data-sidebar='collapsed'] .app-sidebar {
-            width: 0;
+            width: 4rem;
+        }
+
+        [data-sidebar='collapsed'] .app-sidebar .sidebar-fade {
+            opacity: 0;
+        }
+
+        [data-sidebar='collapsed'] .app-sidebar .nav-dot {
+            opacity: 1;
+        }
+
+        [data-sidebar='collapsed'] .burger > span:nth-child(1) {
+            width: 10px;
+            transform: translate(8px, 6px) rotate(45deg);
+        }
+
+        [data-sidebar='collapsed'] .burger > span:nth-child(3) {
+            width: 10px;
+            transform: translate(8px, -6px) rotate(-45deg);
         }
 
         /* Full width: the page stops at 160rem instead of 80rem, so it fills any normal screen. */
         [data-sidebar='collapsed'] .app-main {
             max-width: 160rem;
-        }
-
-        [data-sidebar='collapsed'] .sidebar-reopen {
-            display: inline-flex;
         }
     }
 

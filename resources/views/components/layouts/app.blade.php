@@ -5,9 +5,9 @@
     differs, from config('navigation'). Page frame: max-w-7xl, padding 16/24/32 by breakpoint,
     title and subtitle always in the same place. See docs/DESIGN_SYSTEM.md §3. With `sticky`, the title
     bar (and its actions) stays pinned on desktop and gains a rule once the page scrolls; phones keep
-    the existing sticky top bar, which already names the page. With `woven`, the dashboards' banig band
-    runs across the top. On desktop the sidebar collapses (its menu button) so the page uses the full
-    width; the choice is remembered in this browser.
+    the existing sticky top bar, which already names the page. Every page has the banig band across the
+    top: the full one with `woven` (dashboards), a slim one otherwise. On desktop the sidebar collapses
+    to an icon rail (its menu button) so the page uses the full width; remembered in this browser.
 --}}
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
@@ -35,12 +35,20 @@
 
     <div class="flex min-h-screen">
         {{-- Locked to the viewport: never scrolls with the page. Only the nav inside may scroll, as a fallback. --}}
-        {{-- Collapsing animates the width (app-sidebar in app.css); the contents keep 16rem and slide out of view. --}}
-        <aside id="app-sidebar" class="app-sidebar sticky top-0 hidden h-dvh shrink-0 self-start overflow-hidden bg-primary-dark lg:block"
-               x-effect="$el.inert = collapsed">
+        {{-- Collapsing animates the width to a 4rem icon rail (app-sidebar in app.css). The contents keep
+             16rem, so the icons never move; the menu button is pinned to the right edge and rides it in. --}}
+        <aside id="app-sidebar" class="app-sidebar sticky top-0 hidden h-dvh shrink-0 self-start overflow-hidden bg-primary-dark lg:block">
             <div class="flex h-full w-64 flex-col">
                 @include('components.layouts.partials.sidebar', ['collapsible' => true])
             </div>
+            <button type="button" @click="toggleSidebar()" aria-controls="app-sidebar" :aria-expanded="(! collapsed).toString()"
+                    :title="collapsed ? 'Show menu' : 'Hide menu'"
+                    class="absolute right-4 top-3 z-dropdown inline-flex h-9 w-9 items-center justify-center rounded-sm text-on-dark
+                           transition-colors duration-fast ease-out-strong hover:bg-primary-dark-hover hover:text-on-primary focus-visible:outline-focus-on-dark">
+                {{-- Three bars that fold into an arrow while collapsed (.burger in app.css). --}}
+                <span class="burger" aria-hidden="true"><span></span><span></span><span></span></span>
+                <span class="sr-only" x-text="collapsed ? 'Show menu' : 'Hide menu'">Hide menu</span>
+            </button>
         </aside>
 
         {{-- Below lg: off-canvas drawer. Focus is trapped while open; Esc and the overlay close it. --}}
@@ -72,9 +80,7 @@
             </div>
 
             <div class="relative flex flex-1 flex-col">
-            @if ($woven)
-                <div class="woven-band" aria-hidden="true"></div>
-            @endif
+            <div @class(['woven-band', 'woven-band-slim' => ! $woven]) aria-hidden="true"></div>
             <main id="main" class="app-main relative mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
                 <div @if ($sticky) x-data="{ stuck: false }" @scroll.window="stuck = scrollY > 8"
                          :class="stuck && 'bg-canvas lg:border-line lg:shadow-panel'" @endif
@@ -82,13 +88,6 @@
                          'mb-6 flex flex-wrap items-start gap-x-6 gap-y-4',
                          'border-b border-transparent transition-shadow duration-fast lg:sticky lg:top-0 lg:z-sticky lg:-mx-8 lg:-mt-8 lg:px-8 lg:pb-4 lg:pt-8' => $sticky,
                      ])>
-                    {{-- Shown only while the desktop sidebar is collapsed (app.css), to bring it back. --}}
-                    <button type="button" @click="toggleSidebar()" aria-controls="app-sidebar" aria-expanded="false" title="Show menu"
-                            class="sidebar-reopen h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary-dark text-on-primary
-                                   shadow-panel hover:bg-primary-dark-hover focus-visible:outline-focus">
-                        <x-phosphor-list class="h-5 w-5" aria-hidden="true" />
-                        <span class="sr-only">Show menu</span>
-                    </button>
                     <div class="min-w-0 flex-1 basis-80">
                         {{-- Pagination links point here (#page-title) so focus lands on the results after a page change. --}}
                         <h1 id="page-title" tabindex="-1" class="text-page-title font-semibold text-ink">{{ $header }}</h1>

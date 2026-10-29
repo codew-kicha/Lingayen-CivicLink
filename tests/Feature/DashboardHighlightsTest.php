@@ -10,7 +10,7 @@ use Database\Seeders\ExpiredAccreditationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
-/** The admin's top-10 ranking, the woven band and sidebar toggle, and the lapsed-accreditation renewal path. */
+/** The admin's top-10 ranking, the woven band and sidebar menu button, and the lapsed-accreditation renewal path. */
 class DashboardHighlightsTest extends TestCase
 {
     use RefreshDatabase;
@@ -58,12 +58,13 @@ class DashboardHighlightsTest extends TestCase
         foreach ([[$admin, 'admin.dashboard'], [$rep, 'cso.dashboard']] as [$user, $route]) {
             $this->actingAs($user)->get(route($route))->assertOk()
                 ->assertSee('class="woven-band"', false)
-                ->assertSee('Hide menu')
-                ->assertSee('Show menu');
+                ->assertSee('class="burger"', false)
+                ->assertSee('Hide menu');
         }
 
-        // Other screens keep the plain ground.
-        $this->actingAs($admin)->get(route('admin.applications.index'))->assertDontSee('class="woven-band"', false);
+        // Every other signed-in screen gets the slim band.
+        $this->actingAs($admin)->get(route('admin.applications.index'))->assertSee('class="woven-band woven-band-slim"', false);
+        $this->actingAs($rep)->get(route('cso.activities.index'))->assertSee('class="woven-band woven-band-slim"', false);
     }
 
     public function test_a_lapsed_organization_is_pointed_to_a_renewal(): void
