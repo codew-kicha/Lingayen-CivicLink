@@ -69,6 +69,7 @@ class DatabaseSeeder extends Seeder
         $this->rejectedApplicant();
         $this->brandNewRegistrant();
         $this->accountStates($admin);
+        $this->call(ExpiredAccreditationSeeder::class);
         $this->newsAndReports($admin);
         $this->computeScores();
     }

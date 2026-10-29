@@ -7,6 +7,7 @@ use App\Models\Accreditation;
 use App\Models\Activity;
 use App\Models\ApplicationModel;
 use App\Models\Organization;
+use App\Models\PerformanceScore;
 use Illuminate\View\View;
 
 class DashboardController extends Controller
@@ -35,6 +36,16 @@ class DashboardController extends Controller
                 ->limit(5)
                 ->get(),
             'organizationCount' => Organization::count(),
+            // Each accredited organization's latest score, highest first (ties: name).
+            'topPerformers' => PerformanceScore::query()
+                ->whereIn('performance_scores.id', PerformanceScore::selectRaw('max(id)')->groupBy('organization_id'))
+                ->whereHas('organization.accreditations', fn ($q) => $q->where('status', 'active'))
+                ->with('organization:id,name,sector,barangay')
+                ->join('organizations', 'organizations.id', '=', 'performance_scores.organization_id')
+                ->orderByDesc('total_score')
+                ->orderBy('organizations.name')
+                ->limit(10)
+                ->get('performance_scores.*'),
         ]);
     }
 }

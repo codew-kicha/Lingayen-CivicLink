@@ -161,7 +161,7 @@ class OrganizationModerationController extends Controller
             'lastReminder' => AuditLog::where('action', 'accreditation.reminder_sent')
                 ->where('subject_type', 'Organization')->where('subject_id', $organization->id)
                 ->latest('created_at')->value('created_at'),
-            'hasActiveAccreditation' => $organization->accreditations->contains('status', 'active'),
+            'hasBeenAccredited' => $organization->accreditations->whereIn('status', ['active', 'expired'])->isNotEmpty(),
             // For the Delete and Merge dialogs.
             'footprint' => OrganizationRecords::footprint($organization),
             'mergeOptions' => Organization::whereKeyNot($organization->id)->orderBy('name')->get(['id', 'name', 'barangay'])

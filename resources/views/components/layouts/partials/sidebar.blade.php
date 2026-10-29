@@ -16,6 +16,15 @@
         <p class="text-sm font-semibold text-on-primary">CSO Desk Office</p>
         <p class="text-xs text-on-dark-muted">{{ $role }}</p>
     </div>
+    @if ($collapsible ?? false)
+        {{-- Desktop only: hides the sidebar so the page takes the full width. --}}
+        <button type="button" @click="toggleSidebar()" aria-controls="app-sidebar" :aria-expanded="(! collapsed).toString()" title="Hide menu"
+                class="-mr-2 ml-auto inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-sm text-on-dark
+                       transition-colors duration-fast ease-out-strong hover:bg-primary-dark-hover hover:text-on-primary focus-visible:outline-focus-on-dark">
+            <x-phosphor-list class="h-5 w-5" aria-hidden="true" />
+            <span class="sr-only">Hide menu</span>
+        </button>
+    @endif
 </div>
 
 {{-- Only this part scrolls, and only when the window is too short to fit it (thin maroon scrollbar). --}}

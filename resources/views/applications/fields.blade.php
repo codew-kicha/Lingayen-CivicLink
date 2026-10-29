@@ -1,7 +1,7 @@
 {{-- Application type and requirement uploads, shared by the CSO form and the admin "File an application"
      dialog. No card of its own, so it sits in either. Documents marked new_only (constitution and
      by-laws) appear only for a new application. --}}
-<div x-data="{ type: @js(old('type', $hasActiveAccreditation ? 'renewal' : 'new')) }">
+<div x-data="{ type: @js(old('type', $hasBeenAccredited ? 'renewal' : 'new')) }">
     <fieldset>
         <legend class="field-label">Application type</legend>
         <div class="grid gap-3 sm:grid-cols-2">
@@ -13,7 +13,7 @@
                               transition-colors duration-fast hover:border-primary/40
                               has-[:checked]:border-primary has-[:checked]:bg-primary-subtle">
                     <input type="radio" name="type" value="{{ $value }}" class="mt-1" x-model="type"
-                           @checked(old('type', $hasActiveAccreditation ? 'renewal' : 'new') === $value) required>
+                           @checked(old('type', $hasBeenAccredited ? 'renewal' : 'new') === $value) required>
                     <span>
                         <span class="block text-sm font-semibold text-ink">{{ $title }}</span>
                         <span class="block text-sm text-muted">{{ $description }}</span>

@@ -14,9 +14,13 @@ class DashboardController extends Controller
         $notifications = auth()->user()->notifications()->latest()->limit(5)->get();
         auth()->user()->unreadNotifications()->update(['read_at' => now()]);
 
+        $accreditation = $organization?->accreditations()->where('status', 'active')->first();
+
         return view('cso.dashboard', [
             'organization' => $organization,
-            'accreditation' => $organization?->accreditations()->where('status', 'active')->first(),
+            'accreditation' => $accreditation,
+            // Lapsed and not yet renewed: the dashboard says so and points to the renewal.
+            'lapsed' => $accreditation ? null : $organization?->accreditations()->where('status', 'expired')->latest('expires_at')->first(),
             'latestApplication' => $organization?->applications()->latest('id')->first(),
             'score' => $organization?->performanceScores()->latest('computed_at')->first(),
             'pendingActivities' => $organization?->activities()->where('status', 'pending')->count() ?? 0,

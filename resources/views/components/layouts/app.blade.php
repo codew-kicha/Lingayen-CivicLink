@@ -1,11 +1,13 @@
-@props(['header' => 'Dashboard', 'subheader' => null, 'sticky' => false])
+@props(['header' => 'Dashboard', 'subheader' => null, 'sticky' => false, 'woven' => false])
 
 {{--
     The one signed-in layout for both roles (admin and CSO representative). Only the navigation
     differs, from config('navigation'). Page frame: max-w-7xl, padding 16/24/32 by breakpoint,
     title and subtitle always in the same place. See docs/DESIGN_SYSTEM.md §3. With `sticky`, the title
     bar (and its actions) stays pinned on desktop and gains a rule once the page scrolls; phones keep
-    the existing sticky top bar, which already names the page.
+    the existing sticky top bar, which already names the page. With `woven`, the dashboards' banig band
+    runs across the top. On desktop the sidebar collapses (its menu button) so the page uses the full
+    width; the choice is remembered in this browser.
 --}}
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
@@ -15,9 +17,11 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ $header }} | Lingayen CivicLink</title>
     <link rel="icon" type="image/png" href="{{ asset('images/brand/favicon.png') }}">
+    {{-- Before first paint, so a collapsed sidebar doesn't flash open on every page. --}}
+    <script>try { if (localStorage.getItem('sidebar') === 'collapsed') document.documentElement.dataset.sidebar = 'collapsed'; } catch (e) {}</script>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="min-h-screen bg-canvas text-ink" x-data="{ drawer: false }" @keydown.escape.window="drawer = false">
+<body class="min-h-screen bg-canvas text-ink" x-data="appShell" @keydown.escape.window="drawer = false">
     <a href="#main"
        class="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-toast focus:rounded-md
               focus:bg-primary-dark focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-on-primary">
@@ -31,8 +35,12 @@
 
     <div class="flex min-h-screen">
         {{-- Locked to the viewport: never scrolls with the page. Only the nav inside may scroll, as a fallback. --}}
-        <aside class="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col self-start bg-primary-dark lg:flex">
-            @include('components.layouts.partials.sidebar')
+        {{-- Collapsing animates the width (app-sidebar in app.css); the contents keep 16rem and slide out of view. --}}
+        <aside id="app-sidebar" class="app-sidebar sticky top-0 hidden h-dvh shrink-0 self-start overflow-hidden bg-primary-dark lg:block"
+               x-effect="$el.inert = collapsed">
+            <div class="flex h-full w-64 flex-col">
+                @include('components.layouts.partials.sidebar', ['collapsible' => true])
+            </div>
         </aside>
 
         {{-- Below lg: off-canvas drawer. Focus is trapped while open; Esc and the overlay close it. --}}
@@ -63,13 +71,24 @@
                 <span class="truncate text-sm font-semibold">{{ $header }}</span>
             </div>
 
-            <main id="main" class="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+            <div class="relative flex flex-1 flex-col">
+            @if ($woven)
+                <div class="woven-band" aria-hidden="true"></div>
+            @endif
+            <main id="main" class="app-main relative mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
                 <div @if ($sticky) x-data="{ stuck: false }" @scroll.window="stuck = scrollY > 8"
-                         :class="stuck && 'lg:border-line lg:shadow-panel'" @endif
+                         :class="stuck && 'bg-canvas lg:border-line lg:shadow-panel'" @endif
                      @class([
                          'mb-6 flex flex-wrap items-start gap-x-6 gap-y-4',
-                         'border-b border-transparent bg-canvas transition-shadow duration-fast lg:sticky lg:top-0 lg:z-sticky lg:-mx-8 lg:-mt-8 lg:px-8 lg:pb-4 lg:pt-8' => $sticky,
+                         'border-b border-transparent transition-shadow duration-fast lg:sticky lg:top-0 lg:z-sticky lg:-mx-8 lg:-mt-8 lg:px-8 lg:pb-4 lg:pt-8' => $sticky,
                      ])>
+                    {{-- Shown only while the desktop sidebar is collapsed (app.css), to bring it back. --}}
+                    <button type="button" @click="toggleSidebar()" aria-controls="app-sidebar" aria-expanded="false" title="Show menu"
+                            class="sidebar-reopen h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary-dark text-on-primary
+                                   shadow-panel hover:bg-primary-dark-hover focus-visible:outline-focus">
+                        <x-phosphor-list class="h-5 w-5" aria-hidden="true" />
+                        <span class="sr-only">Show menu</span>
+                    </button>
                     <div class="min-w-0 flex-1 basis-80">
                         {{-- Pagination links point here (#page-title) so focus lands on the results after a page change. --}}
                         <h1 id="page-title" tabindex="-1" class="text-page-title font-semibold text-ink">{{ $header }}</h1>
@@ -85,6 +104,7 @@
                 <x-flash />
                 {{ $slot }}
             </main>
+            </div>
         </div>
     </div>
 </body>

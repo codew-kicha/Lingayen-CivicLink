@@ -58,12 +58,12 @@
                         <x-phosphor-facebook-logo class="h-5 w-5" aria-hidden="true" />
                         <span class="sr-only">PESO Lingayen on Facebook</span>
                     </a>
-                    <div class="flex divide-x divide-line rounded-sm bg-canvas text-sm">
+                    <div class="flex items-center gap-2">
                         @auth
-                            <a href="{{ route('dashboard') }}" class="utility-link">My dashboard</a>
+                            <a href="{{ route('dashboard') }}" class="header-login">My dashboard</a>
                         @else
-                            <a href="{{ route('login') }}" class="utility-link">Log in</a>
-                            <a href="{{ route('register') }}" class="utility-link utility-link-cta">Apply now</a>
+                            <a href="{{ route('login') }}" class="header-login">Log in</a>
+                            <a href="{{ route('register') }}" class="header-apply">Apply now</a>
                         @endauth
                     </div>
                 </div>
@@ -114,7 +114,7 @@
                         <a href="{{ route('dashboard') }}" class="btn-accent flex-1">My dashboard</a>
                     @else
                         <a href="{{ route('login') }}" class="btn flex-1 border border-brand-500 text-paper hover:bg-brand-700">Log in</a>
-                        <a href="{{ route('register') }}" class="btn-accent flex-1">Apply now</a>
+                        <a href="{{ route('register') }}" class="header-apply flex-1">Apply now</a>
                     @endauth
                 </div>
             </div>

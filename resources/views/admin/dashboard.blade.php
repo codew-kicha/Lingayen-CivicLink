@@ -1,4 +1,4 @@
-<x-layouts.app header="Dashboard" subheader="Everything waiting on the PESO office today.">
+<x-layouts.app header="Dashboard" subheader="Everything waiting on the PESO office today." :woven="true">
     {{-- Actionable counts are links; the three queues get a warning treatment while they have items. --}}
     @php
         $tiles = [
@@ -107,4 +107,42 @@
             @endif
         </section>
     </div>
+
+    {{-- Latest score of each accredited organization, highest first. Two columns of five on wide screens. --}}
+    <section class="card mt-6" aria-labelledby="top-title">
+        <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1 border-b border-line px-4 py-3">
+            <h2 id="top-title" class="card-title">Top 10 performing CSOs</h2>
+            <p class="text-xs text-muted">By performance score · informational only</p>
+            <a href="{{ route('admin.scorecards.index') }}" class="ml-auto whitespace-nowrap text-sm font-semibold text-primary hover:underline">All scorecards</a>
+        </div>
+
+        @if ($topPerformers->isEmpty())
+            <x-empty-state title="No scores yet." icon="chart-line-up">
+                Scores appear once the office verifies activities, or after Recalculate on the Scorecards page.
+            </x-empty-state>
+        @else
+            <ol class="grid gap-x-8 px-4 py-2 xl:grid-flow-col xl:grid-cols-2 xl:grid-rows-5">
+                @foreach ($topPerformers as $score)
+                    @php $percent = round($score->total_score * 100); @endphp
+                    <li class="flex items-center gap-3 border-b border-line py-3 last:border-b-0 xl:[&:nth-child(5)]:border-b-0">
+                        <span @class([
+                            'flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-semibold tabular-nums',
+                            'bg-accent text-accent-fg' => $loop->iteration <= 3,
+                            'bg-canvas text-muted' => $loop->iteration > 3,
+                        ])>{{ $loop->iteration }}<span class="sr-only">.</span></span>
+                        <div class="min-w-0 flex-1">
+                            <div class="flex items-baseline gap-3">
+                                <a href="{{ route('admin.organizations.edit', $score->organization) }}" class="entity-link truncate">{{ $score->organization->name }}</a>
+                                <span class="ml-auto text-sm font-semibold tabular-nums text-ink">{{ $percent }}%</span>
+                            </div>
+                            <p class="truncate text-xs text-muted">{{ $score->organization->sector }} · Brgy. {{ $score->organization->barangay }}</p>
+                            <div class="mt-1 h-1.5 overflow-hidden rounded-full bg-canvas" aria-hidden="true">
+                                <div class="h-full rounded-full bg-primary" style="width: {{ $percent }}%"></div>
+                            </div>
+                        </div>
+                    </li>
+                @endforeach
+            </ol>
+        @endif
+    </section>
 </x-layouts.app>

@@ -404,22 +404,77 @@
         background: linear-gradient(90deg, rgb(var(--color-primary-dark) / 0.92) 0%, rgb(var(--color-primary-dark) / 0.7) 45%, rgb(var(--color-primary-dark) / 0.25) 100%);
     }
 
-    /* Segmented utility buttons in the public identity bar (pcnc.com.ph's Report / Apply / Contact). */
     /*
      * Public header hover effects. Each one has the same cue on keyboard focus (:focus-visible),
      * animates only transform and colour, stays under 200ms, and is instant under reduced motion.
      */
 
-    /* Utility buttons: fill maroon on hover/focus; the call to action fills gold. */
-    .utility-link {
-        @apply px-6 py-3 text-ink transition-colors duration-fast ease-out-strong first:rounded-l-sm last:rounded-r-sm
-               hover:bg-primary hover:text-on-primary
-               focus-visible:bg-primary focus-visible:text-on-primary focus-visible:outline-focus;
+    /* Header buttons in the woven band's colours: Log in outlined in maroon (fills on hover), Apply now
+       filled amber with a darker amber underside, like the weave's edge. */
+    .header-login {
+        @apply btn border border-primary px-6 text-primary
+               hover:bg-primary hover:text-on-primary focus-visible:bg-primary focus-visible:text-on-primary;
     }
 
-    .utility-link-cta {
-        @apply font-semibold text-brand-800 hover:bg-accent hover:text-accent-fg
-               focus-visible:bg-accent focus-visible:text-accent-fg;
+    .header-apply {
+        @apply btn bg-accent px-6 text-accent-fg shadow-[inset_0_-2px_0_rgb(var(--color-accent-700)/0.5)]
+               hover:bg-accent-400 focus-visible:bg-accent-400 active:bg-accent-600;
+    }
+
+    /*
+     * Woven band (dashboards): a diamond lattice in maroon and amber, loosely after banig weaving,
+     * fading into the page. A thin amber rule runs along the very top. The lattice is a 32px SVG tile:
+     * amber diamonds with a maroon centre, alternating with maroon diamonds with an amber centre. Its
+     * fills are --color-primary and --color-accent written out (an image can't read CSS variables), and
+     * it is inline so it also works when the site runs from a subfolder.
+     */
+    .woven-band {
+        @apply pointer-events-none absolute inset-x-0 top-0 h-40 lg:h-52;
+    }
+
+    .woven-band::before {
+        content: '';
+        @apply absolute inset-x-0 top-0 z-[1] h-[3px] bg-accent;
+    }
+
+    .woven-band::after {
+        content: '';
+        @apply absolute inset-0;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Cpath d='M0 0h16L0 16zM32 0H16l16 16zM0 32h16L0 16zM32 32H16l16-16z' fill='%238F3339' fill-opacity='.16'/%3E%3Cpath d='M16 0l16 16-16 16L0 16z' fill='%23EDA62E' fill-opacity='.24'/%3E%3Cpath d='M16 0l16 16-16 16L0 16z' fill='none' stroke='%238F3339' stroke-opacity='.3'/%3E%3Cpath d='M16 10.5l5.5 5.5-5.5 5.5-5.5-5.5z' fill='%238F3339' fill-opacity='.4'/%3E%3Cpath d='M0 0h5.5L0 5.5zM32 0h-5.5L32 5.5zM0 32h5.5L0 26.5zM32 32h-5.5L32 26.5z' fill='%23EDA62E' fill-opacity='.6'/%3E%3C/svg%3E");
+        background-size: 32px 32px;
+        background-position: center top;
+        /* A mask reads only alpha, so the colour here doesn't matter. */
+        -webkit-mask-image: linear-gradient(to bottom, rgb(var(--color-text) / 0.85), rgb(var(--color-text) / 0.35) 45%, transparent);
+        mask-image: linear-gradient(to bottom, rgb(var(--color-text) / 0.85), rgb(var(--color-text) / 0.35) 45%, transparent);
+    }
+
+    /* Collapsible desktop sidebar (app layout): the width animates; the page column grows with it. */
+    .app-sidebar {
+        width: 16rem;
+        transition: width 400ms cubic-bezier(0.23, 1, 0.32, 1);
+    }
+
+    .app-main {
+        transition: max-width 400ms cubic-bezier(0.23, 1, 0.32, 1);
+    }
+
+    .sidebar-reopen {
+        display: none;
+    }
+
+    @media (min-width: 1024px) {
+        [data-sidebar='collapsed'] .app-sidebar {
+            width: 0;
+        }
+
+        /* Full width: the page stops at 160rem instead of 80rem, so it fills any normal screen. */
+        [data-sidebar='collapsed'] .app-main {
+            max-width: 160rem;
+        }
+
+        [data-sidebar='collapsed'] .sidebar-reopen {
+            display: inline-flex;
+        }
     }
 
     /* Menu bar links: a gold underline grows from the centre; the current page keeps it full. */

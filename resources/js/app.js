@@ -31,6 +31,26 @@ Alpine.data('activityTicker', (count) => ({
     },
 }));
 
+// Signed-in layout: the phone drawer, and the desktop sidebar that collapses to give the page the full
+// width. The collapsed state lives on <html data-sidebar> (set before first paint from localStorage) so
+// the CSS in app.css applies it without a flash.
+Alpine.data('appShell', () => ({
+    drawer: false,
+    collapsed: document.documentElement.dataset.sidebar === 'collapsed',
+
+    toggleSidebar() {
+        this.collapsed = !this.collapsed;
+        if (this.collapsed) {
+            document.documentElement.dataset.sidebar = 'collapsed';
+        } else {
+            delete document.documentElement.dataset.sidebar;
+        }
+        try { localStorage.setItem('sidebar', this.collapsed ? 'collapsed' : 'open'); } catch (e) { /* private mode */ }
+        // Move focus to the control that now exists, so keyboard users aren't left on a hidden button.
+        this.$nextTick(() => document.querySelector(this.collapsed ? '.sidebar-reopen' : '#app-sidebar button')?.focus());
+    },
+}));
+
 // Signed-in pages: a thin progress bar while the next page loads (link, pagination or filter
 // form). Waits 150 ms so fast loads don't flash it, and resets when the page is restored from the
 // back/forward cache.

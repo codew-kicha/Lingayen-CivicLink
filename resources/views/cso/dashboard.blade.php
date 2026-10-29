@@ -3,7 +3,7 @@
     then cards with a header row (title, optional link). The title bar and its actions stay pinned
     on desktop (layout `sticky`).
 --}}
-<x-layouts.app header="Dashboard" :subheader="$organization?->name" :sticky="(bool) $organization">
+<x-layouts.app header="Dashboard" :subheader="$organization?->name" :sticky="(bool) $organization" :woven="true">
     @if (! $organization)
         <section class="card">
             <x-empty-state title="Set up your organization first" icon="user-circle">
@@ -17,6 +17,8 @@
     @else
         @php
             $daysLeft = $accreditation ? (int) now()->diffInDays($accreditation->expires_at, false) : null;
+            // Lapsed with no renewal filed since (a renewal in progress shows as the latest application instead).
+            $showLapsed = $lapsed && (! $latestApplication || $latestApplication->status === 'approved');
             $waiting = collect();
             if ($pendingActivities) {
                 $waiting->push(['hourglass', $pendingActivities.' '.Str::plural('activity', $pendingActivities).' awaiting verification', false]);
@@ -27,9 +29,11 @@
             $tiles = [
                 $accreditation
                     ? ['Accreditation', 'Active', "Until {$accreditation->expires_at->format('d M Y')} · {$daysLeft} days left", 'seal-check', null, $daysLeft <= 60]
-                    : ($latestApplication
+                    : ($showLapsed
+                        ? ['Accreditation', 'Expired', "Ended {$lapsed->expires_at->format('d M Y')} · file a renewal", 'calendar-x', route('cso.applications.index', ['apply' => 1]), true]
+                        : ($latestApplication
                         ? ['Accreditation', ucfirst(str_replace('_', ' ', $latestApplication->status)), 'Latest application', 'clipboard-text', route('cso.applications.show', $latestApplication), false]
-                        : ['Accreditation', 'Not accredited', 'Apply when you are ready', 'seal-check', route('cso.applications.index', ['apply' => 1]), false]),
+                        : ['Accreditation', 'Not accredited', 'Apply when you are ready', 'seal-check', route('cso.applications.index', ['apply' => 1]), false])),
                 ['Performance score', $score ? number_format($score->total_score * 100, 0).'%' : 'Not yet', 'Informational only', 'chart-line-up', null, false],
                 ['Verified activities', $verifiedActivities, 'All time', 'check-circle', route('cso.activities.index'), false],
                 ['Awaiting verification', $pendingActivities, 'Checked by the office', 'hourglass', route('cso.activities.index'), false],
@@ -37,7 +41,9 @@
         @endphp
 
         <x-slot:actions>
-            @if ($latestApplication && ! $accreditation)
+            @if ($showLapsed)
+                <a href="{{ route('cso.applications.index', ['apply' => 1]) }}" class="btn-primary">File a renewal</a>
+            @elseif ($latestApplication && ! $accreditation)
                 <a href="{{ route('cso.applications.show', $latestApplication) }}" class="btn-secondary">View application</a>
             @elseif (! $accreditation)
                 <a href="{{ route('cso.applications.index', ['apply' => 1]) }}" class="btn-secondary">Apply for accreditation</a>
@@ -87,6 +93,18 @@
                                 Reference code
                                 <span class="font-mono text-ink">{{ $accreditation->verification_code }}</span>
                             </p>
+                        @elseif ($showLapsed)
+                            <div class="flex flex-wrap items-center gap-3">
+                                <x-status-badge status="expired" />
+                                <p class="text-sm text-muted">
+                                    Ended on <span class="tabular-nums text-ink">{{ $lapsed->expires_at->format('d F Y') }}</span>
+                                </p>
+                            </div>
+                            <p class="mt-3 max-w-[60ch] text-sm text-muted">
+                                File a renewal to return to the public directory and log activities again.
+                                Your profile, officers and activity history carry over.
+                            </p>
+                            <a href="{{ route('cso.applications.index', ['apply' => 1]) }}" class="btn-primary mt-4">File a renewal</a>
                         @elseif ($latestApplication)
                             <div class="flex flex-wrap items-center gap-3">
                                 <x-status-badge :status="$latestApplication->status" />

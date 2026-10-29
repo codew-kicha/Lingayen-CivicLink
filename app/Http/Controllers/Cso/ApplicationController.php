@@ -25,7 +25,8 @@ class ApplicationController extends Controller
             'organization' => $organization,
             // For the Apply dialog.
             'documentTypes' => config('document_types'),
-            'hasActiveAccreditation' => (bool) $organization?->accreditations()->where('status', 'active')->exists(),
+            // Renewal is the default for an organization that is, or was, accredited.
+            'hasBeenAccredited' => (bool) $organization?->accreditations()->whereIn('status', ['active', 'expired'])->exists(),
         ]);
     }
 
