@@ -156,8 +156,9 @@ class OrganizationModerationController extends Controller
             'sectors' => config('sectors'),
             'barangays' => config('barangays'),
             'timeline' => ReportData::timeline($organization),
-            // For the File an application dialog.
+            // For the File an application and Log an activity dialogs.
             'documentTypes' => config('document_types'),
+            'partnerOptions' => Organization::partnerOptions($organization),
             'lastReminder' => AuditLog::where('action', 'accreditation.reminder_sent')
                 ->where('subject_type', 'Organization')->where('subject_id', $organization->id)
                 ->latest('created_at')->value('created_at'),

@@ -263,7 +263,9 @@
                             <x-phosphor-upload-simple class="h-4 w-4" aria-hidden="true" />File an application
                         </button>
                         @if ($active)
-                            <a href="{{ route('admin.organizations.activities.create', $organization) }}" class="btn-secondary">Log an activity</a>
+                            <button type="button" class="btn-secondary" @click="$dispatch('open-dialog', 'log-activity')">
+                                <x-phosphor-plus class="h-4 w-4" aria-hidden="true" />Log an activity
+                            </button>
                         @else
                             <button type="button" class="btn-secondary" disabled title="Only accredited organizations can log activities">Log an activity</button>
                         @endif
@@ -291,4 +293,7 @@
 
     @include('admin.organizations.cleanup-dialogs')
     @include('admin.organizations.application-dialog')
+    @if ($active)
+        @include('admin.organizations.activity-dialog')
+    @endif
 </x-layouts.app>

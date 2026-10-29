@@ -8,7 +8,6 @@ use App\Http\Requests\StoreApplicationRequest;
 use App\Models\AuditLog;
 use App\Models\Organization;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\View\View;
 
 /**
  * PESO staff encode paper submissions for organizations that cannot file online (PRD §6.1.12).
@@ -41,7 +40,8 @@ class AssistedEncodingController extends Controller
             ->with('status', "Application encoded for {$organization->name}. It is now in the review queue.");
     }
 
-    public function createActivity(Organization $organization): View|RedirectResponse
+    // Also a dialog on the organization page; this address opens it there.
+    public function createActivity(Organization $organization): RedirectResponse
     {
         $this->authorize('manage', Organization::class);
 
@@ -50,10 +50,7 @@ class AssistedEncodingController extends Controller
                 ->with('error', 'Only accredited organizations can log activities. Approve an application for it first.');
         }
 
-        return view('admin.assisted.activity', [
-            'organization' => $organization,
-            'partnerOptions' => Organization::partnerOptions($organization),
-        ]);
+        return redirect()->route('admin.organizations.edit', [$organization, 'log' => 1]);
     }
 
     public function storeActivity(StoreActivityRequest $request, Organization $organization): RedirectResponse

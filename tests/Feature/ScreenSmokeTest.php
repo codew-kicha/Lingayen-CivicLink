@@ -82,7 +82,10 @@ class ScreenSmokeTest extends TestCase
         $accredited = Organization::factory()->accredited()->create(['user_id' => null]);
         Organization::factory()->accredited()->create(); // someone to tag as a partner
         $this->actingAs($admin)->get(route('admin.organizations.activities.create', $accredited))
-            ->assertOk()->assertSee('Partner organizations');
+            ->assertRedirect(route('admin.organizations.edit', [$accredited, 'log' => 1]));
+        $this->actingAs($admin)->get(route('admin.organizations.edit', [$accredited, 'log' => 1]))
+            ->assertOk()->assertSee('Partner organizations')->assertSee('Log on their behalf')
+            ->assertSee("dialog('log-activity', true)", false);
         $this->actingAs($admin)->get(route('admin.organizations.import'))->assertOk();
         $this->actingAs($admin)->get(route('admin.organizations.import.template'))->assertOk();
     }

@@ -75,6 +75,24 @@ class ActivityRulesAndFiltersTest extends TestCase
         $this->assertDatabaseCount('activities', 0);
     }
 
+    public function test_office_staff_log_an_activity_from_a_dialog_that_reopens_after_an_error(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $organization = Organization::factory()->accredited()->create(['user_id' => null]);
+        $page = route('admin.organizations.edit', $organization);
+
+        $this->actingAs($admin)->from($page)
+            ->post(route('admin.organizations.activities.store', $organization), $this->payload(['title' => '', '_dialog' => 'log-activity']))
+            ->assertRedirect($page)->assertSessionHasErrors('title');
+        $this->actingAs($admin)->withSession(['_old_input' => ['_dialog' => 'log-activity'], 'errors' => (new \Illuminate\Support\ViewErrorBag)->put('default', new \Illuminate\Support\MessageBag(['title' => 'Required']))])
+            ->get($page)->assertSee("dialog('log-activity', true)", false)->assertSee('Attach the sign-in sheet again');
+
+        $this->actingAs($admin)->from($page)
+            ->post(route('admin.organizations.activities.store', $organization), $this->payload(['_dialog' => 'log-activity']))
+            ->assertRedirect(route('admin.activities.index'));
+        $this->assertDatabaseHas('activities', ['organization_id' => $organization->id, 'status' => 'pending']);
+    }
+
     public function test_verify_activities_sorts_and_filters_by_the_date_held(): void
     {
         $admin = User::factory()->admin()->create();
