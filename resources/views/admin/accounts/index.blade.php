@@ -92,7 +92,7 @@
 
                                         @can('manageCredentials', $account)
                                             <button type="button" class="btn-ghost px-3 py-2"
-                                                    @click="$dispatch('edit-login', @js(['id' => $account->id, 'name' => $account->name, 'email' => $account->email, 'phone' => $account->phone, 'organization' => $account->organization?->name, 'url' => route('admin.accounts.update', $account)]))">
+                                                    @click="$dispatch('edit-login', @js(['id' => $account->id, ...$account->nameParts(), 'email' => $account->email, 'phone' => $account->phone, 'organization' => $account->organization?->name, 'url' => route('admin.accounts.update', $account)]))">
                                                 <x-phosphor-key class="h-4 w-4" aria-hidden="true" />Edit login
                                             </button>
                                         @endcan

@@ -17,7 +17,7 @@
                     <p class="text-sm font-semibold text-danger">What needs correcting</p>
                     <p class="mt-1 text-sm text-danger">{{ $application->rejection_reason }}</p>
                 </div>
-                <a href="{{ route('cso.applications.index', ['apply' => 1]) }}" class="btn-primary mt-4">File a corrected application</a>
+                <a href="{{ route('cso.application') }}" class="btn-primary mt-4">File a corrected application</a>
             @endif
 
             @if ($application->accreditation)

@@ -53,11 +53,16 @@
             </label>
         </div>
     @endif
-    <x-file-field>
-        <input type="file" id="evidence" name="evidence" accept=".pdf,.jpg,.jpeg,.png"
-               aria-describedby="evidence-hint{{ $errors->has('evidence') ? ' evidence-error' : '' }}"
-               class="field-file @error('evidence') field-input-error @enderror">
-    </x-file-field>
+    {{-- The sheet's text is read in the browser (as for requirements) only to check it against the
+         activity's date and title; the text itself is never kept. --}}
+    <div x-data="documentPrecheck({})">
+        <x-file-field>
+            <input type="file" id="evidence" name="evidence" accept=".pdf,.jpg,.jpeg,.png" @change="check($event)"
+                   aria-describedby="evidence-hint{{ $errors->has('evidence') ? ' evidence-error' : '' }}"
+                   class="field-file @error('evidence') field-input-error @enderror">
+        </x-file-field>
+        <input type="hidden" name="evidence_text" :value="text">
+    </div>
     <p id="evidence-hint" class="field-hint">A photo or scan of the attendance sheet (PDF, JPG or PNG, up to 5 MB). PESO checks it before verifying.@if ($activity?->evidence_path) Choosing a file replaces the current one.@endif</p>
     @error('evidence')<p id="evidence-error" class="field-error">{{ $message }}</p>@enderror
 </div>

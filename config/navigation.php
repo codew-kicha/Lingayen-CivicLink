@@ -22,6 +22,7 @@ return [
         'Content' => [
             ['route' => 'admin.news.index', 'active' => ['admin.news.*'], 'label' => 'News posts', 'icon' => 'newspaper'],
             ['route' => 'admin.annual-reports.index', 'active' => ['admin.annual-reports.*'], 'label' => 'Annual reports', 'icon' => 'file-pdf'],
+            ['route' => 'admin.notices.index', 'active' => ['admin.notices.*'], 'label' => 'Notices', 'icon' => 'megaphone'],
         ],
         'System' => [
             ['route' => 'admin.accounts.index', 'active' => ['admin.accounts.*'], 'label' => 'Accounts', 'icon' => 'users'],
@@ -34,6 +35,7 @@ return [
     'cso_rep' => [
         'Overview' => [
             ['route' => 'cso.dashboard', 'label' => 'Dashboard', 'icon' => 'squares-four'],
+            ['route' => 'cso.notifications.index', 'label' => 'Notifications', 'icon' => 'bell', 'count' => 'unreadNotifications'],
         ],
         'My organization' => [
             ['route' => 'cso.profile.edit', 'active' => ['cso.profile.*'], 'label' => 'Organization profile', 'icon' => 'identification-card'],

@@ -50,6 +50,25 @@ class DashboardHighlightsTest extends TestCase
         $this->assertCount(10, $response->viewData('topPerformers'));
     }
 
+    public function test_the_counts_open_to_their_details(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $endorsed = \App\Models\ApplicationModel::factory()->create(['status' => 'under_review', 'sb_stage' => 'endorsed', 'submitted_at' => now()->subDays(12)]);
+        $expiring = Organization::factory()->accredited()->create(['name' => 'Ending Soon Circle']);
+        $expiring->accreditations()->update(['expires_at' => now()->addDays(20)->toDateString()]);
+
+        $response = $this->actingAs($admin)->get(route('admin.dashboard'))->assertOk()
+            ->assertSee('aria-controls="tile-review"', false)->assertSee('Show details')
+            ->assertSee('Where they stand at the Sangguniang Bayan')
+            ->assertSee('Ending Soon Circle')->assertSee('20 days left')
+            ->assertSee('x-data="countUp(', false);
+
+        $details = $response->viewData('details');
+        $this->assertSame(1, $details['review']['stages']['Endorsed']);
+        $this->assertSame(12, $details['review']['oldest']);
+        $this->assertCount(12, $details['accredited']['months']);
+    }
+
     public function test_dashboards_carry_the_woven_band_and_the_sidebar_toggle(): void
     {
         $admin = User::factory()->admin()->create();
@@ -90,9 +109,10 @@ class DashboardHighlightsTest extends TestCase
             ->assertSee('File a renewal')
             ->assertDontSee('View application');
 
-        // The Apply dialog starts on Renewal for an organization that was accredited before.
-        $this->actingAs($rep)->get(route('cso.applications.index', ['apply' => 1]))->assertOk()
-            ->assertSee("type: 'renewal'", false);
+        // Applying starts a renewal for an organization that was accredited before; its member list is
+        // already complete, so it opens on the form.
+        $this->actingAs($rep)->get(route('cso.application'))->assertRedirect(route('cso.application.step', 'form'));
+        $this->assertSame('renewal', \App\Services\ApplicationSteps::draft($rep->organization)->type);
     }
 
     public function test_the_expired_account_seeder_runs_once(): void

@@ -6,13 +6,7 @@
     <form method="POST" action="{{ route('login') }}" class="space-y-4">
         @csrf
 
-        <div>
-            <label for="email" class="field-label">Email</label>
-            <input id="email" name="email" type="email" value="{{ old('email') }}" required autofocus autocomplete="username"
-                   @error('email') aria-invalid="true" aria-describedby="email-error" @enderror
-                   class="field-input @error('email') field-input-error @enderror">
-            @error('email')<p id="email-error" class="field-error">{{ $message }}</p>@enderror
-        </div>
+        <x-email-field autocomplete="username" autofocus />
 
         <x-password-field />
 

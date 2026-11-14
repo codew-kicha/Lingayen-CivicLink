@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasPersonName;
 use App\Notifications\VerifyEmailCode;
 use Database\Factories\UserFactory;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
@@ -15,7 +16,7 @@ use Illuminate\Support\Facades\Hash;
 class User extends Authenticatable implements MustVerifyEmail
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable;
+    use HasFactory, HasPersonName, Notifiable;
 
     /** How long an emailed confirmation code works, and how many wrong tries it allows. */
     public const EMAIL_CODE_MINUTES = 15;
@@ -83,6 +84,17 @@ class User extends Authenticatable implements MustVerifyEmail
         return preg_match('/^(?:\+?63|0)(9\d{9})$/', $digits, $m) ? '+63'.$m[1] : $phone;
     }
 
+    /** Validation for a name in parts (registration, Account settings). */
+    public static function nameRules(): array
+    {
+        return [
+            'last_name' => ['required', 'string', 'max:100'],
+            'first_name' => ['required', 'string', 'max:100'],
+            'middle_name' => ['nullable', 'string', 'max:100'],
+            'suffix' => ['nullable', \Illuminate\Validation\Rule::in(self::SUFFIXES)],
+        ];
+    }
+
     public function isAdmin(): bool
     {
         return $this->role === 'admin';
@@ -115,6 +127,10 @@ class User extends Authenticatable implements MustVerifyEmail
     // mass-assignable: only the account-management code may change it.
     protected $fillable = [
         'name',
+        'last_name',
+        'first_name',
+        'middle_name',
+        'suffix',
         'position',
         'email',
         'phone',

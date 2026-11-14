@@ -162,6 +162,14 @@ To add a page: add a route, add an item under the right group in `config/navigat
 | `<x-pagination>` | Every paginated list | See §4 |
 | `<x-keep-query :only>` | Filter forms | Carries chosen keys (a scoped organization, an analytics period), never `page` |
 | `table-sticky` | Long tables without `table-scroll` | Header sticks at `lg`+ only |
+| `<x-name-fields :person>` | A person's name (registration, Account settings) | Last name, First name, Middle name (optional), Suffix (optional); the model composes `name` from them (`HasPersonName`) |
+| `<x-email-field>` | Every email entry | Faint "@gmail.com" completion until "@" is typed (Tab or → accepts), common domains after "@", "Did you mean ...?" on leaving the field; any address is accepted |
+| `<x-member-table :organization :user>` | Member lists (profile, application step 3) | Five rows a page, at least five members, the representative first and locked; Excel template and upload; blank rows are not submitted |
+| `<x-file-field>` | Around every file input | Adds an × that clears the chosen file and resets its pre-check |
+| `<x-application-frame :draft :step :done>` | The application steps | Six steps across the top (two done at sign-up); finished and current steps are links |
+| `<x-dashboard-fact label value>` | Figures in a dashboard details panel | Small label over a large number; `alert` for the warning colour |
+| `<x-chart-tip />` | Inside an Alpine `chart` plot (Analytics) | Hover/focus read-out above the mark; each mark carries `data-tip` JSON `{title, rows: [{value, label, key}]}` and a full `aria-label`; values lead, a short line in the series colour keys each row |
+| `<x-org-figures :rows empty>` | Analytics click-throughs (sector, barangay) | The organizations behind a bar with their period figures; `status` marks those not accredited |
 
 All eight states apply to interactive parts: default, hover, focus (visible ring, never removed),
 active, disabled, loading, error, success.

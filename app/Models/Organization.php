@@ -62,6 +62,28 @@ class Organization extends Model
      * @param  array<string, string|null>  $expiries
      * @param  array<string, string|null>  $ocrTexts  text the browser read from each file, for the pre-check
      */
+    /**
+     * Replaces the member list with the submitted rows (profile page and the application's members
+     * step). A blank position is saved as "Member".
+     */
+    public function replaceMembers(array $rows): void
+    {
+        DB::transaction(function () use ($rows) {
+            $this->members()->delete();
+            foreach ($rows as $row) {
+                $this->members()->create([
+                    'last_name' => trim($row['last_name']),
+                    'first_name' => trim($row['first_name']),
+                    'middle_name' => filled($row['middle_name'] ?? null) ? trim($row['middle_name']) : null,
+                    'position' => filled($row['position'] ?? null) ? trim($row['position']) : 'Member',
+                    'contact_number' => $row['contact_number'] ?? null,
+                    'email' => $row['email'] ?? null,
+                ]);
+            }
+        });
+        $this->unsetRelation('members');
+    }
+
     public function submitApplication(string $type, array $files, array $expiries, User $submittedBy, string $channel, array $ocrTexts = []): ApplicationModel
     {
         return DB::transaction(function () use ($type, $files, $expiries, $submittedBy, $channel, $ocrTexts) {
@@ -99,19 +121,25 @@ class Organization extends Model
     /** Logs a pending activity and tags its partner organizations (validated StoreActivityRequest data). */
     public function logActivity(array $data, User $loggedBy): Activity
     {
-        return DB::transaction(function () use ($data, $loggedBy) {
+        $activity = DB::transaction(function () use ($data, $loggedBy) {
             $evidence = $data['evidence'] ?? null;
-            $activity = $this->activities()->create(Arr::except($data, ['partners', 'evidence']) + [
+            $activity = $this->activities()->create(Arr::except($data, ['partners', 'evidence', 'evidence_text']) + [
                 'logged_by' => $loggedBy->id,
                 'status' => 'pending',
                 'evidence_path' => $evidence?->store("activity-evidence/{$this->id}"),
                 'evidence_filename' => $evidence?->getClientOriginalName(),
                 'evidence_mime' => $evidence?->getMimeType(),
+                'evidence_hash' => $evidence ? hash_file('sha256', $evidence->getRealPath()) : null,
             ]);
             $activity->partnerOrganizations()->sync($data['partners'] ?? []);
 
             return $activity;
         });
+
+        // The checks that help the office verify, after the activity is saved.
+        $activity->checkSheet($data['evidence_text'] ?? null);
+
+        return $activity;
     }
 
     /** @return array<int, string> every other organization, id => name, for the partner picker */

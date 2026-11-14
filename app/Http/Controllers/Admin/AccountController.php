@@ -81,7 +81,7 @@ class AccountController extends Controller implements HasMiddleware
     // verifying it, so a never-accepted invitation becomes a working login.
     public function update(UpdateCredentialsRequest $request, User $user): RedirectResponse
     {
-        $user->fill($request->safe()->only(['name', 'email', 'phone']));
+        $user->fill($request->safe()->only(['last_name', 'first_name', 'middle_name', 'suffix', 'email', 'phone']));
         $changed = array_keys($user->getDirty());
 
         if ($request->validated('new_password')) {

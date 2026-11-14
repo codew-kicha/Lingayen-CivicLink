@@ -10,14 +10,15 @@
 // receipt in the by-laws slot is caught. Matching ignores case, spacing and punctuation ("By-Laws",
 // "bylaws" and "BY LAWS" are the same word). The result is advice for the reviewer, never a block.
 //
-// 'official_form' links the Sangguniang Bayan's own form (resources/forms) for the chosen
-// application type; 'formats' are downloadable formats the system generates
-// (RequirementFormatController). Receipts and certificates are issued by other offices, so none.
+// 'made_online' documents are not uploaded by an applicant: the accreditation form is filled in on
+// the website and the officer list comes from the member list, and the system produces both when the
+// application is submitted (App\Services\ApplicationSteps). The office's paper filing (assisted
+// encoding) still uploads scans of them.
 return [
     'accreditation_form' => [
         'label' => 'Accomplished Accreditation Form',
         'optional' => false,
-        'official_form' => true,
+        'made_online' => true,
         'checks' => [
             'the title "Accreditation Form"' => ['accreditation form'],
             'the form\'s fields (name of organization, representative, place of operation)' => ['name of organization', 'name of representative', 'place of operation'],
@@ -26,7 +27,7 @@ return [
     'officers_members_list' => [
         'label' => 'Updated List of Officers and Members',
         'optional' => false,
-        'formats' => ['pdf', 'xlsx'],
+        'made_online' => true,
         'checks' => [
             'the word "officers"' => ['officer'],
             'the word "members"' => ['member'],
@@ -37,7 +38,6 @@ return [
         'label' => 'Constitution and By-Laws',
         'optional' => false,
         'new_only' => true,
-        'formats' => ['pdf'],
         'checks' => [
             'the title "Constitution" or "By-Laws"' => ['constitution', 'bylaws'],
             'numbered articles or sections' => ['article', 'section'],

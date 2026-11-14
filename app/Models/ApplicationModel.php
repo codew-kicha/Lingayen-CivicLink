@@ -37,7 +37,7 @@ class ApplicationModel extends Model
 
     protected $fillable = [
         'organization_id', 'type', 'status', 'submission_channel', 'sb_stage',
-        'submitted_by', 'reviewed_by', 'rejection_reason', 'submitted_at', 'reviewed_at',
+        'submitted_by', 'reviewed_by', 'rejection_reason', 'submitted_at', 'reviewed_at', 'form_data',
     ];
 
     protected function casts(): array
@@ -45,6 +45,7 @@ class ApplicationModel extends Model
         return [
             'submitted_at' => 'datetime',
             'reviewed_at' => 'datetime',
+            'form_data' => 'array',
         ];
     }
 

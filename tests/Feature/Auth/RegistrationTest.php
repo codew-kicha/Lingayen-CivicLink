@@ -17,7 +17,10 @@ class RegistrationTest extends TestCase
             'organization_name' => 'Libsong Senior Citizens Association',
             'barangay' => array_values(config('barangays'))[0],
             'sector' => config('sectors')[0],
-            'name' => 'Ana Reyes',
+            'last_name' => 'Reyes',
+            'first_name' => 'Ana',
+            'middle_name' => 'Bautista',
+            'suffix' => 'Jr.',
             'email' => 'ana@example.ph',
             'phone' => '0917 123 4567',
             'password' => 'Lingayen-Coast-2026', 'privacy_consent' => '1',
@@ -27,7 +30,7 @@ class RegistrationTest extends TestCase
     public function test_registration_screen_can_be_rendered(): void
     {
         $this->get('/register')->assertOk()
-            ->assertSee('Step 1 of 2')
+            ->assertSee('Step 1 of 6')
             ->assertSee('Organization name')
             ->assertDontSee('name="password_confirmation"', false)
             ->assertSee('Already registered?');
@@ -41,6 +44,30 @@ class RegistrationTest extends TestCase
         $this->assertAuthenticatedAs($user);
         $this->assertSame('cso_rep', $user->role);
         $this->assertSame('Libsong Senior Citizens Association', Organization::where('user_id', $user->id)->value('name'));
+
+        // The name is kept in parts and composed for display.
+        $this->assertSame(['Reyes', 'Ana', 'Bautista', 'Jr.'], [$user->last_name, $user->first_name, $user->middle_name, $user->suffix]);
+        $this->assertSame('Ana B. Reyes Jr.', $user->name);
+    }
+
+    public function test_names_are_required_in_parts_and_emails_are_tidied(): void
+    {
+        $this->post(route('register'), $this->details(['last_name' => '', 'first_name' => '']))
+            ->assertSessionHasErrors(['last_name', 'first_name']);
+        $this->post(route('register'), $this->details(['suffix' => 'Esq.']))->assertSessionHasErrors('suffix');
+
+        // Capitals and stray spaces are fixed rather than refused.
+        $this->post(route('register'), $this->details(['email' => '  Ana@Example.PH ']))->assertRedirect(route('verification.notice'));
+        $this->assertDatabaseHas('users', ['email' => 'ana@example.ph']);
+    }
+
+    public function test_the_email_field_helps_with_the_domain(): void
+    {
+        $this->get(route('register'))->assertOk()
+            ->assertSee('x-data="emailAssist(', false)
+            ->assertSee('placeholder="name@gmail.com"', false)
+            ->assertSee('name="last_name"', false)->assertSee('name="first_name"', false)
+            ->assertSee('name="middle_name"', false)->assertSee('name="suffix"', false);
     }
 
     public function test_the_form_reopens_on_the_step_that_holds_the_error(): void

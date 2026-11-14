@@ -7,16 +7,12 @@ use App\Http\Controllers\ContactController;
 use App\Http\Controllers\Cso;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\RequirementFormatController;
 use App\Http\Controllers\PublicController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [PublicController::class, 'home'])->name('home');
 Route::get('/about', [PublicController::class, 'about'])->name('about');
 Route::get('/accreditation', [PublicController::class, 'accreditation'])->name('accreditation');
-// The Sangguniang Bayan's own forms (resources/forms): {type} is "new" or "renewal".
-Route::get('/accreditation/forms/{type}', [PublicController::class, 'applicationForm'])
-    ->whereIn('type', ['new', 'renewal'])->middleware('throttle:20,1,forms')->name('accreditation.form');
 Route::get('/accredited-csos', [PublicController::class, 'directory'])->name('directory');
 Route::get('/accredited-csos/{organization}', [PublicController::class, 'organization'])->name('directory.show');
 Route::get('/resources', [PublicController::class, 'resources'])->name('resources');
@@ -49,16 +45,18 @@ Route::middleware('auth')->group(function () {
         ->name('documents.download');
     Route::get('/activities/{activity}/evidence', [DocumentController::class, 'evidence'])
         ->name('activities.evidence');
-
-    // Downloadable formats for the requirements an organization prepares itself.
-    Route::get('/requirements/{document}/format.{format}', [RequirementFormatController::class, 'show'])
-        ->whereIn('document', ['officers_members_list', 'constitution_bylaws'])
-        ->whereIn('format', ['pdf', 'xlsx'])
-        ->middleware('throttle:30,1,requirement-formats')
-        ->name('requirements.format');
 });
 
 Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
+    Route::post('/activities/verify-consistent', [Admin\ActivityVerificationController::class, 'verifyConsistent'])->name('activities.verify-consistent');
+    Route::post('/activities/read-sheets', [Admin\ActivityVerificationController::class, 'readSheets'])->middleware('throttle:10,1,read-sheets')->name('activities.read-sheets');
+    Route::get('/notices', [Admin\NoticeController::class, 'index'])->name('notices.index');
+    Route::get('/notices/count', [Admin\NoticeController::class, 'count'])->name('notices.count');
+    Route::post('/notices', [Admin\NoticeController::class, 'store'])->middleware('throttle:20,1,notices')->name('notices.store');
+    // The Sangguniang Bayan's blank paper forms (resources/forms), printed for walk-in applicants.
+    // Applicants fill the form in online instead (pre-final defense panel).
+    Route::get('/forms/{type}', [PublicController::class, 'applicationForm'])
+        ->whereIn('type', ['new', 'renewal'])->name('accreditation.form');
     Route::get('/dashboard', Admin\DashboardController::class)->name('dashboard');
 
     Route::get('/applications', [Admin\ApplicationReviewController::class, 'index'])->name('applications.index');
@@ -132,13 +130,28 @@ Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->name('ad
 
 Route::middleware(['auth', 'verified', 'role:cso_rep'])->prefix('cso')->name('cso.')->group(function () {
     Route::get('/dashboard', Cso\DashboardController::class)->name('dashboard');
+    Route::get('/notifications', [Cso\NotificationController::class, 'index'])->name('notifications.index');
 
     Route::get('/profile', [Cso\OrganizationProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [Cso\OrganizationProfileController::class, 'update'])->name('profile.update');
+    Route::get('/members/template', [Cso\MemberListController::class, 'template'])->name('members.template');
+    Route::post('/members/import', [Cso\MemberListController::class, 'import'])->middleware('throttle:20,1,member-import')->name('members.import');
 
     Route::get('/applications', [Cso\ApplicationController::class, 'index'])->name('applications.index');
     Route::get('/applications/create', [Cso\ApplicationController::class, 'create'])->name('applications.create');
-    Route::post('/applications', [Cso\ApplicationController::class, 'store'])->name('applications.store');
+
+    // Applying: members, the form filled in online, the other requirements, review and submit.
+    Route::get('/application', [Cso\ApplicationWizardController::class, 'resume'])->name('application');
+    Route::get('/application/preview', [Cso\ApplicationWizardController::class, 'preview'])->name('application.preview');
+    Route::get('/application/{step}', [Cso\ApplicationWizardController::class, 'show'])
+        ->whereIn('step', \App\Services\ApplicationSteps::PAGES)->name('application.step');
+    Route::post('/application/members', [Cso\ApplicationWizardController::class, 'saveMembers'])->name('application.members');
+    Route::post('/application/form', [Cso\ApplicationWizardController::class, 'saveForm'])->name('application.form');
+    // Uploads up to 5 MB each: limited so one account can't fill the disk.
+    Route::post('/application/requirements', [Cso\ApplicationWizardController::class, 'saveRequirements'])
+        ->middleware('throttle:30,1,application-uploads')->name('application.requirements');
+    Route::delete('/application/documents/{document}', [Cso\ApplicationWizardController::class, 'removeDocument'])->name('application.documents.destroy');
+    Route::post('/application/submit', [Cso\ApplicationWizardController::class, 'submit'])->name('application.submit');
     Route::get('/applications/{application}', [Cso\ApplicationController::class, 'show'])->name('applications.show');
 
     Route::get('/activities', [Cso\ActivityController::class, 'index'])->name('activities.index');

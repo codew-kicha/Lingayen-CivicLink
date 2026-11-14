@@ -3,6 +3,7 @@
     <x-slot:title>Confirm your email</x-slot:title>
     <x-slot:heading>Check your email</x-slot:heading>
     <x-slot:intro>
+        <span class="mb-2 block text-xs font-semibold uppercase tracking-wide text-brand-700">Step 2 of 6 · Confirm your email</span>
         We sent a 6-digit code to <strong class="font-semibold text-ink">{{ auth()->user()->email }}</strong>.
         Enter it below to confirm your email. It expires in {{ \App\Models\User::EMAIL_CODE_MINUTES }} minutes.
     </x-slot:intro>

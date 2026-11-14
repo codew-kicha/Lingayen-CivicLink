@@ -9,10 +9,15 @@ use App\Models\AuditLog;
 use App\Models\ApplicationModel;
 use App\Models\Document;
 use App\Models\NewsPost;
+use App\Models\OfficeNotice;
 use App\Models\Organization;
 use App\Models\User;
+use App\Notifications\OfficeNoticeSent;
+use App\Services\ApplicationSteps;
 use App\Services\DocumentPrecheck;
 use App\Services\PerformanceScoreCalculator;
+use App\Services\SheetChecks;
+use Illuminate\Support\Facades\Notification;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
@@ -51,6 +56,44 @@ class DatabaseSeeder extends Seeder
         ['CSO Assembly recognizes most active organizations', 'The annual CSO Assembly recognized organizations with the most verified community activities over the past year. Organizations were also briefed on the accreditation calendar for the coming year.'],
     ];
 
+    /** Common Filipino names for demo people, so names in parts look like the real thing. */
+    private const LAST_NAMES = ['Dela Cruz', 'Santos', 'Reyes', 'Bautista', 'Garcia', 'Mendoza', 'Ramos', 'Aquino', 'Fernandez', 'Castillo',
+        'Villanueva', 'Soriano', 'Caguioa', 'De Guzman', 'Rosario', 'Quinto', 'Mamaril', 'Fajardo', 'Biagtan', 'Ferrer', 'Tamayo', 'Ocampo', 'Navarro', 'Pascual'];
+
+    private const FIRST_NAMES = ['Maria', 'Juan', 'Ana', 'Jose', 'Carla', 'Paolo', 'Angelica', 'Jerome', 'Kristine', 'Rogelio', 'Teresita', 'Noel',
+        'Marivic', 'Arnel', 'Liza', 'Ricardo', 'Edna', 'Cesar', 'Lea', 'Daniel', 'Joy', 'Ramon', 'Grace', 'Ronald', 'Rhea'];
+
+    private const OFFICER_POSITIONS = ['President', 'Vice President', 'Secretary', 'Treasurer', 'Auditor', 'Member', 'Member', 'Member'];
+
+    /** A demo person's name in parts. */
+    public static function person(): array
+    {
+        return [
+            'last_name' => fake()->randomElement(self::LAST_NAMES),
+            'first_name' => fake()->randomElement(self::FIRST_NAMES),
+            'middle_name' => fake()->randomElement(self::LAST_NAMES),
+        ];
+    }
+
+    /** The member list: the representative first (from the account), then $others officers and members. */
+    public static function seedMembers(Organization $organization, User $representative, int $others = 5): void
+    {
+        $organization->members()->create([
+            'last_name' => $representative->last_name ?? 'Representative',
+            'first_name' => $representative->first_name ?? $representative->name,
+            'middle_name' => $representative->middle_name,
+            'position' => \App\Models\OrganizationMember::REPRESENTATIVE,
+            'contact_number' => ApplicationSteps::localPhone($representative->phone),
+            'email' => $representative->email,
+        ]);
+        foreach (array_slice(self::OFFICER_POSITIONS, 0, $others) as $position) {
+            $organization->members()->create(self::person() + [
+                'position' => $position,
+                'contact_number' => '09'.fake()->numerify('## ### ####'),
+            ]);
+        }
+    }
+
     /** Hash of the password every demo account gets, worked out once. */
     private string $passwordHash;
 
@@ -70,7 +113,10 @@ class DatabaseSeeder extends Seeder
         $this->brandNewRegistrant();
         $this->accountStates($admin);
         $this->call(ExpiredAccreditationSeeder::class);
+        $this->applicationInProgress();
         $this->newsAndReports($admin);
+        $this->notices($admin);
+        $this->sheetsForWaitingActivities();
         $this->computeScores();
     }
 
@@ -156,7 +202,7 @@ class DatabaseSeeder extends Seeder
 
         foreach ($profiles as $index => [$name, $sector, $barangay, $advocacy, $activityTitles]) {
             $user = User::factory()->create([
-                'name' => "Representative, {$name}",
+                ...self::person(),
                 'email' => 'rep'.($index + 1).'@example.ph',
                 'password' => $this->passwordHash,
             ]);
@@ -169,11 +215,7 @@ class DatabaseSeeder extends Seeder
                 'public_visibility' => $index !== $hiddenIndex,
             ]);
 
-            $organization->members()->createMany([
-                ['name' => fake()->name(), 'position' => 'President', 'contact_number' => '0917'.fake()->numerify('#######')],
-                ['name' => fake()->name(), 'position' => 'Secretary', 'contact_number' => '0918'.fake()->numerify('#######')],
-                ['name' => fake()->name(), 'position' => 'Treasurer', 'contact_number' => '0919'.fake()->numerify('#######')],
-            ]);
+            self::seedMembers($organization, $user, fake()->numberBetween(5, 8));
 
             $application = ApplicationModel::factory()->for($organization)->approved()->create([
                 'submitted_by' => $user->id,
@@ -275,7 +317,7 @@ class DatabaseSeeder extends Seeder
 
         foreach ($stages as $index => [$stage, $name, $sector, $barangay, $advocacy]) {
             $user = User::factory()->create([
-                'name' => "Representative, {$name}",
+                ...self::person(),
                 'email' => 'applicant'.($index + 1).'@example.ph',
                 'password' => $this->passwordHash,
             ]);
@@ -287,10 +329,7 @@ class DatabaseSeeder extends Seeder
                 'advocacy' => $advocacy,
             ]);
 
-            $organization->members()->createMany([
-                ['name' => fake()->name(), 'position' => 'President'],
-                ['name' => fake()->name(), 'position' => 'Secretary'],
-            ]);
+            self::seedMembers($organization, $user, 5);
 
             $application = ApplicationModel::factory()
                 ->for($organization)
@@ -311,7 +350,7 @@ class DatabaseSeeder extends Seeder
     private function rejectedApplicant(): void
     {
         $user = User::factory()->create([
-            'name' => 'Representative, Wawa Community Circle',
+            'last_name' => 'Pascual', 'first_name' => 'Rhea', 'middle_name' => 'Tamayo',
             'email' => 'rejected@example.ph',
             'password' => $this->passwordHash,
         ]);
@@ -322,6 +361,8 @@ class DatabaseSeeder extends Seeder
             'barangay' => 'Wawa',
             'advocacy' => 'Brings Wawa residents together for clean-up days, feeding programmes, and disaster preparedness drills.',
         ]);
+
+        self::seedMembers($organization, $user);
 
         $application = ApplicationModel::factory()->for($organization)->rejected()->create([
             'submitted_by' => $user->id,
@@ -334,7 +375,7 @@ class DatabaseSeeder extends Seeder
     private function brandNewRegistrant(): void
     {
         $user = User::factory()->create([
-            'name' => 'Lorna Bautista',
+            'last_name' => 'Bautista', 'first_name' => 'Lorna', 'middle_name' => 'Ramos',
             'email' => 'new@example.ph',
             'password' => $this->passwordHash,
         ]);
@@ -372,7 +413,7 @@ class DatabaseSeeder extends Seeder
 
         // Invited by the office; the representative hasn't set a password yet.
         $invited = User::factory()->unverified()->create([
-            'name' => 'Ramon Aquino',
+            'last_name' => 'Aquino', 'first_name' => 'Ramon', 'middle_name' => 'Villanueva',
             'email' => 'invited@example.ph',
             'password' => Hash::make(Str::random(64)),
         ]);
@@ -384,7 +425,7 @@ class DatabaseSeeder extends Seeder
         ]);
 
         $deactivated = User::factory()->create([
-            'name' => 'Teresa Lim',
+            'last_name' => 'Lim', 'first_name' => 'Teresa', 'middle_name' => 'Santos',
             'email' => 'deactivated@example.ph',
             'password' => $this->passwordHash,
         ]);
@@ -401,6 +442,80 @@ class DatabaseSeeder extends Seeder
         ]);
 
         AuditLog::record('account.deactivated', $deactivated, ['reason' => $deactivated->deactivation_reason], $admin);
+    }
+
+    /**
+     * Registered and partway through applying (pre-final defense: registration and the application
+     * as one set of steps): members listed, the accreditation form not yet certified, so signing in
+     * as draft@example.ph resumes on step 4.
+     */
+    private function applicationInProgress(): void
+    {
+        $user = User::factory()->create([
+            'last_name' => 'Navarro', 'first_name' => 'Paolo', 'middle_name' => 'Ferrer',
+            'email' => 'draft@example.ph',
+            'password' => $this->passwordHash,
+        ]);
+        $user->forceFill(['privacy_consented_at' => now()->subDays(2)])->save();
+
+        $organization = Organization::factory()->for($user)->create([
+            'name' => 'Balococ Youth Volunteers',
+            'sector' => 'Independent Organizations',
+            'barangay' => 'Balococ',
+            'advocacy' => 'Young volunteers who run reading sessions for children and help during barangay clean-ups.',
+        ]);
+        self::seedMembers($organization, $user, 6);
+        ApplicationSteps::start($organization, $user);
+    }
+
+    /** Two notices the Desk Office sent, so representatives have something under Notifications. */
+    private function notices(User $admin): void
+    {
+        foreach ([
+            ['accredited', null, 'CSO Assembly on 15 December', "All accredited organizations are invited to the year-end CSO Assembly at the Municipal Hall, 9:00 AM.\n\nPlease send one officer besides the representative."],
+            ['sector', 'TODA', 'Road safety seminar for TODA members', 'The municipal traffic office holds a road safety refresher for tricycle drivers next Saturday at the Poblacion terminal.'],
+        ] as [$audience, $value, $title, $body]) {
+            $recipients = OfficeNotice::recipients($audience, $value)->get();
+            $notice = OfficeNotice::create([
+                'sender_id' => $admin->id, 'title' => $title, 'body' => $body,
+                'audience' => $audience, 'audience_value' => $value, 'recipients' => $recipients->count(), 'emailed' => false,
+            ]);
+            Notification::send($recipients, new OfficeNoticeSent($notice));
+        }
+    }
+
+    /**
+     * Sign-in sheets on most waiting activities, then the free checks (App\Services\SheetChecks), so the
+     * Verify activities page shows both outcomes: every fourth has no sheet, and one reuses another's
+     * file. The AI reading is not faked here; it runs only with a key.
+     */
+    private function sheetsForWaitingActivities(): void
+    {
+        $first = null;
+        foreach (Activity::with('organization')->where('status', 'pending')->orderBy('id')->get() as $i => $activity) {
+            if ($i % 4 === 3) {
+                SheetChecks::run($activity);
+
+                continue;
+            }
+            $text = "ATTENDANCE / SIGN-IN SHEET. {$activity->organization->name}. Activity: {$activity->title}. Date: {$activity->activity_date->format('F j, Y')}.";
+            $pdf = $i === 5 && $first ? $first : self::pdf('pdf.sample-document', [
+                'organization' => $activity->organization,
+                'label' => 'Attendance / sign-in sheet',
+                'text' => $text,
+            ]);
+            $first ??= $pdf;
+
+            $path = "activity-evidence/{$activity->organization_id}/sample-{$activity->id}.pdf";
+            Storage::disk('local')->put($path, $pdf);
+            $activity->update([
+                'evidence_path' => $path,
+                'evidence_filename' => 'sign-in-sheet.pdf',
+                'evidence_mime' => 'application/pdf',
+                'evidence_hash' => hash('sha256', $pdf),
+            ]);
+            SheetChecks::run($activity, $text);
+        }
     }
 
     private function newsAndReports(User $admin): void

@@ -43,6 +43,8 @@ class StoreActivityRequest extends FormRequest
             'activity_source' => ['required', Rule::in(array_keys(Activity::SOURCES))],
             'evidence' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
             'remove_evidence' => ['boolean'],
+            // What the browser read from the sign-in sheet, for the checks only; never stored.
+            'evidence_text' => ['nullable', 'string', 'max:20000'],
             'partners' => ['nullable', 'array', 'max:10'],
             'partners.*' => [
                 'integer', 'distinct',

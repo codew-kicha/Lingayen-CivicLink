@@ -217,6 +217,13 @@ re-open System check: the Demo data warning is gone.
 
 ## 6. After going live
 
+- **AI reading of sign-in sheets (optional):** off by default. To switch it on, add to `.env`
+  `ANTHROPIC_API_KEY=<key from console.anthropic.com>` and `AI_SHEET_READER=true` (optionally
+  `AI_SHEET_MODEL=claude-haiku-5-5`, the default), then `php artisan config:cache`. Load a small
+  prepaid credit in the Anthropic Console; Claude Haiku 5.5 costs about USD 0.0004 a sheet. The
+  office must approve sending sign-in sheets to an outside service first
+  (`docs/CLIENT_CONFIRMATIONS.md`, item 4). Without it, the free checks still run.
+
 - **Backups, weekly:** export the database (phpMyAdmin or `mysqldump`) and download
   `storage/app` (uploaded documents and sign-in sheets). Keep a copy off the server.
 - **Updates, monthly:** watch for PHP security releases and update; run `composer audit` locally

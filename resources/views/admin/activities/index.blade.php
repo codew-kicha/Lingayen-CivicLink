@@ -23,6 +23,9 @@
         'decided' => $activity->verified_at?->format('d M Y'),
         'decidedBy' => $activity->verifiedBy?->name,
         'reason' => $activity->rejection_reason,
+        'findings' => $activity->checkFindings(),
+        'check' => $activity->check_status,
+        'aiNames' => $activity->ai_names_count,
         'verifyUrl' => route('admin.activities.verify', $activity),
         'rejectUrl' => route('admin.activities.reject', $activity),
     ]);
@@ -59,6 +62,44 @@
         @endif
     </form>
 
+    @if ($pending && $pendingCount)
+        {{-- What the checks found (free checks, and the AI reading when switched on), with the bulk action. --}}
+        <section class="card mb-4 flex flex-wrap items-center gap-3 p-4" aria-label="Checks">
+            <x-phosphor-sparkle class="h-5 w-5 shrink-0 text-primary" aria-hidden="true" />
+            <div class="flex flex-wrap gap-2 text-sm">
+                <a href="{{ route('admin.activities.index', array_filter(['q' => request('q'), 'sort' => request('sort'), 'from' => $from, 'to' => $to])) }}"
+                   class="filter-chip" @if (! $currentCheck) aria-current="page" @endif>All waiting</a>
+                @foreach (\App\Http\Controllers\Admin\ActivityVerificationController::CHECKS as $key => $label)
+                    <a href="{{ route('admin.activities.index', array_filter(['check' => $key, 'q' => request('q'), 'sort' => request('sort'), 'from' => $from, 'to' => $to])) }}"
+                       class="filter-chip" @if ($currentCheck === $key) aria-current="page" @endif>{{ $label }} <span class="tabular-nums text-muted">{{ $checkCounts[$key] }}</span></a>
+                @endforeach
+            </div>
+            <div class="ml-auto flex flex-wrap items-center gap-2">
+                @if ($aiEnabled && $unreadSheets)
+                    <form method="POST" action="{{ route('admin.activities.read-sheets') }}">
+                        @csrf
+                        <button type="submit" class="btn-secondary btn-sm">
+                            <x-phosphor-sparkle class="h-4 w-4" aria-hidden="true" />Read {{ min($unreadSheets, \App\Http\Controllers\Admin\ActivityVerificationController::READ_BATCH) }} new {{ Str::plural('sheet', $unreadSheets) }} with AI
+                        </button>
+                    </form>
+                @endif
+                @if ($checkCounts['consistent'])
+                    <form method="POST" action="{{ route('admin.activities.verify-consistent') }}"
+                          x-data @submit="if (! confirm(@js('Verify all '.$checkCounts['consistent'].' consistent activities? Flagged ones stay for you to review.'))) $event.preventDefault()">
+                        @csrf
+                        <button type="submit" class="btn-primary btn-sm">
+                            <x-phosphor-checks class="h-4 w-4" aria-hidden="true" />Verify all {{ $checkCounts['consistent'] }} consistent
+                        </button>
+                    </form>
+                @endif
+            </div>
+            <p class="w-full text-xs text-muted">
+                Consistent: a sign-in sheet is attached, not used before, and{{ $aiEnabled ? ' its names and date agree with what was logged' : ' logged soon after the activity' }}.
+                {{ $aiEnabled ? 'Sheets are read by AI (Claude) to count names and read the date.' : 'AI reading of sheets is off.' }} The checks advise; you decide.
+            </p>
+        </section>
+    @endif
+
     <div x-data="activityReview(@js($items))" @row-open="show($event.detail.index)">
         <section class="card">
             @if ($activities->isEmpty())
@@ -84,6 +125,7 @@
                                 <th scope="col" class="table-head">Activity</th>
                                 <th scope="col" class="table-head w-32">Date</th>
                                 <th scope="col" class="table-head w-36 text-right">Residents reached</th>
+                                <th scope="col" class="table-head w-56">Checks</th>
                                 <th scope="col" class="table-head w-32">{{ $pending ? 'Waiting' : ($currentStatus === 'verified' ? 'Verified' : 'Rejected') }}</th>
                                 <th scope="col" class="table-head w-12"><span class="sr-only">Review</span></th>
                             </tr>
@@ -99,6 +141,20 @@
                                     </td>
                                     <td class="table-date" data-label="Held">{{ $activity->activity_date->format('d M Y') }}</td>
                                     <td class="table-num" data-label="Residents reached">{{ $activity->participants_estimate !== null ? number_format($activity->participants_estimate) : '--' }}</td>
+                                    <td class="table-cell text-sm" data-label="Checks">
+                                        @php $findings = $activity->checkFindings(); @endphp
+                                        @if ($activity->check_status === 'consistent')
+                                            <span class="badge-success">Consistent</span>
+                                        @elseif ($activity->check_status === 'flagged')
+                                            <span class="badge-warning">Flagged</span>
+                                            <span class="mt-1 block text-xs text-muted">{{ $findings[0] ?? '' }}@if (count($findings) > 1) (+{{ count($findings) - 1 }} more)@endif</span>
+                                        @else
+                                            <span class="badge-neutral">Not checked</span>
+                                        @endif
+                                        @if ($activity->ai_names_count !== null)
+                                            <span class="mt-1 block text-xs text-muted">AI counted {{ $activity->ai_names_count }} {{ Str::plural('name', $activity->ai_names_count) }}</span>
+                                        @endif
+                                    </td>
                                     @if ($pending)
                                         <td data-label="Waiting" @class(['table-cell whitespace-nowrap tabular-nums', 'font-semibold text-warning' => $waiting > 30, 'text-muted' => $waiting <= 30])>
                                             @if ($waiting > 30)
@@ -168,6 +224,16 @@
                                     <dd class="text-ink" x-text="current.partners"></dd>
                                 </template>
                             </dl>
+
+                            <section aria-label="Checks" class="rounded-md border px-4 py-3 text-sm"
+                                     :class="current.check === 'flagged' ? 'border-warning/40 bg-warning-subtle' : (current.check === 'consistent' ? 'border-success/40 bg-success-subtle' : 'border-line bg-canvas')">
+                                <p class="font-semibold" :class="current.check === 'flagged' ? 'text-warning' : (current.check === 'consistent' ? 'text-success' : 'text-muted')"
+                                   x-text="current.check === 'flagged' ? 'The checks found something to look at' : (current.check === 'consistent' ? 'The checks found nothing unusual' : 'Not checked')"></p>
+                                <ul class="mt-1 list-disc pl-6 text-ink" x-show="current.findings.length">
+                                    <template x-for="finding in current.findings" :key="finding"><li x-text="finding"></li></template>
+                                </ul>
+                                <p class="mt-1 text-xs text-muted" x-show="current.aiNames !== null" x-text="'AI counted ' + current.aiNames + ' names on the sheet.'"></p>
+                            </section>
 
                             <section aria-labelledby="review-evidence">
                                 <h3 id="review-evidence" class="text-sm font-semibold text-ink">Evidence: sign-in sheet</h3>

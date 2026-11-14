@@ -2,15 +2,10 @@
     Organization profile as a settings page (the GitHub organization profile / Stripe business
     details pattern): each section has its title and a line of explanation on the left and its
     fields in a card on the right. The public section shows a live preview of the directory card.
-    Members are an editable table: saved rows render on the server (so the form still works without
-    JavaScript), rows added here come from Alpine. A save bar stays pinned to the bottom.
+    Members use <x-member-table> (five rows to a page, at least five members, the representative
+    first). A save bar stays pinned to the bottom.
 --}}
 @php
-    $members = old('members', $organization?->members->map->only(['name', 'position', 'contact_number', 'email'])->all() ?? []);
-    if (! $members) {
-        $members = [['name' => '', 'position' => '', 'contact_number' => '', 'email' => '']];
-    }
-    $nextIndex = (int) max(array_keys($members)) + 1;
     $logoUrl = $organization?->logo_path ? asset('storage/'.$organization->logo_path) : null;
 @endphp
 
@@ -21,8 +16,6 @@
               dirty: false,
               logoUrl: @js($logoUrl),
               removeLogo: false,
-              added: [],
-              next: {{ $nextIndex }},
               preview: { name: '', sector: '', barangay: '', advocacy: '' },
               sync() {
                   const f = this.$root.elements, v = (n) => f.namedItem(n)?.value ?? '';
@@ -39,11 +32,6 @@
                   this.logoUrl = null;
                   this.removeLogo = true;
                   this.dirty = true;
-              },
-              addMember() {
-                  this.added.push(this.next++);
-                  this.dirty = true;
-                  this.$nextTick(() => document.getElementById('member-name-' + this.added.at(-1)).focus());
               },
           }"
           x-init="$nextTick(() => sync())" @input="dirty = true; sync()" @change="dirty = true; sync()">
@@ -158,65 +146,11 @@
                     <x-phosphor-lock-simple class="mt-px h-4 w-4 shrink-0" aria-hidden="true" />
                     Visible to the Desk Office only, never public.
                 </p>
+                <p class="mt-2 text-sm text-muted">At least five members. The representative is always the first.</p>
             </div>
 
-            <div class="card">
-                <div class="table-wrap">
-                    <table class="table-stack w-full">
-                        <caption class="sr-only">Officers and members. Rows without a name are skipped.</caption>
-                        <thead>
-                            <tr>
-                                <th scope="col" class="table-head w-1/3 pl-6">Name</th>
-                                <th scope="col" class="table-head">Position</th>
-                                <th scope="col" class="table-head">Contact number</th>
-                                <th scope="col" class="table-head">Email</th>
-                                <th scope="col" class="table-head w-12 pr-6"><span class="sr-only">Remove</span></th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach ($members as $i => $member)
-                                <tr x-data="{ gone: false }" x-show="! gone">
-                                    @foreach (['name' => 'Name', 'position' => 'Position', 'contact_number' => 'Contact number', 'email' => 'Email'] as $field => $label)
-                                        <td @class(['table-cell align-top', 'pl-6' => $loop->first])>
-                                            <span class="mb-1 block text-xs font-semibold text-muted sm:hidden" aria-hidden="true">{{ $label }}</span>
-                                            <input type="{{ $field === 'email' ? 'email' : 'text' }}" id="member-{{ str_replace('_', '-', $field) }}-{{ $i }}"
-                                                   name="members[{{ $i }}][{{ $field }}]" value="{{ $member[$field] ?? '' }}" :disabled="gone"
-                                                   aria-label="{{ $label }}, row {{ $loop->parent->iteration }}"
-                                                   class="field-input @error("members.{$i}.{$field}") field-input-error @enderror">
-                                            @error("members.{$i}.{$field}")<p class="field-error">{{ $message }}</p>@enderror
-                                        </td>
-                                    @endforeach
-                                    <td class="table-cell pr-6 align-top">
-                                        <button type="button" class="icon-btn" @click="gone = true; dirty = true" x-cloak>
-                                            <x-phosphor-x class="h-4 w-4" aria-hidden="true" /><span class="sr-only">Remove row {{ $loop->iteration }}</span>
-                                        </button>
-                                    </td>
-                                </tr>
-                            @endforeach
-                            <template x-for="i in added" :key="i">
-                                <tr>
-                                    @foreach (['name' => 'Name', 'position' => 'Position', 'contact_number' => 'Contact number', 'email' => 'Email'] as $field => $label)
-                                        <td @class(['table-cell align-top', 'pl-6' => $loop->first])>
-                                            <span class="mb-1 block text-xs font-semibold text-muted sm:hidden" aria-hidden="true">{{ $label }}</span>
-                                            <input type="{{ $field === 'email' ? 'email' : 'text' }}" :id="'member-{{ str_replace('_', '-', $field) }}-' + i"
-                                                   :name="'members[' + i + '][{{ $field }}]'" aria-label="{{ $label }}, new row" class="field-input">
-                                        </td>
-                                    @endforeach
-                                    <td class="table-cell pr-6 align-top">
-                                        <button type="button" class="icon-btn" @click="added = added.filter(n => n !== i); dirty = true">
-                                            <x-phosphor-x class="h-4 w-4" aria-hidden="true" /><span class="sr-only">Remove this row</span>
-                                        </button>
-                                    </td>
-                                </tr>
-                            </template>
-                        </tbody>
-                    </table>
-                </div>
-                <div class="border-t border-line px-6 py-4" x-cloak>
-                    <button type="button" class="btn-ghost btn-sm -ml-3" @click="addMember()">
-                        <x-phosphor-plus class="h-4 w-4" aria-hidden="true" />Add member
-                    </button>
-                </div>
+            <div class="card p-6">
+                <x-member-table :organization="$organization" :user="auth()->user()" />
             </div>
         </section>
 

@@ -32,7 +32,7 @@ class AccreditationExpiring extends Notification
             ->greeting('Hello '.$notifiable->name.',')
             ->line($this->body())
             ->line('File the renewal online from your dashboard. The office reviews it the same way as a new application.')
-            ->action('File a renewal', route('cso.applications.index', ['apply' => 1]))
+            ->action('File a renewal', route('cso.application'))
             ->salutation('Civil Society Desk Office, Lingayen');
     }
 
@@ -45,7 +45,7 @@ class AccreditationExpiring extends Notification
             'accreditation_id' => $this->accreditation->id,
             'headline' => 'Accreditation expiring',
             'body' => $this->body(),
-            'url' => route('cso.applications.index', ['apply' => 1]),
+            'url' => route('cso.application'),
         ];
     }
 

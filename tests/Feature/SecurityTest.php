@@ -26,14 +26,10 @@ class SecurityTest extends TestCase
         $rep = User::factory()->create();
         Organization::factory()->for($rep)->create();
 
-        $this->actingAs($rep)
-            ->post(route('cso.applications.store'), [
-                'type' => 'new',
-                'documents' => ['accreditation_form' => UploadedFile::fake()->create('payload.php', 10, 'application/x-php')],
-            ])
-            ->assertSessionHasErrors('documents.accreditation_form');
+        $this->startApplication($rep);
+        $this->uploadRequirements($rep, ['fee_receipt' => UploadedFile::fake()->create('payload.php', 10, 'application/x-php')])
+            ->assertSessionHasErrors('documents.fee_receipt');
 
-        $this->assertDatabaseCount('applications', 0);
         $this->assertDatabaseCount('documents', 0);
     }
 
@@ -44,12 +40,9 @@ class SecurityTest extends TestCase
         $rep = User::factory()->create();
         Organization::factory()->for($rep)->create();
 
-        $this->actingAs($rep)
-            ->post(route('cso.applications.store'), [
-                'type' => 'new',
-                'documents' => ['accreditation_form' => UploadedFile::fake()->create('huge.pdf', 6000, 'application/pdf')],
-            ])
-            ->assertSessionHasErrors('documents.accreditation_form');
+        $this->startApplication($rep);
+        $this->uploadRequirements($rep, ['fee_receipt' => UploadedFile::fake()->create('huge.pdf', 6000, 'application/pdf')])
+            ->assertSessionHasErrors('documents.fee_receipt');
 
         $this->assertDatabaseCount('documents', 0);
     }

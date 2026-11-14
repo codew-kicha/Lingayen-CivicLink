@@ -38,12 +38,18 @@ class AppServiceProvider extends ServiceProvider
             ->symbols()
             ->when(app()->isProduction(), fn (Password $rule) => $rule->uncompromised()));
 
-        // Queue counts for the sidebar badges (config/navigation.php `count` keys). Admins only.
+        // Counts for the sidebar badges (config/navigation.php `count` keys): the office's queues, and a
+        // representative's unread notifications.
         View::composer('components.layouts.partials.sidebar', function ($view) {
-            $view->with('navCounts', auth()->user()?->isAdmin() ? [
-                'pendingApplications' => ApplicationModel::whereIn('status', ['submitted', 'under_review'])->count(),
-                'pendingActivities' => Activity::where('status', 'pending')->count(),
-            ] : []);
+            $user = auth()->user();
+            $view->with('navCounts', match (true) {
+                (bool) $user?->isAdmin() => [
+                    'pendingApplications' => ApplicationModel::whereIn('status', ['submitted', 'under_review'])->count(),
+                    'pendingActivities' => Activity::where('status', 'pending')->count(),
+                ],
+                (bool) $user?->isCsoRep() => ['unreadNotifications' => $user->unreadNotifications()->count()],
+                default => [],
+            });
         });
     }
 }

@@ -54,7 +54,7 @@ class DefenseGapsTest extends TestCase
 
         $details = [
             'organization_name' => 'Malimpuec Youth Alliance', 'barangay' => 'Malimpuec', 'sector' => config('sectors')[0],
-            'name' => 'Carla Mendoza', 'email' => 'carla@example.ph', 'phone' => '0917 845 2210', 'password' => 'Malimpuec-Youth-2026!',
+            'last_name' => 'Mendoza', 'first_name' => 'Carla', 'email' => 'carla@example.ph', 'phone' => '0917 845 2210', 'password' => 'Malimpuec-Youth-2026!',
         ];
         $this->post(route('register'), $details)->assertSessionHasErrors(['privacy_consent' => 'Agree to the privacy notice to register.']);
         $this->assertDatabaseMissing('users', ['email' => 'carla@example.ph']);
@@ -63,14 +63,20 @@ class DefenseGapsTest extends TestCase
         $this->assertNotNull(User::where('email', 'carla@example.ph')->value('privacy_consented_at'));
     }
 
-    public function test_dashboard_updates_are_new_once_then_read(): void
+    public function test_updates_stay_new_until_the_notifications_page_is_opened(): void
     {
         $rep = User::factory()->create();
         $organization = Organization::factory()->for($rep)->accredited()->create();
         $rep->notify(new AccreditationExpiring($organization->accreditations()->first()));
 
-        $this->actingAs($rep)->get(route('cso.dashboard'))->assertSee('Accreditation expiring')->assertSee('>New<', false);
+        // The dashboard shows it as new and counts it in the sidebar, without marking it read.
+        $this->actingAs($rep)->get(route('cso.dashboard'))->assertSee('Accreditation expiring')->assertSee('>New<', false)
+            ->assertSee('data-nav-count="unreadNotifications"', false);
+        $this->assertSame(1, $rep->unreadNotifications()->count());
+
+        // Opening Notifications marks it read.
+        $this->actingAs($rep)->get(route('cso.notifications.index'))->assertSee('Accreditation expiring')->assertSee('>New<', false);
         $this->assertSame(0, $rep->unreadNotifications()->count());
-        $this->actingAs($rep)->get(route('cso.dashboard'))->assertSee('Accreditation expiring')->assertDontSee('>New<', false);
+        $this->actingAs($rep)->get(route('cso.dashboard'))->assertDontSee('>New<', false);
     }
 }

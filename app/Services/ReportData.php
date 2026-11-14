@@ -45,6 +45,23 @@ class ReportData
         return new self(max($from, $to->copy()->subYears(5)->startOfMonth()), $to);
     }
 
+    /**
+     * The same dates a year earlier, for the "compared with" figures on the page: this year so far
+     * against the same months last year, March against last March. Community work is seasonal
+     * (fiestas, typhoon season, school breaks), so this is fairer than the days just before.
+     * Periods longer than a year go back by whole years so the two never overlap.
+     */
+    public function previous(): self
+    {
+        return new self($this->from->copy()->subYearsNoOverflow($this->yearsBack()), $this->to->copy()->subYearsNoOverflow($this->yearsBack()));
+    }
+
+    /** How many years back previous() looks: one, or more for periods longer than a year. */
+    public function yearsBack(): int
+    {
+        return max(1, (int) ceil($this->from->diffInDays($this->to) / 366));
+    }
+
     public function periodLabel(): string
     {
         return $this->from->format('j M Y').' to '.$this->to->format('j M Y');
@@ -79,7 +96,47 @@ class ReportData
             'independent' => (int) ($sources['independent'] ?? 0),
             'lguOrganized' => (int) ($sources['lgu_organized'] ?? 0),
             'selfInitiatedRatio' => self::ratio((int) ($sources['independent'] ?? 0), (int) ($sources['lgu_organized'] ?? 0)),
+            'unknownSource' => (int) $sources->sum() - (int) ($sources['independent'] ?? 0) - (int) ($sources['lgu_organized'] ?? 0),
+            // Organizations credited (as lead or partner) with at least one verified activity in the period.
+            'activeOrganizations' => $this->organizationRows()->where('verified', '>', 0)->count(),
         ];
+    }
+
+    /**
+     * The details behind the summary figures on the page: what is waiting, what is expiring, the
+     * busiest month and the largest activity, so a number never stands alone.
+     */
+    public function highlights(): array
+    {
+        $rows = $this->organizationRows();
+        $largest = $this->verifiedInPeriod()->with('organization:id,name')
+            ->orderByDesc('participants_estimate')->orderByDesc('activity_date')->first();
+        $busiest = $this->activityTrend()->sortByDesc('total')->first();
+
+        return [
+            'pendingActivities' => Activity::where('status', 'pending')->count(),
+            'expiring' => $rows->filter(fn ($r) => $r['accredited'] && $r['accreditedUntil']?->lte(now()->addDays(90)))
+                ->sortBy(fn ($r) => $r['accreditedUntil'])->values(),
+            'notAccredited' => $rows->where('accredited', false)->count(),
+            'quiet' => $rows->filter(fn ($r) => $r['accredited'] && $r['verified'] === 0)->values(),
+            'busiestMonth' => ($busiest['total'] ?? 0) > 0 ? $busiest : null,
+            'largestActivity' => $largest,
+            'topReach' => $rows->where('reach', '>', 0)->sortByDesc('reach')->take(3)->values(),
+        ];
+    }
+
+    /**
+     * Verified activities per month for the month drill-down: the largest first, a few per month.
+     *
+     * @return Collection<string, array{count: int, items: Collection}>  keyed Y-m
+     */
+    public function activitiesByMonth(int $per = 8): Collection
+    {
+        return $this->verifiedInPeriod()->with('organization:id,name')
+            ->orderByDesc('participants_estimate')->orderByDesc('activity_date')
+            ->get(['id', 'organization_id', 'title', 'activity_date', 'activity_source', 'participants_estimate'])
+            ->groupBy(fn (Activity $a) => $a->activity_date->format('Y-m'))
+            ->map(fn (Collection $items) => ['count' => $items->count(), 'items' => $items->take($per)->values()]);
     }
 
     /** Accredited organizations by sector, as of today (not period-bound). */
@@ -93,19 +150,25 @@ class ReportData
             ->pluck('total', 'sector');
     }
 
-    /** @return Collection<int, array{label: string, total: int, independent: int, lgu: int}> */
+    /** @return Collection<int, array{key: string, label: string, total: int, independent: int, lgu: int, unknown: int, reach: int}> */
     public function activityTrend(): Collection
     {
-        $rows = $this->verifiedInPeriod()->get(['activity_date', 'activity_source']);
+        $rows = $this->verifiedInPeriod()->get(['activity_date', 'activity_source', 'participants_estimate']);
 
         return $this->months()->map(function (Carbon $month) use ($rows) {
             $inMonth = $rows->filter(fn ($a) => $a->activity_date->isSameMonth($month));
 
+            $independent = $inMonth->where('activity_source', 'independent')->count();
+            $lgu = $inMonth->where('activity_source', 'lgu_organized')->count();
+
             return [
+                'key' => $month->format('Y-m'),
                 'label' => $month->format('M Y'),
                 'total' => $inMonth->count(),
-                'independent' => $inMonth->where('activity_source', 'independent')->count(),
-                'lgu' => $inMonth->where('activity_source', 'lgu_organized')->count(),
+                'independent' => $independent,
+                'lgu' => $lgu,
+                'unknown' => $inMonth->count() - $independent - $lgu,
+                'reach' => (int) $inMonth->sum('participants_estimate'),
             ];
         });
     }
@@ -113,6 +176,7 @@ class ReportData
     public function complianceTrend(): Collection
     {
         return $this->months()->map(fn (Carbon $month) => [
+            'key' => $month->format('Y-m'),
             'label' => $month->format('M Y'),
             'approved' => ApplicationModel::where('status', 'approved')
                 ->whereBetween('reviewed_at', [$month, $month->copy()->endOfMonth()])->count(),

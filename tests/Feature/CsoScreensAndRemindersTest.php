@@ -42,16 +42,16 @@ class CsoScreensAndRemindersTest extends TestCase
 
     // Dialogs
 
-    public function test_a_failed_application_reopens_the_apply_dialog(): void
+    public function test_a_missing_requirement_keeps_the_application_on_its_step(): void
     {
         $rep = $this->rep();
-        $page = route('cso.applications.index');
+        $this->startApplication($rep);
 
-        $this->actingAs($rep)->from($page)
-            ->post(route('cso.applications.store'), ['type' => 'new', '_dialog' => 'apply'])
-            ->assertRedirect($page)->assertSessionHasErrors('documents.accreditation_form');
-
-        $this->actingAs($rep)->get($page)->assertSee("dialog('apply', true)", false)->assertSee('Attach the files again');
+        $this->uploadRequirements($rep, [])
+            ->assertRedirect(route('cso.application.step', 'requirements'))
+            ->assertSessionHasErrors(['documents.fee_receipt', 'documents.constitution_bylaws']);
+        $this->actingAs($rep)->get(route('cso.application.step', 'requirements'))->assertOk()
+            ->assertSee('Upload your Official Receipt of the Accreditation Fee.');
     }
 
     public function test_activities_log_in_a_dialog_and_list_one_row_each(): void
@@ -75,7 +75,7 @@ class CsoScreensAndRemindersTest extends TestCase
 
     // Profile
 
-    public function test_the_profile_saves_member_rows_and_skips_blank_ones(): void
+    public function test_the_profile_saves_the_member_list(): void
     {
         $rep = $this->rep();
         $organization = $rep->organization;
@@ -87,14 +87,15 @@ class CsoScreensAndRemindersTest extends TestCase
             'name' => $organization->name,
             'sector' => $organization->sector,
             'barangay' => $organization->barangay,
-            'members' => [
-                0 => ['name' => 'Ana Reyes', 'position' => 'President', 'contact_number' => '', 'email' => ''],
-                3 => ['name' => '', 'position' => '', 'contact_number' => '', 'email' => ''],
-                7 => ['name' => 'Ben Cruz', 'position' => 'Treasurer', 'contact_number' => '0917 000 0000', 'email' => 'ben@example.ph'],
-            ],
+            'members' => $this->memberRows(),
         ])->assertRedirect(route('cso.profile.edit'))->assertSessionHasNoErrors();
 
-        $this->assertSame(['Ana Reyes', 'Ben Cruz'], $organization->members()->orderBy('name')->pluck('name')->all());
+        $this->assertCount(5, $organization->members);
+        $this->assertSame('Representative', $organization->members()->where('last_name', 'Reyes')->value('position'));
+        $this->assertSame('Treasurer', $organization->members()->where('last_name', 'Cruz')->value('position'));
+        // A blank position is saved as Member; the display name is composed from the parts.
+        $this->assertSame('Member', $organization->members()->where('last_name', 'Santos')->value('position'));
+        $this->assertSame('Member2 Santos', $organization->members()->where('last_name', 'Santos')->value('name'));
     }
 
     public function test_the_logo_can_be_removed(): void
@@ -102,7 +103,7 @@ class CsoScreensAndRemindersTest extends TestCase
         Storage::fake('public');
         $rep = $this->rep();
         $organization = $rep->organization;
-        $fields = ['name' => $organization->name, 'sector' => $organization->sector, 'barangay' => $organization->barangay];
+        $fields = ['name' => $organization->name, 'sector' => $organization->sector, 'barangay' => $organization->barangay, 'members' => $this->memberRows()];
 
         $this->actingAs($rep)->patch(route('cso.profile.update'), $fields + ['logo' => UploadedFile::fake()->image('logo.png', 200, 200)]);
         $path = $organization->fresh()->logo_path;

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Cso;
 
 use App\Http\Controllers\Controller;
+use App\Services\ApplicationSteps;
 use Illuminate\View\View;
 
 class DashboardController extends Controller
@@ -11,8 +12,8 @@ class DashboardController extends Controller
     {
         $organization = auth()->user()->organization;
         // The latest updates, read or not; the unread ones are marked "New" this once, then read.
+        // The latest updates; they stay "New" (and counted in the sidebar) until the Notifications page is opened.
         $notifications = auth()->user()->notifications()->latest()->limit(5)->get();
-        auth()->user()->unreadNotifications()->update(['read_at' => now()]);
 
         $accreditation = $organization?->accreditations()->where('status', 'active')->first();
 
@@ -21,7 +22,9 @@ class DashboardController extends Controller
             'accreditation' => $accreditation,
             // Lapsed and not yet renewed: the dashboard says so and points to the renewal.
             'lapsed' => $accreditation ? null : $organization?->accreditations()->where('status', 'expired')->latest('expires_at')->first(),
-            'latestApplication' => $organization?->applications()->latest('id')->first(),
+            'latestApplication' => $organization?->applications()->where('status', '!=', 'draft')->latest('id')->first(),
+            // An application being prepared (members, form, requirements): the dashboard says where it stands.
+            'draft' => $organization ? ApplicationSteps::draft($organization) : null,
             'score' => $organization?->performanceScores()->latest('computed_at')->first(),
             'pendingActivities' => $organization?->activities()->where('status', 'pending')->count() ?? 0,
             'verifiedActivities' => $organization?->activities()->where('status', 'verified')->count() ?? 0,

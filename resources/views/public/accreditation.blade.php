@@ -104,8 +104,9 @@
             <div class="reveal">
                 <h2 id="submit-title" class="section-title">What you need to submit</h2>
                 <p class="mt-2 max-w-[62ch] text-sm text-muted">
-                    As listed on the Sangguniang Bayan's accreditation forms. Filing online? Upload scans or clear photographs
-                    instead: PDF, JPG, or PNG, up to 5 MB per file.
+                    As listed on the Sangguniang Bayan's accreditation forms. Online, the accreditation form and the list of
+                    officers and members are filled in on the website; the rest are uploaded as scans or clear photographs
+                    (PDF, JPG, or PNG, up to 5 MB per file).
                 </p>
                 <div class="mt-6 grid gap-8 sm:grid-cols-2">
                     @foreach ($paperForms as $form)
@@ -130,17 +131,11 @@
             <aside id="paper-forms" class="reveal panel h-fit scroll-mt-24 p-6 lg:sticky lg:top-24">
                 <h2 class="card-title">Ready to apply?</h2>
                 <p class="mt-2 text-sm text-muted">
-                    Register your organization and file online, or download the form for a new application or a renewal, fill it
-                    in by hand, and bring it with the requirements to the Civil Society Desk Office. Staff will encode it into the same system, and
-                    you can track it online afterwards.
+                    Register your organization, then follow the steps: list your members, fill in the accreditation form on the
+                    website, and upload the other requirements. Your progress is saved, so you can finish later. Without internet
+                    access? Bring the requirements to the Civil Society Desk Office and staff will file them for you.
                 </p>
-                <a href="{{ route('register') }}" class="btn-primary mt-4 w-full">Start an online application</a>
-                <a href="{{ route('accreditation.form', 'new') }}" class="btn-secondary mt-2 w-full">
-                    <x-phosphor-file-pdf class="h-4 w-4" aria-hidden="true" />Form for new applications (PDF)
-                </a>
-                <a href="{{ route('accreditation.form', 'renewal') }}" class="btn-secondary mt-2 w-full">
-                    <x-phosphor-file-pdf class="h-4 w-4" aria-hidden="true" />Form for renewals (PDF)
-                </a>
+                <a href="{{ route('register') }}" class="btn-primary mt-4 w-full">Register and apply online</a>
                 <a href="{{ route('contact') }}" class="btn-ghost mt-2 w-full">Ask the CSO Desk Office</a>
             </aside>
         </section>

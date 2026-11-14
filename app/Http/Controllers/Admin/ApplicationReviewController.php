@@ -71,6 +71,7 @@ class ApplicationReviewController extends Controller
         $direction = $this->direction($request);
 
         return ApplicationModel::with('organization')
+            ->where('status', '!=', 'draft') // still being prepared by the organization
             ->withCount(['documents as flagged_documents_count' => fn ($q) => $q->whereIn('ocr_status', ['mismatch', 'unreadable'])])
             ->when(self::FILTERS[$request->string('status')->value()] ?? null, fn ($q, $statuses) => $q->whereIn('status', $statuses))
             ->when($request->string('q')->trim()->value(), fn ($q, $term) => $q->whereHas('organization', fn ($q) => $q
@@ -90,6 +91,7 @@ class ApplicationReviewController extends Controller
     public function show(ApplicationModel $application): View
     {
         $this->authorize('review', $application);
+        abort_if($application->status === 'draft', 404);
 
         return view('admin.applications.show', [
             'application' => $application->load(['organization.members', 'documents', 'submittedBy', 'reviewedBy']),

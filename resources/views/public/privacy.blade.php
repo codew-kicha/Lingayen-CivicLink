@@ -34,7 +34,9 @@
                 <h2 class="font-serif text-xl font-bold text-brand-900">Why we use it</h2>
                 <ul class="mt-3 list-disc space-y-2 pl-6 leading-relaxed text-muted">
                     <li>To review applications and issue, renew or revoke accreditation.</li>
-                    <li>To verify logged activities and compute each organization's performance score.</li>
+                    <li>To verify logged activities and compute each organization's performance score. To help with this, the system
+                        checks each sign-in sheet automatically (for example, that the same photo isn't attached twice). The text read
+                        from a sheet is used only for these checks and is not kept.</li>
                     <li>To contact you about your application, your activities and your accreditation's expiry.</li>
                     <li>To list accredited organizations in the public directory and to prepare the office's reports.</li>
                 </ul>
@@ -46,6 +48,10 @@
                     <li><strong class="text-ink">The public</strong> sees only accredited organizations' name, sector, barangay, advocacy, logo and verified activities. Member names and contact details are never shown publicly.</li>
                     <li><strong class="text-ink">The Desk Office</strong> sees everything submitted, to review it, and shares what is needed with the Sangguniang Bayan, which decides on accreditation.</li>
                     <li><strong class="text-ink">Each representative</strong> sees only their own organization's records.</li>
+                    @if (\App\Services\SheetReader::enabled())
+                        <li><strong class="text-ink">An AI service (Anthropic's Claude)</strong> reads activity sign-in sheets for the Desk Office, to count the names
+                            and read the date. It returns only those figures; the office decides on every activity.</li>
+                    @endif
                 </ul>
             </section>
 

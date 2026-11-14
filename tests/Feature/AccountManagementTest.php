@@ -40,12 +40,16 @@ class AccountManagementTest extends TestCase
             'sector' => 'Pedicab Drivers',
             'barangay' => array_values(config('barangays'))[1],
             'create_login' => '1',
-            'rep_name' => 'Jose Ramos',
-            'rep_email' => 'jose@example.ph',
+            'rep_last_name' => 'Ramos',
+            'rep_first_name' => 'Jose',
+            'rep_middle_name' => 'Dizon',
+            'rep_email' => ' Jose@Example.ph ',
             'rep_phone' => '09181234567',
         ])->assertRedirect();
 
+        // Names in parts like everywhere else; the email is tidied, not refused for its capitals.
         $rep = User::where('email', 'jose@example.ph')->firstOrFail();
+        $this->assertSame(['Ramos', 'Jose', 'Dizon', 'Jose D. Ramos'], [$rep->last_name, $rep->first_name, $rep->middle_name, $rep->name]);
         $this->assertSame('cso_rep', $rep->role);
         $this->assertNull($rep->email_verified_at);
         $this->assertSame('Baay Pedicab Drivers Association', $rep->organization->name);
@@ -72,7 +76,7 @@ class AccountManagementTest extends TestCase
 
         // Unticked: typed representative details are ignored, not half-saved.
         $this->actingAs($admin)->post(route('admin.organizations.store'), $organization + [
-            'name' => 'Libsong Senior Circle', 'rep_name' => 'Ana Cruz', 'rep_email' => 'ana@example.ph',
+            'name' => 'Libsong Senior Circle', 'rep_last_name' => 'Cruz', 'rep_first_name' => 'Ana', 'rep_email' => 'ana@example.ph',
         ])->assertRedirect();
         $this->assertNull(Organization::where('name', 'Libsong Senior Circle')->firstOrFail()->user_id);
         $this->assertDatabaseMissing('users', ['email' => 'ana@example.ph']);
@@ -80,7 +84,7 @@ class AccountManagementTest extends TestCase
         // Ticked: both fields are required, and the page the dialog was on comes back with the errors.
         $this->actingAs($admin)->from(route('admin.applications.index'))->post(route('admin.organizations.store'), $organization + [
             'name' => 'Poblacion Senior Circle', 'create_login' => '1', '_dialog' => 'register-organization',
-        ])->assertRedirect(route('admin.applications.index'))->assertSessionHasErrors(['rep_name', 'rep_email']);
+        ])->assertRedirect(route('admin.applications.index'))->assertSessionHasErrors(['rep_last_name', 'rep_first_name', 'rep_email']);
         $this->assertDatabaseMissing('organizations', ['name' => 'Poblacion Senior Circle']);
     }
 
@@ -100,7 +104,7 @@ class AccountManagementTest extends TestCase
         $rep = User::factory()->create(['email' => 'old@example.ph', 'email_verified_at' => null]);
 
         $this->actingAs($admin)->patch(route('admin.accounts.update', $rep), [
-            'name' => 'Maria Santos', 'email' => 'maria@example.ph', 'phone' => '0917 123 4567',
+            'last_name' => 'Santos', 'first_name' => 'Maria', 'email' => 'maria@example.ph', 'phone' => '0917 123 4567',
             'reset_password' => '1', 'new_password' => self::STRONG, 'admin_password' => 'password',
         ])->assertRedirect()->assertSessionHasNoErrors();
 
@@ -123,23 +127,23 @@ class AccountManagementTest extends TestCase
         $before = $rep->password;
 
         $this->actingAs($admin)->patch(route('admin.accounts.update', $rep), [
-            'name' => $rep->name, 'email' => 'rep@example.ph',
+            'last_name' => 'Rep', 'first_name' => 'Old', 'email' => 'rep@example.ph',
             'reset_password' => '1', 'new_password' => 'short', 'admin_password' => 'wrong-password',
         ])->assertSessionHasErrors(['new_password', 'admin_password']);
         $this->assertSame($before, $rep->refresh()->password);
 
         // Unticked, a typed password is ignored and only the details change.
         $this->actingAs($admin)->patch(route('admin.accounts.update', $rep), [
-            'name' => 'Renamed Rep', 'email' => 'rep@example.ph', 'new_password' => self::STRONG, 'admin_password' => 'password',
+            'last_name' => 'Rep', 'first_name' => 'Renamed', 'suffix' => 'Jr.', 'email' => 'rep@example.ph', 'new_password' => self::STRONG, 'admin_password' => 'password',
         ])->assertSessionHasNoErrors();
-        $this->assertSame(['Renamed Rep', $before], [$rep->refresh()->name, $rep->password]);
+        $this->assertSame(['Renamed Rep Jr.', $before], [$rep->refresh()->name, $rep->password]);
     }
 
     public function test_typing_the_representatives_password_instead_of_your_own_is_explained(): void
     {
         $admin = User::factory()->admin()->create(['password' => ' Admin-Pass-2026 ']);
         $rep = User::factory()->create(['name' => 'Maria Santos', 'email' => 'rep2@example.ph', 'password' => self::STRONG]);
-        $details = ['name' => 'Maria Santos', 'email' => 'rep2@example.ph', 'reset_password' => '1', 'new_password' => 'Brand-New-Pass-77'];
+        $details = ['last_name' => 'Santos', 'first_name' => 'Maria', 'email' => 'rep2@example.ph', 'reset_password' => '1', 'new_password' => 'Brand-New-Pass-77'];
 
         // The representative's password (what a browser fills in on this form) gets a specific message.
         $this->actingAs($admin)->patch(route('admin.accounts.update', $rep), $details + ['admin_password' => self::STRONG])
@@ -158,10 +162,10 @@ class AccountManagementTest extends TestCase
         $rep = User::factory()->create();
 
         $this->actingAs($admin)->patch(route('admin.accounts.update', $otherAdmin), [
-            'name' => 'X', 'email' => 'x@example.ph', 'admin_password' => 'password',
+            'last_name' => 'X', 'first_name' => 'Y', 'email' => 'x@example.ph', 'admin_password' => 'password',
         ])->assertForbidden();
         $this->actingAs($rep)->patch(route('admin.accounts.update', User::factory()->create()), [
-            'name' => 'X', 'email' => 'x@example.ph', 'admin_password' => 'password',
+            'last_name' => 'X', 'first_name' => 'Y', 'email' => 'x@example.ph', 'admin_password' => 'password',
         ])->assertForbidden();
     }
 
@@ -225,7 +229,7 @@ class AccountManagementTest extends TestCase
         $old = URL::temporarySignedRoute('invitation.store', now()->addHours(72), ['user' => $rep->id, 'for' => AccountInvitation::fingerprint($rep)]);
 
         $this->actingAs($admin)->patch(route('admin.accounts.update', $rep), [
-            'name' => $rep->name, 'email' => 'ana@gmail.com', 'admin_password' => 'password',
+            'last_name' => 'Cruz', 'first_name' => 'Ana', 'email' => 'ana@gmail.com', 'admin_password' => 'password',
         ])->assertSessionHasNoErrors();
         auth()->logout();
 
@@ -282,7 +286,7 @@ class AccountManagementTest extends TestCase
         $this->actingAs($admin)->get(route('admin.accounts.index'))->assertOk()->assertDontSee('Add PESO admin');
         $this->actingAs($admin)->withSession($this->confirmed())->get(route('admin.accounts.create'))->assertNotFound();
         $this->actingAs($admin)->withSession($this->confirmed())
-            ->post(route('admin.accounts.store'), ['name' => 'New Admin', 'email' => 'staff@lingayen.gov.ph'])
+            ->post(route('admin.accounts.store'), ['last_name' => 'Admin', 'first_name' => 'New', 'email' => 'staff@lingayen.gov.ph'])
             ->assertNotFound();
         $this->assertDatabaseMissing('users', ['email' => 'staff@lingayen.gov.ph']);
 
@@ -296,12 +300,12 @@ class AccountManagementTest extends TestCase
         config(['app.admin_invites' => true]);
         $admin = $this->admin();
 
-        $this->actingAs($admin)->post(route('admin.accounts.store'), ['name' => 'New Admin', 'email' => 'staff@lingayen.gov.ph'])
+        $this->actingAs($admin)->post(route('admin.accounts.store'), ['last_name' => 'Admin', 'first_name' => 'New', 'email' => 'staff@lingayen.gov.ph'])
             ->assertRedirect(route('password.confirm'));
         $this->assertDatabaseMissing('users', ['email' => 'staff@lingayen.gov.ph']);
 
         $this->actingAs($admin)->withSession($this->confirmed())
-            ->post(route('admin.accounts.store'), ['name' => 'New Admin', 'email' => 'staff@lingayen.gov.ph'])
+            ->post(route('admin.accounts.store'), ['last_name' => 'Admin', 'first_name' => 'New', 'email' => 'staff@lingayen.gov.ph'])
             ->assertRedirect(route('admin.accounts.index'));
         $this->assertSame('admin', User::where('email', 'staff@lingayen.gov.ph')->firstOrFail()->role);
     }
@@ -334,11 +338,12 @@ class AccountManagementTest extends TestCase
         $admin = $this->admin();
         $organization = Organization::factory()->create(['user_id' => null]);
 
-        $this->actingAs($admin)->post(route('admin.organizations.account', $organization), ['name' => 'Ana Cruz', 'email' => 'ana@example.ph'])
+        $this->actingAs($admin)->post(route('admin.organizations.account', $organization), ['last_name' => 'Cruz', 'first_name' => 'Ana', 'middle_name' => 'Lopez', 'email' => 'ana@example.ph'])
             ->assertRedirect();
         $this->assertSame('ana@example.ph', $organization->refresh()->user->email);
+        $this->assertSame('Ana L. Cruz', $organization->user->name);
 
-        $this->actingAs($admin)->post(route('admin.organizations.account', $organization), ['name' => 'Second Person', 'email' => 'second@example.ph'])
+        $this->actingAs($admin)->post(route('admin.organizations.account', $organization), ['last_name' => 'Person', 'first_name' => 'Second', 'email' => 'second@example.ph'])
             ->assertStatus(409);
     }
 }

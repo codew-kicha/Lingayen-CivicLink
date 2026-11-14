@@ -7,6 +7,14 @@
                  :subheader="'Brgy. '.$organization->barangay.' · '.$organization->sector">
     @php $active = $organization->accreditations->firstWhere('status', 'active'); @endphp
 
+    @if ($organization->user)
+        <x-slot:actions>
+            <button type="button" class="btn-secondary" @click="$dispatch('open-dialog', 'send-notice')">
+                <x-phosphor-megaphone class="h-4 w-4" aria-hidden="true" />Send a notice
+            </button>
+        </x-slot:actions>
+    @endif
+
     <div class="grid items-start gap-6 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
         <div class="space-y-6">
             <form method="POST" action="{{ route('admin.organizations.update', $organization) }}" class="card">
@@ -154,10 +162,7 @@
                         <form method="POST" action="{{ route('admin.organizations.account', $organization) }}" class="mt-4">
                             @csrf
                             <div class="space-y-4">
-                                <div>
-                                    <label for="acct-name" class="field-label">Full name</label>
-                                    <input id="acct-name" name="name" value="{{ old('name') }}" required class="field-input">
-                                </div>
+                                <x-name-fields id-prefix="acct-" />
                                 <div>
                                     <label for="acct-email" class="field-label">Email</label>
                                     <input id="acct-email" name="email" type="email" value="{{ old('email') }}" required class="field-input">
@@ -275,8 +280,8 @@
                     <ul class="mt-2 space-y-1 text-sm">
                         @foreach ([
                             [route('admin.organizations.members', $organization), 'Officers and members'],
-                            [route('accreditation.form', 'new'), 'Blank form: new application'],
-                            [route('accreditation.form', 'renewal'), 'Blank form: renewal'],
+                            [route('admin.accreditation.form', 'new'), 'Blank form: new application'],
+                            [route('admin.accreditation.form', 'renewal'), 'Blank form: renewal'],
                         ] as [$url, $label])
                             <li>
                                 <a href="{{ $url }}" class="inline-flex min-h-8 items-center gap-2 font-semibold text-primary hover:underline">
@@ -293,6 +298,9 @@
 
     @include('admin.organizations.cleanup-dialogs')
     @include('admin.organizations.application-dialog')
+    @if ($organization->user)
+        @include('admin.notices.compose-dialog', ['organization' => $organization])
+    @endif
     @if ($active)
         @include('admin.organizations.activity-dialog')
     @endif

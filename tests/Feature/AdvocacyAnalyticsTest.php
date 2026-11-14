@@ -259,17 +259,20 @@ class AdvocacyAnalyticsTest extends TestCase
         $this->assertDatabaseHas('audit_logs', ['action' => 'organization.members_printed', 'subject_id' => $organization->id]);
     }
 
-    public function test_anyone_can_download_both_official_paper_forms(): void
+    public function test_the_blank_paper_forms_are_for_the_office_only(): void
     {
+        // Applicants fill the form in online; the office prints the blank ones for walk-ins.
+        $admin = User::factory()->admin()->create();
         foreach (['new' => 'accreditation-form-new-application.pdf', 'renewal' => 'accreditation-form-renewal.pdf'] as $type => $file) {
-            $response = $this->get(route('accreditation.form', $type));
+            $response = $this->actingAs($admin)->get(route('admin.accreditation.form', $type));
 
             $response->assertOk()->assertHeader('content-type', 'application/pdf')->assertDownload();
             $this->assertSame(file_get_contents(resource_path('forms/'.$file)), $response->streamedContent() ?: file_get_contents($response->getFile()->getPathname()));
-            $this->get(route('accreditation'))->assertSee(route('accreditation.form', $type));
         }
 
-        $this->get('/accreditation/forms/anything-else')->assertNotFound();
+        $this->actingAs(User::factory()->create())->get(route('admin.accreditation.form', 'new'))->assertForbidden();
+        $this->get('/accreditation/forms/new')->assertNotFound();
+        $this->get(route('accreditation'))->assertDontSee('/forms/new')->assertSee('Register and apply online');
     }
 
     public function test_the_requirement_lists_match_the_sangguniang_bayan_forms(): void

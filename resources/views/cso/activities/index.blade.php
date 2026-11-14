@@ -25,7 +25,7 @@
                     <h2 class="card-title">Activities are logged once you are accredited</h2>
                     <p class="mt-1 text-sm text-muted">The Desk Office records the work of accredited organizations. Apply for accreditation, or renew it if it has ended, to start logging.</p>
                 </div>
-                <a href="{{ route('cso.applications.index', ['apply' => 1]) }}" class="btn-primary">Apply for accreditation</a>
+                <a href="{{ route('cso.application') }}" class="btn-primary">Apply for accreditation</a>
             </section>
         @endif
 

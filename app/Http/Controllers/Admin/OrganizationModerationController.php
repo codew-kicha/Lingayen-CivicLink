@@ -123,7 +123,10 @@ class OrganizationModerationController extends Controller
 
             if ($request->validated('rep_email')) {
                 $user = User::create([
-                    'name' => $request->validated('rep_name'),
+                    'last_name' => $request->validated('rep_last_name'),
+                    'first_name' => $request->validated('rep_first_name'),
+                    'middle_name' => $request->validated('rep_middle_name'),
+                    'suffix' => $request->validated('rep_suffix'),
                     'email' => $request->validated('rep_email'),
                     'phone' => $request->validated('rep_phone'),
                     'role' => 'cso_rep',

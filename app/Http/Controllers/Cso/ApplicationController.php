@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Cso;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\StoreApplicationRequest;
 use App\Models\ApplicationModel;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
@@ -23,35 +22,15 @@ class ApplicationController extends Controller
                 ->latest('id')
                 ->get() ?? collect(),
             'organization' => $organization,
-            // For the Apply dialog.
-            'documentTypes' => config('document_types'),
-            // Renewal is the default for an organization that is, or was, accredited.
-            'hasBeenAccredited' => (bool) $organization?->accreditations()->whereIn('status', ['active', 'expired'])->exists(),
         ]);
     }
 
-    // The form is a dialog on the Applications page now; this address opens it there.
+    // Applying is a guided set of steps now; this older address leads there.
     public function create(): RedirectResponse
     {
         $this->authorize('create', ApplicationModel::class);
 
-        return redirect()->route('cso.applications.index', ['apply' => 1]);
-    }
-
-    public function store(StoreApplicationRequest $request): RedirectResponse
-    {
-        $application = $request->user()->organization->submitApplication(
-            $request->validated('type'),
-            $request->file('documents', []),
-            $request->input('expires_at', []),
-            $request->user(),
-            'online',
-            $request->input('ocr_text', []),
-        );
-
-        return redirect()
-            ->route('cso.applications.show', $application)
-            ->with('status', 'Application submitted. The Desk Office will review it and you will be notified of any change.');
+        return redirect()->route('cso.application');
     }
 
     public function show(ApplicationModel $application): View

@@ -21,13 +21,14 @@ class ProfileTest extends TestCase
         $user = User::factory()->create();
 
         $this->actingAs($user)
-            ->patch('/profile', ['name' => 'Test User', 'email' => 'test@example.com', 'phone' => '0917 765 4321'])
+            ->patch('/profile', ['last_name' => 'User', 'first_name' => 'Test', 'middle_name' => 'Quinto', 'email' => ' Test@Example.com ', 'phone' => '0917 765 4321'])
             ->assertSessionHasNoErrors()
             ->assertRedirect('/profile');
 
         $user->refresh();
 
-        $this->assertSame('Test User', $user->name);
+        $this->assertSame('Test Q. User', $user->name);
+        $this->assertSame('Quinto', $user->middle_name);
         $this->assertSame('test@example.com', $user->email);
         $this->assertSame('+639177654321', $user->phone);
         $this->assertNull($user->email_verified_at);
@@ -39,7 +40,7 @@ class ProfileTest extends TestCase
         $user = User::factory()->create();
 
         $this->actingAs($user)
-            ->patch('/profile', ['name' => 'Test User', 'email' => $user->email, 'phone' => '09177654321'])
+            ->patch('/profile', ['last_name' => 'User', 'first_name' => 'Test', 'email' => $user->email, 'phone' => '09177654321'])
             ->assertSessionHasNoErrors()
             ->assertRedirect('/profile');
 
@@ -49,7 +50,7 @@ class ProfileTest extends TestCase
     public function test_cso_representatives_must_keep_a_mobile_number(): void
     {
         $this->actingAs(User::factory()->create())
-            ->patch('/profile', ['name' => 'Test User', 'email' => 'test@example.com', 'phone' => ''])
+            ->patch('/profile', ['last_name' => 'User', 'first_name' => 'Test', 'email' => 'test@example.com', 'phone' => ''])
             ->assertSessionHasErrors('phone');
     }
 

@@ -27,7 +27,7 @@ class RegisteredUserController extends Controller
     {
         $user = DB::transaction(function () use ($request) {
             $user = User::create([
-                'name' => $request->validated('name'),
+                ...$request->safe()->only(['last_name', 'first_name', 'middle_name', 'suffix']),
                 'email' => $request->validated('email'),
                 'phone' => $request->validated('phone'),
                 'password' => $request->validated('password'),

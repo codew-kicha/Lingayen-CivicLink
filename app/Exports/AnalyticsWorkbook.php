@@ -50,6 +50,7 @@ class AnalyticsWorkbook implements WithMultipleSheets
             ['Generated', now()->format('Y-m-d H:i')],
             ['Registered organizations', $s['organizations']],
             ['Currently accredited', $s['accredited']],
+            ['Organizations with verified activity in period', $s['activeOrganizations']],
             ['Verified activities in period', $s['verifiedActivities']],
             ['Residents reached in period', $s['residentsReached']],
             ['Self-initiated activities', $s['independent']],
@@ -74,9 +75,9 @@ class AnalyticsWorkbook implements WithMultipleSheets
         $compliance = $this->report->complianceTrend()->keyBy('label');
 
         return new ReportSheet('Monthly trend', [
-            'Month', 'Verified activities', 'Self-initiated', 'LGU-organized', 'Applications filed', 'Applications approved',
+            'Month', 'Verified activities', 'Self-initiated', 'LGU-organized', 'Residents reached', 'Applications filed', 'Applications approved',
         ], $this->report->activityTrend()->map(fn ($r) => [
-            $r['label'], $r['total'], $r['independent'], $r['lgu'],
+            $r['label'], $r['total'], $r['independent'], $r['lgu'], $r['reach'],
             $compliance[$r['label']]['filed'] ?? 0, $compliance[$r['label']]['approved'] ?? 0,
         ])->all());
     }

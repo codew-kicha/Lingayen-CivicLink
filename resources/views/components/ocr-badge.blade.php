@@ -11,6 +11,7 @@
         'matched' => ['badge-success', 'Looks right'],
         'mismatch' => ['badge-warning', 'Check content'],
         'unreadable' => ['badge-neutral', 'Unreadable scan'],
+        'generated' => ['badge-info', 'Made online'],
         default => ['badge-neutral', 'Not checked'],
     };
 
@@ -21,6 +22,7 @@
         $checks = $details['checks'] ?? null;
         $missing = $checks ? array_keys(array_filter($checks, fn ($ok) => ! $ok)) : [];
         $explanation = match (true) {
+            $document->ocr_status === 'generated' => 'Produced by the system from what the organization entered online.',
             $document->ocr_status === 'unreadable' => 'Too little text could be read. It may be handwritten or blurry.',
             $checks !== null && $missing === [] => 'Found '.implode('; ', array_keys($checks)).'.',
             $checks !== null => 'Missing '.implode('; ', $missing).'.',

@@ -1,13 +1,16 @@
 {{--
     "Edit login" dialog (560px) for a CSO representative's account: name, email, mobile, and an
     optional new password the admin hands over in person. Rows open it with
-    $dispatch('edit-login', { id, name, email, phone, organization, url }).
+    $dispatch('edit-login', { id, last_name, first_name, middle_name, suffix, email, phone, organization, url }).
 --}}
 @php
     $reopen = $errors->any() && old('_dialog') === 'edit-login';
     $initial = $reopen ? [
         'id' => (int) old('_account'),
-        'name' => old('name'),
+        'last_name' => old('last_name'),
+        'first_name' => old('first_name'),
+        'middle_name' => old('middle_name'),
+        'suffix' => old('suffix'),
         'email' => old('email'),
         'phone' => old('phone'),
         'organization' => old('_organization'),
@@ -32,12 +35,27 @@
                     <span class="text-danger" aria-hidden="true">*</span> Required
                 </p>
 
-                <div>
-                    <label for="login-name" class="field-label field-required">Full name</label>
-                    <input id="login-name" name="name" x-model="account.name" autofocus required maxlength="255"
-                           @class(['field-input', 'field-input-error' => $field('name')])
-                           @if ($field('name')) aria-invalid="true" aria-describedby="login-name-error" @endif>
-                    @if ($field('name'))<p id="login-name-error" class="field-error">{{ $errors->first('name') }}</p>@endif
+                <div class="grid gap-4 sm:grid-cols-2">
+                    @foreach (['last_name' => ['Last name', true], 'first_name' => ['First name', true], 'middle_name' => ['Middle name', false]] as $part => [$label, $required])
+                        <div>
+                            <label for="login-{{ $part }}" @class(['field-label', 'field-required' => $required])>
+                                {{ $label }} @unless ($required)<span class="font-normal text-muted">(optional)</span>@endunless
+                            </label>
+                            <input id="login-{{ $part }}" name="{{ $part }}" x-model="account.{{ $part }}" maxlength="100" @required($required) @if ($loop->first) autofocus @endif
+                                   @class(['field-input', 'field-input-error' => $field($part)])
+                                   @if ($field($part)) aria-invalid="true" aria-describedby="login-{{ $part }}-error" @endif>
+                            @if ($field($part))<p id="login-{{ $part }}-error" class="field-error">{{ $errors->first($part) }}</p>@endif
+                        </div>
+                    @endforeach
+                    <div>
+                        <label for="login-suffix" class="field-label">Suffix <span class="font-normal text-muted">(optional)</span></label>
+                        <select id="login-suffix" name="suffix" x-model="account.suffix" class="field-input">
+                            <option value="">None</option>
+                            @foreach (\App\Models\User::SUFFIXES as $option)
+                                <option>{{ $option }}</option>
+                            @endforeach
+                        </select>
+                    </div>
                 </div>
 
                 <div class="grid gap-6 sm:grid-cols-2">

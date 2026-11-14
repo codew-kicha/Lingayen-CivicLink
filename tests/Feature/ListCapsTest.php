@@ -58,7 +58,9 @@ class ListCapsTest extends TestCase
             ->assertSee(route('admin.analytics.excel'), false)
             ->getContent();
 
-        $this->assertSame(10, preg_match_all('/>Quiet \d\d</', $html));
+        // Counted in the at-risk section only: the sector and barangay click-throughs list them too.
+        $atRisk = \Illuminate\Support\Str::between($html, 'id="at-risk"', '</section>');
+        $this->assertSame(10, preg_match_all('/>Quiet \d\d</', $atRisk));
     }
 
     public function test_cso_partner_tags_show_the_latest_ten_of_the_total(): void

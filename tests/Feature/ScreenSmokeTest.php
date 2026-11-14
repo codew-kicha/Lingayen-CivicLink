@@ -120,7 +120,8 @@ class ScreenSmokeTest extends TestCase
     {
         $rep = User::factory()->create();
         $organization = Organization::factory()->for($rep)->create();
-        $application = ApplicationModel::factory()->for($organization)->create();
+        // Rejected, so a new application can be started (one under review would lead to itself).
+        $application = ApplicationModel::factory()->for($organization)->rejected()->create();
 
         foreach ([
             'cso.dashboard',
@@ -131,10 +132,10 @@ class ScreenSmokeTest extends TestCase
             $this->actingAs($rep)->get(route($route))->assertOk();
         }
 
-        // Applying is a dialog on the Applications page; the old address opens it.
-        $this->actingAs($rep)->get(route('cso.applications.create'))->assertRedirect(route('cso.applications.index', ['apply' => 1]));
-        $this->actingAs($rep)->get(route('cso.applications.index', ['apply' => 1]))
-            ->assertSee("dialog('apply', true)", false)->assertSee('name="documents[accreditation_form]"', false);
+        // Applying is a set of steps; the old address leads there, and each reached step renders.
+        $this->actingAs($rep)->get(route('cso.applications.create'))->assertRedirect(route('cso.application'));
+        $this->actingAs($rep)->get(route('cso.application'))->assertRedirect(route('cso.application.step', 'members'));
+        $this->actingAs($rep)->get(route('cso.application.step', 'members'))->assertOk()->assertSee('Step 3 of 6');
 
         $this->actingAs($rep)->get(route('cso.applications.show', $application))->assertOk();
     }
@@ -158,15 +159,12 @@ class ScreenSmokeTest extends TestCase
                 'sector' => config('sectors')[0],
                 'barangay' => array_values(config('barangays'))[0],
                 'advocacy' => 'Shoreline protection and clean-up drives.',
-                'members' => [
-                    ['name' => 'Ana Reyes', 'position' => 'President'],
-                    ['name' => '', 'position' => ''],
-                ],
+                'members' => $this->memberRows(),
             ])
             ->assertRedirect(route('cso.profile.edit'));
 
         $organization = $rep->refresh()->organization;
         $this->assertSame('Bantayan Coastal Volunteers', $organization->name);
-        $this->assertCount(1, $organization->members);
+        $this->assertCount(5, $organization->members);
     }
 }

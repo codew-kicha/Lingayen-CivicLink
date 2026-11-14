@@ -16,7 +16,10 @@ class RegisterOrganizationRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
-        $this->merge(['phone' => User::normalizePhone($this->input('phone'))]);
+        $this->merge([
+            'phone' => User::normalizePhone($this->input('phone')),
+            'email' => is_string($this->input('email')) ? mb_strtolower(trim($this->input('email'))) : $this->input('email'),
+        ]);
     }
 
     /**
@@ -28,7 +31,7 @@ class RegisterOrganizationRequest extends FormRequest
             'organization_name' => ['required', 'string', 'max:255'],
             'sector' => ['required', Rule::in(config('sectors'))],
             'barangay' => ['required', Rule::in(config('barangays'))],
-            'name' => ['required', 'string', 'max:255'],
+            ...User::nameRules(),
             // On the live site the domain must exist and accept mail (DNS lookup); the emailed code then
             // proves the person can read that inbox.
             'email' => ['required', 'string', 'lowercase', app()->isProduction() ? 'email:rfc,dns' : 'email', 'max:255', Rule::unique(User::class)],
@@ -50,6 +53,6 @@ class RegisterOrganizationRequest extends FormRequest
 
     public function attributes(): array
     {
-        return ['name' => 'representative name'];
+        return ['last_name' => 'last name', 'first_name' => 'first name', 'middle_name' => 'middle name'];
     }
 }

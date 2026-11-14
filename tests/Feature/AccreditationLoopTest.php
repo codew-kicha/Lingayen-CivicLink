@@ -31,18 +31,12 @@ class AccreditationLoopTest extends TestCase
         $organization = Organization::factory()->for($rep)->create();
         $admin = User::factory()->admin()->create();
 
-        // Submit.
-        $documents = collect(array_keys(config('document_types')))
-            ->mapWithKeys(fn (string $type) => ["documents[{$type}]" => UploadedFile::fake()->create("{$type}.pdf", 100, 'application/pdf')])
-            ->all();
-
-        $this->actingAs($rep)
-            ->post(route('cso.applications.store'), ['type' => 'new'] + $this->nest($documents))
-            ->assertRedirect();
-
-        $application = ApplicationModel::firstOrFail();
+        // Apply online: members, the form, the uploads, then submit. The form and the officer list are
+        // produced by the system, so every requirement is on file.
+        $application = $this->applyOnline($rep, 'new', optional: true);
         $this->assertSame('submitted', $application->status);
         $this->assertCount(count(config('document_types')), $application->documents);
+        $this->assertSame(2, $application->documents->where('ocr_status', 'generated')->count());
         Notification::assertNothingSentTo($rep);
 
         // Review: record each Sangguniang Bayan stage in turn. Skipping ahead is refused.
@@ -161,39 +155,35 @@ class AccreditationLoopTest extends TestCase
         $rep = User::factory()->create();
         Organization::factory()->for($rep)->create();
 
-        $file = fn (string $type) => UploadedFile::fake()->create("{$type}.pdf", 100, 'application/pdf');
-        $required = collect(\App\Models\Document::requiredTypes())->mapWithKeys(fn ($type) => [$type => $file($type)]);
+        // Without the optional DOLE/SEC certificate: still complete.
+        $application = $this->applyOnline($rep);
+        $this->assertCount(count(\App\Models\Document::requiredTypes()), $application->documents);
 
-        $this->actingAs($rep)
-            ->post(route('cso.applications.store'), ['type' => 'new', 'documents' => $required->all()])
-            ->assertSessionHasNoErrors()
-            ->assertRedirect();
-
-        $this->assertCount(count(\App\Models\Document::requiredTypes()), ApplicationModel::firstOrFail()->documents);
-
-        $this->actingAs($rep)
-            ->post(route('cso.applications.store'), ['type' => 'new', 'documents' => $required->except('fee_receipt')->all()])
+        // Without the receipt: the requirements step says so and the application stays a draft.
+        $other = User::factory()->create();
+        Organization::factory()->for($other)->create();
+        $draft = $this->startApplication($other);
+        $this->uploadRequirements($other, $this->requirementFiles(['constitution_bylaws']))
+            ->assertRedirect(route('cso.application.step', 'requirements'))
             ->assertSessionHasErrors('documents.fee_receipt');
+        $this->actingAs($other)->post(route('cso.application.submit'))->assertRedirect(route('cso.application.step', 'requirements'));
+        $this->assertSame('draft', $draft->fresh()->status);
     }
 
     public function test_renewals_do_not_need_the_constitution_and_by_laws_but_new_applications_do(): void
     {
         Storage::fake('local');
-        $file = fn (string $type) => UploadedFile::fake()->create("{$type}.pdf", 100, 'application/pdf');
-        $withoutConstitution = collect(\App\Models\Document::requiredTypes())->reject(fn ($type) => $type === 'constitution_bylaws')
-            ->mapWithKeys(fn ($type) => [$type => $file($type)]);
-
         $renewing = User::factory()->create();
         Organization::factory()->for($renewing)->create();
-        $this->actingAs($renewing)
-            ->post(route('cso.applications.store'), ['type' => 'renewal', 'documents' => $withoutConstitution->all()])
-            ->assertSessionHasNoErrors()->assertRedirect();
-        $this->assertSame('renewal', ApplicationModel::firstOrFail()->type);
+        $this->startApplication($renewing, 'renewal');
+        $this->uploadRequirements($renewing, $this->requirementFiles(['fee_receipt']))
+            ->assertSessionHasNoErrors()->assertRedirect(route('cso.application.step', 'review'));
+        $this->actingAs($renewing)->get(route('cso.application.step', 'requirements'))->assertDontSee('Constitution and By-Laws');
 
         $applying = User::factory()->create();
         Organization::factory()->for($applying)->create();
-        $this->actingAs($applying)
-            ->post(route('cso.applications.store'), ['type' => 'new', 'documents' => $withoutConstitution->all()])
+        $this->startApplication($applying, 'new');
+        $this->uploadRequirements($applying, $this->requirementFiles(['fee_receipt']))
             ->assertSessionHasErrors('documents.constitution_bylaws');
     }
 
@@ -204,13 +194,12 @@ class AccreditationLoopTest extends TestCase
         $rep = User::factory()->create();
         Organization::factory()->for($rep)->create();
 
-        $documents = collect(\App\Models\Document::requiredTypes())
-            ->mapWithKeys(fn ($type) => [$type => UploadedFile::fake()->create("{$type}.pdf", 100, 'application/pdf')])
-            ->put('made_up_type', UploadedFile::fake()->create('extra.pdf', 100, 'application/pdf'));
+        $this->startApplication($rep);
+        $documents = $this->requirementFiles(['fee_receipt', 'constitution_bylaws', 'made_up_type', 'accreditation_form']);
+        $this->uploadRequirements($rep, $documents)->assertRedirect();
 
-        $this->actingAs($rep)
-            ->post(route('cso.applications.store'), ['type' => 'new', 'documents' => $documents->all()])
-            ->assertRedirect();
+        // Only the uploads this step asks for are stored; the form is made online, never uploaded here.
+        $this->assertDatabaseMissing('documents', ['document_type' => 'accreditation_form']);
 
         $this->assertDatabaseMissing('documents', ['document_type' => 'made_up_type']);
     }

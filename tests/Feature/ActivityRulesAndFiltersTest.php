@@ -127,9 +127,9 @@ class ActivityRulesAndFiltersTest extends TestCase
 
     public function test_each_rate_limit_keeps_its_own_count(): void
     {
-        // Ten form downloads from one network (e.g. an office) must not use up the contact form.
-        foreach (range(1, 10) as $_) {
-            $this->get(route('accreditation.form', 'new'))->assertOk();
+        // Ten failed sign-ins from one network (e.g. an office) must not use up the contact form.
+        foreach (range(1, 4) as $_) {
+            $this->post(route('login'), ['email' => 'nobody@example.ph', 'password' => 'wrong-password']);
         }
         $message = ['name' => 'Juan', 'email' => 'juan@example.ph', 'message' => 'How do we renew our accreditation?'];
         $this->post(route('contact.send'), $message)->assertSessionHas('status');

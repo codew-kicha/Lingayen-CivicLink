@@ -53,11 +53,11 @@ class AppShellTest extends TestCase
         $rep = User::factory()->create(['name' => 'Ana Reyes']);
         Organization::factory()->for($rep)->create(['name' => 'Pangapisan Fisherfolk Association']);
 
-        $this->actingAs($rep)->patch(route('profile.update'), ['name' => 'Ana Reyes', 'email' => $rep->email, 'phone' => '0917 123 4567'])
+        $this->actingAs($rep)->patch(route('profile.update'), ['last_name' => 'Reyes', 'first_name' => 'Ana', 'email' => $rep->email, 'phone' => '0917 123 4567'])
             ->assertSessionHasNoErrors();
         $this->assertNull($rep->fresh()->position);
 
-        $this->actingAs($rep)->patch(route('profile.update'), ['name' => 'Ana Reyes', 'position' => 'President', 'email' => $rep->email, 'phone' => '0917 123 4567']);
+        $this->actingAs($rep)->patch(route('profile.update'), ['last_name' => 'Reyes', 'first_name' => 'Ana', 'position' => 'President', 'email' => $rep->email, 'phone' => '0917 123 4567']);
         $this->assertSame('President', $rep->fresh()->position);
 
         $this->actingAs($rep)->get(route('cso.dashboard'))

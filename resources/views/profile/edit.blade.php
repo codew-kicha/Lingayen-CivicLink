@@ -10,14 +10,9 @@
                     @csrf
                     @method('PATCH')
 
+                    <x-name-fields :person="$user" />
+
                     <div class="grid gap-6 sm:grid-cols-2">
-                        <div>
-                            <label for="name" class="field-label">Full name</label>
-                            <input id="name" name="name" value="{{ old('name', $user->name) }}" required autocomplete="name"
-                                   class="field-input @error('name') field-input-error @enderror"
-                                   @error('name') aria-invalid="true" aria-describedby="name-error" @enderror>
-                            @error('name')<p id="name-error" class="field-error">{{ $message }}</p>@enderror
-                        </div>
                         <div>
                             <label for="position" class="field-label">Position <span class="font-normal text-muted">(optional)</span></label>
                             <input id="position" name="position" value="{{ old('position', $user->position) }}" maxlength="120"
@@ -29,11 +24,8 @@
                     </div>
 
                     <div>
-                        <label for="email" class="field-label">Email</label>
-                        <input id="email" name="email" type="email" value="{{ old('email', $user->email) }}" required autocomplete="username"
-                               aria-describedby="email-hint" class="field-input @error('email') field-input-error @enderror">
-                        <p id="email-hint" class="field-hint">Changing it means confirming the new address before you can continue.</p>
-                        @error('email')<p class="field-error">{{ $message }}</p>@enderror
+                        <x-email-field :value="$user->email" autocomplete="username"
+                                       hint="Changing it means confirming the new address before you can continue." />
 
                         @unless ($user->hasVerifiedEmail())
                             <p class="mt-2 text-sm text-warning">

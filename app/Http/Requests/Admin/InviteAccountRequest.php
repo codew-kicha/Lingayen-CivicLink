@@ -16,7 +16,10 @@ class InviteAccountRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
-        $this->merge(['phone' => User::normalizePhone($this->input('phone'))]);
+        $this->merge([
+            'phone' => User::normalizePhone($this->input('phone')),
+            'email' => is_string($this->input('email')) ? mb_strtolower(trim($this->input('email'))) : $this->input('email'),
+        ]);
     }
 
     /**
@@ -25,7 +28,7 @@ class InviteAccountRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['required', 'string', 'max:255'],
+            ...User::nameRules(),
             'email' => ['required', 'email', 'lowercase', 'max:255', Rule::unique(User::class)],
             'phone' => ['nullable', 'regex:/^\+639\d{9}$/'],
         ];

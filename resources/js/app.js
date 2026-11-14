@@ -166,6 +166,262 @@ Alpine.data('documentPrecheck', (checks) => ({
     },
 }));
 
+// <x-email-field>: helps type an email without limiting it. Gmail is the usual provider here, so a
+// faint "@gmail.com" completes a name with no "@" yet (Tab or → accepts it); after "@" the common
+// domains are offered as you type; on leaving the field a likely typo gets "Did you mean ...?".
+const EMAIL_DOMAINS = ['gmail.com', 'yahoo.com', 'yahoo.com.ph', 'outlook.com', 'hotmail.com', 'icloud.com', 'ymail.com', 'live.com', 'lingayen.gov.ph'];
+
+// Edit distance (insertions, deletions, substitutions, and swapped neighbours count as one).
+function editDistance(a, b) {
+    const d = Array.from({ length: a.length + 1 }, (_, i) => [i, ...Array(b.length).fill(0)]);
+    for (let j = 1; j <= b.length; j++) d[0][j] = j;
+    for (let i = 1; i <= a.length; i++) {
+        for (let j = 1; j <= b.length; j++) {
+            const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+            d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + cost);
+            if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) d[i][j] = Math.min(d[i][j], d[i - 2][j - 2] + 1);
+        }
+    }
+    return d[a.length][b.length];
+}
+
+// The known domain a typed one was probably meant to be, or null when it looks intended.
+export function likelyDomain(domain) {
+    domain = domain.toLowerCase();
+    if (!domain || EMAIL_DOMAINS.includes(domain)) return null;
+    let best = null;
+    let bestDistance = 3;
+    for (const known of EMAIL_DOMAINS) {
+        const distance = editDistance(domain, known);
+        if (distance < bestDistance) [best, bestDistance] = [known, distance];
+    }
+    // "gmail" or "gmail.co" without the rest also counts.
+    return best ?? EMAIL_DOMAINS.find((known) => known.startsWith(domain) && domain.length >= 4) ?? null;
+}
+
+Alpine.data('emailAssist', (initial = '') => ({
+    value: initial,
+    open: false,
+    active: 0,
+    suggestion: '',
+
+    get local() { return this.value.split('@')[0]; },
+    get domainPart() { return this.value.includes('@') ? this.value.split('@')[1] : null; },
+    // Shown only while the caret is at the end of a name with no "@" yet.
+    get ghost() { return this.value && !this.value.includes('@') && !/\s/.test(this.value) ? '@gmail.com' : ''; },
+    get options() {
+        const typed = this.domainPart;
+        if (typed === null || EMAIL_DOMAINS.includes(typed.toLowerCase())) return [];
+        return EMAIL_DOMAINS.filter((domain) => domain.startsWith(typed.toLowerCase())).slice(0, 6);
+    },
+
+    update() {
+        this.suggestion = '';
+        this.active = 0;
+        this.open = this.domainPart !== null;
+    },
+
+    key(event) {
+        // Email inputs don't report the caret position (selectionStart is null); treat that as the end.
+        const input = this.$refs.input;
+        const atEnd = input.selectionStart === null || input.selectionStart === this.value.length;
+        if (this.ghost && atEnd && (event.key === 'Tab' || event.key === 'ArrowRight') && !event.shiftKey) {
+            event.preventDefault();
+            this.value += this.ghost;
+            return;
+        }
+        if (!this.open || !this.options.length) return;
+        if (event.key === 'ArrowDown') { event.preventDefault(); this.active = (this.active + 1) % this.options.length; }
+        if (event.key === 'ArrowUp') { event.preventDefault(); this.active = (this.active + this.options.length - 1) % this.options.length; }
+        if (event.key === 'Enter' || (event.key === 'Tab' && !event.shiftKey)) { event.preventDefault(); this.pick(this.options[this.active]); }
+        if (event.key === 'Escape') this.open = false;
+    },
+
+    pick(domain) {
+        this.value = this.local + '@' + domain;
+        this.open = false;
+        this.$nextTick(() => this.$refs.input.focus());
+    },
+
+    check() {
+        this.open = false;
+        const domain = this.domainPart;
+        const fix = domain ? likelyDomain(domain) : null;
+        this.suggestion = fix ? this.local + '@' + fix : '';
+    },
+
+    useSuggestion() {
+        this.value = this.suggestion;
+        this.suggestion = '';
+        this.$refs.input.focus();
+    },
+}));
+
+// <x-member-table>: the member list, five rows to a page. Every row stays rendered (hidden when on
+// another page) so the whole list is submitted; a completely blank row has no input names, so it is
+// not. The first row is the representative and can't be removed. A spreadsheet upload is read by the
+// server and appended for review. Adding or removing a row fires `input` so save bars notice.
+const MEMBER_FIELDS = ['last_name', 'first_name', 'middle_name', 'position', 'contact_number', 'email'];
+const PER_PAGE = 5;
+
+Alpine.data('memberTable', ({ rows, errors, minimum, representative, importUrl }) => ({
+    rows: rows.map((row, i) => ({ ...Object.fromEntries(MEMBER_FIELDS.map((f) => [f, row[f] ?? ''])), src: row.src, key: i, locked: i === 0 })),
+    errors,
+    minimum,
+    page: 1,
+    nextKey: rows.length,
+    importing: false,
+    notice: '',
+    noticeError: false,
+    skipped: [],
+
+    init() {
+        // After a failed save, open the page holding the first row with an error.
+        const first = this.rows.findIndex((row) => MEMBER_FIELDS.some((f) => this.error(row, f)));
+        if (first > 0) this.page = Math.floor(first / PER_PAGE) + 1;
+    },
+
+    get pages() { return Math.max(1, Math.ceil(this.rows.length / PER_PAGE)); },
+    get filled() { return this.rows.filter((row) => row.last_name.trim() && row.first_name.trim()).length; },
+    onPage(index) { return Math.floor(index / PER_PAGE) + 1 === this.page; },
+    blank(row) { return !row.locked && MEMBER_FIELDS.every((f) => !String(row[f]).trim()); },
+    error(row, field) { return row.src === undefined ? '' : (this.errors[`members.${row.src}.${field}`] ?? [''])[0]; },
+    changed() { this.$root.dispatchEvent(new Event('input', { bubbles: true })); },
+
+    add(values = {}) {
+        this.rows.push({ ...Object.fromEntries(MEMBER_FIELDS.map((f) => [f, values[f] ?? ''])), key: this.nextKey++, locked: false });
+        if (!Object.keys(values).length) {
+            this.page = this.pages;
+            const key = this.rows.at(-1).key;
+            this.$nextTick(() => document.getElementById(`member-${key}-last_name`)?.focus());
+        }
+        this.changed();
+    },
+
+    remove(row) {
+        if (row.locked) return;
+        this.rows = this.rows.filter((r) => r !== row);
+        this.page = Math.min(this.page, this.pages);
+        this.changed();
+    },
+
+    async upload(event) {
+        const file = event.target.files[0];
+        event.target.value = '';
+        if (!file) return;
+        this.importing = true;
+        this.notice = '';
+        this.skipped = [];
+        try {
+            const body = new FormData();
+            body.append('file', file);
+            const response = await fetch(importUrl, {
+                method: 'POST',
+                body,
+                headers: { Accept: 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content },
+            });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message ?? Object.values(data.errors ?? {})[0]?.[0] ?? 'The file could not be read.');
+
+            // Empty rows give way to the imported ones; the representative stays first.
+            this.rows = this.rows.filter((row) => !this.blank(row));
+            const rep = this.rows[0];
+            let added = 0;
+            for (const row of data.rows) {
+                const sameAsRep = row.last_name.toLowerCase() === rep.last_name.toLowerCase() && row.first_name.toLowerCase() === rep.first_name.toLowerCase();
+                if (sameAsRep) continue;
+                if (row.position.toLowerCase() === representative.toLowerCase()) row.position = '';
+                this.add(row);
+                added++;
+            }
+            this.page = 1;
+            this.noticeError = false;
+            this.skipped = data.skipped ?? [];
+            this.notice = `${added} ${added === 1 ? 'member was' : 'members were'} added from the file. Check them, then save.`;
+        } catch (error) {
+            this.noticeError = true;
+            this.notice = error.message;
+        } finally {
+            this.importing = false;
+        }
+    },
+}));
+
+// Admin dashboard tiles: a number that counts up from zero when the page opens (about 0.6 s, easing
+// out). Under reduced motion it simply shows the number. The server-rendered number is the fallback.
+Alpine.data('countUp', (target) => ({
+    shown: target,
+
+    init() {
+        if (target <= 0 || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+        const start = performance.now();
+        const step = (now) => {
+            // A frame's timestamp can be a little earlier than `start`; never go below zero.
+            const t = Math.min(1, Math.max(0, (now - start) / 600));
+            this.shown = Math.round(target * (1 - Math.pow(1 - t, 3)));
+            if (t < 1) requestAnimationFrame(step);
+        };
+        this.shown = 0;
+        requestAnimationFrame(step);
+    },
+}));
+
+// Analytics charts: one read-out that follows the pointer or keyboard focus, the mark that was clicked
+// (its details open under the chart), and the measure shown on the monthly chart. Each mark carries
+// its read-out as JSON in data-tip; it is shown with x-text, so names stay text. `bar` charts put
+// the read-out at the end of the bar, `column` charts above the column.
+Alpine.data('chart', ({ shape = 'column', metric = null } = {}) => ({
+    tip: null,
+    picked: null,
+    metric,
+    more: false,
+
+    show(event) {
+        const target = event.currentTarget;
+        const plot = this.$refs.plot.getBoundingClientRect();
+        const marks = [...target.querySelectorAll('[data-mark]')].filter((el) => el.getClientRects().length);
+        const mark = (marks[0] ?? target).getBoundingClientRect();
+        const x = shape === 'bar' ? mark.left + Math.max(mark.width, 0) : mark.left + mark.width / 2;
+        const { title, rows } = JSON.parse(target.dataset.tip);
+        const half = Math.min(112, plot.width / 2);
+        this.tip = { title, rows, x: Math.min(Math.max(x - plot.left, half), plot.width - half), y: mark.top - plot.top };
+    },
+
+    hide() {
+        this.tip = null;
+    },
+
+    pick(key) {
+        this.picked = this.picked === key ? null : key;
+    },
+}));
+
+// Sortable tables on the analytics page: a header button sorts by its column, numbers by value
+// (cells may carry data-sort), text alphabetically; a second click reverses.
+Alpine.data('sortTable', () => ({
+    column: null,
+    ascending: false,
+
+    sort(index, text = false) {
+        this.ascending = this.column === index ? ! this.ascending : text;
+        this.column = index;
+        const body = this.$refs.body;
+        const value = (row) => row.cells[index].dataset.sort ?? row.cells[index].textContent.trim();
+        const rows = [...body.rows].sort((a, b) => {
+            const x = value(a);
+            const y = value(b);
+            const order = text ? x.localeCompare(y) : parseFloat(x) - parseFloat(y);
+            return this.ascending ? order : -order;
+        });
+        body.append(...rows);
+    },
+
+    order(index) {
+        if (this.column !== index) return 'none';
+        return this.ascending ? 'ascending' : 'descending';
+    },
+}));
+
 // <x-file-field>: the × beside a file input. Clearing fires `change` so listeners (the pre-check)
 // reset as if the person had cleared it themselves; focus returns to the input.
 Alpine.data('fileField', () => ({
@@ -391,13 +647,13 @@ Alpine.data('postEditor', (items, initial = null) => ({
 // Accounts › Edit login: one dialog for every representative row. `generate` makes a password that
 // meets Password::defaults() (12+ characters, mixed case, a number, a symbol) without look-alikes.
 Alpine.data('loginEditor', (initial = null, resetOnLoad = false) => ({
-    account: initial ?? { id: null, name: '', email: '', phone: '', organization: '', url: '' },
+    account: initial ?? { id: null, last_name: '', first_name: '', middle_name: '', suffix: '', email: '', phone: '', organization: '', url: '' },
     reset: resetOnLoad,
     password: '',
     show: false,
 
     edit(account) {
-        this.account = { ...account, phone: account.phone ?? '' };
+        this.account = { ...account, phone: account.phone ?? '', middle_name: account.middle_name ?? '', suffix: account.suffix ?? '' };
         Object.assign(this, { reset: false, password: '', show: false });
         if (this.$refs.adminPassword) this.$refs.adminPassword.value = ''; // drop anything a browser filled in
         this.$dispatch('open-dialog', 'edit-login');

@@ -27,7 +27,7 @@ class Activity extends Model
     protected $fillable = [
         'organization_id', 'logged_by', 'verified_by', 'title', 'description',
         'activity_date', 'participants_estimate', 'activity_source', 'status', 'verified_at', 'rejection_reason',
-        'evidence_path', 'evidence_filename', 'evidence_mime',
+        'evidence_path', 'evidence_filename', 'evidence_mime', 'evidence_hash',
     ];
 
     /**
@@ -38,16 +38,17 @@ class Activity extends Model
     {
         $evidence = $data['evidence'] ?? null;
         $previous = $this->evidence_path;
-        $attributes = Arr::except($data, ['partners', 'evidence', 'remove_evidence']);
+        $attributes = Arr::except($data, ['partners', 'evidence', 'remove_evidence', 'evidence_text']);
 
         if ($evidence) {
             $attributes += [
                 'evidence_path' => $evidence->store("activity-evidence/{$this->organization_id}"),
                 'evidence_filename' => $evidence->getClientOriginalName(),
                 'evidence_mime' => $evidence->getMimeType(),
+                'evidence_hash' => hash_file('sha256', $evidence->getRealPath()),
             ];
         } elseif (! empty($data['remove_evidence'])) {
-            $attributes += ['evidence_path' => null, 'evidence_filename' => null, 'evidence_mime' => null];
+            $attributes += ['evidence_path' => null, 'evidence_filename' => null, 'evidence_mime' => null, 'evidence_hash' => null];
         }
 
         DB::transaction(function () use ($attributes, $data) {
@@ -57,6 +58,26 @@ class Activity extends Model
 
         if ($previous && $previous !== $this->evidence_path) {
             Storage::disk('local')->delete($previous);
+        }
+
+        // A new or removed sheet is checked again; the AI reading starts over for a new file.
+        if ($evidence || ! empty($data['remove_evidence'])) {
+            $this->forceFill(['check_findings' => null, 'ai_names_count' => null, 'ai_checked_at' => null]);
+        }
+        $this->checkSheet($data['evidence_text'] ?? null);
+    }
+
+    /**
+     * The checks that help the office verify (App\Services\SheetChecks), then, when switched on, the
+     * AI reading of the sign-in sheet after the page has answered (App\Services\SheetReader).
+     */
+    public function checkSheet(?string $text = null): void
+    {
+        \App\Services\SheetChecks::run($this, $text);
+
+        if ($this->evidence_path && \App\Services\SheetReader::enabled() && ! $this->ai_checked_at) {
+            $id = $this->id;
+            \Illuminate\Support\defer(fn () => \App\Services\SheetReader::read(Activity::find($id)));
         }
     }
 
@@ -68,6 +89,12 @@ class Activity extends Model
         if ($this->evidence_path) {
             Storage::disk('local')->delete($this->evidence_path);
         }
+    }
+
+    /** Every check finding, free and AI, as one list of sentences. */
+    public function checkFindings(): array
+    {
+        return \App\Services\SheetChecks::findings($this);
     }
 
     public function evidenceIsImage(): bool
@@ -85,6 +112,9 @@ class Activity extends Model
         return [
             'activity_date' => 'date',
             'verified_at' => 'datetime',
+            'check_findings' => 'array',
+            'checked_at' => 'datetime',
+            'ai_checked_at' => 'datetime',
         ];
     }
 

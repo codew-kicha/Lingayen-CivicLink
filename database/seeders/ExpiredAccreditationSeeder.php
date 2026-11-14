@@ -28,7 +28,8 @@ class ExpiredAccreditationSeeder extends Seeder
         $admin = User::where('role', 'admin')->orderBy('id')->first();
 
         $user = User::factory()->create([
-            'name' => 'Representative, Lasip Coastal Watch',
+            'last_name' => 'Manaois', 'first_name' => 'Rogelio', 'middle_name' => 'Caguioa',
+            'phone' => '+639176324418',
             'email' => 'expired@example.ph',
             'password' => Hash::make(DatabaseSeeder::password()),
         ]);
@@ -40,10 +41,7 @@ class ExpiredAccreditationSeeder extends Seeder
             'advocacy' => 'Volunteers who patrol the Lasip shoreline, report illegal fishing, and run clean-ups after storms.',
         ]);
 
-        $organization->members()->createMany([
-            ['name' => fake()->name(), 'position' => 'President', 'contact_number' => '0917'.fake()->numerify('#######')],
-            ['name' => fake()->name(), 'position' => 'Secretary', 'contact_number' => '0918'.fake()->numerify('#######')],
-        ]);
+        DatabaseSeeder::seedMembers($organization, $user);
 
         // Accredited three years ago; the term ended a month ago and nobody filed a renewal.
         $issuedAt = now()->subYears(3)->subMonth();

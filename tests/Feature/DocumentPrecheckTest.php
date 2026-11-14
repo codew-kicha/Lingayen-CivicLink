@@ -72,24 +72,23 @@ class DocumentPrecheckTest extends TestCase
         $rep = User::factory()->create();
         $organization = Organization::factory()->for($rep)->create();
 
-        $documents = collect(config('document_types'))->map(fn ($type, $key) => UploadedFile::fake()->create("{$key}.pdf", 50, 'application/pdf'))->all();
-
-        $this->actingAs($rep)->post(route('cso.applications.store'), [
-            'type' => 'new',
-            'documents' => $documents,
+        $this->startApplication($rep);
+        $this->uploadRequirements($rep, $this->requirementFiles(['fee_receipt', 'constitution_bylaws', 'dole_sec_certification']), [
             'ocr_text' => [
                 'fee_receipt' => self::RECEIPT,                          // right document
                 'constitution_bylaws' => self::RECEIPT,                  // wrong slot, still accepted
-                'accreditation_form' => 'scribbles',                     // handwritten / unreadable
-                // officers_members_list: browser never finished reading
+                'dole_sec_certification' => 'scribbles',                 // handwritten / unreadable
             ],
         ])->assertSessionHasNoErrors()->assertRedirect();
+        $this->actingAs($rep)->post(route('cso.application.submit'))->assertSessionHasNoErrors();
 
         $status = Document::pluck('ocr_status', 'document_type');
         $this->assertSame('matched', $status['fee_receipt']);
         $this->assertSame('mismatch', $status['constitution_bylaws']);
-        $this->assertSame('unreadable', $status['accreditation_form']);
-        $this->assertSame('not_checked', $status['officers_members_list']);
+        $this->assertSame('unreadable', $status['dole_sec_certification']);
+        // Made by the system from what was entered online: no pre-check needed.
+        $this->assertSame('generated', $status['accreditation_form']);
+        $this->assertSame('generated', $status['officers_members_list']);
 
         $receipt = Document::where('document_type', 'fee_receipt')->first();
         $this->assertContains('treasur', $receipt->ocr_details['found']);
@@ -118,7 +117,8 @@ class DocumentPrecheckTest extends TestCase
         $rep = User::factory()->create();
         Organization::factory()->for($rep)->create();
 
-        $this->actingAs($rep)->post(route('cso.applications.store'), ['type' => 'new', 'ocr_text' => ['fee_receipt' => str_repeat('a', 20001)]])
+        $this->startApplication($rep);
+        $this->uploadRequirements($rep, [], ['ocr_text' => ['fee_receipt' => str_repeat('a', 20001)]])
             ->assertSessionHasErrors('ocr_text.fee_receipt');
     }
 }
