@@ -20,7 +20,15 @@ class AnalyticsWorkbook implements WithMultipleSheets
             $this->barangays(),
             $this->contributors(),
             self::awards($this->report),
+            $this->definitions(),
         ];
+    }
+
+    /** What each figure measures and its formula, the same text as the page's ⓘ icons. */
+    private function definitions(): ReportSheet
+    {
+        return new ReportSheet('Definitions', ['Figure', 'Formula', 'Note'],
+            collect(config('metrics'))->map(fn (array $m) => [$m[0], $m[1], $m[2] ?? ''])->values()->all());
     }
 
     /** Also downloaded on its own for the Outstanding CSO recognition. */
@@ -51,11 +59,15 @@ class AnalyticsWorkbook implements WithMultipleSheets
             ['Registered organizations', $s['organizations']],
             ['Currently accredited', $s['accredited']],
             ['Organizations with verified activity in period', $s['activeOrganizations']],
+            ['Participation rate (accredited with verified activity)', $s['participationRate']],
             ['Verified activities in period', $s['verifiedActivities']],
             ['Residents reached in period', $s['residentsReached']],
             ['Self-initiated activities', $s['independent']],
             ['LGU-organized activities', $s['lguOrganized']],
             ['Self-initiated share', $s['selfInitiatedRatio']],
+            ['Applications approved in period', $s['approvedDecisions']],
+            ['Applications rejected in period', $s['rejectedDecisions']],
+            ['Accreditation rate (approved / decided)', $s['accreditationRate']],
         ], ['B' => '#,##0.###']);
     }
 

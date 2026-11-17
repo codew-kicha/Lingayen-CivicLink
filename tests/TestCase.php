@@ -31,7 +31,7 @@ abstract class TestCase extends BaseTestCase
         $this->actingAs($rep)->post(route('cso.application.form'), [
             'step' => 'form', 'action' => 'next', 'type' => $type,
             'organization_name' => $rep->organization->name, 'representative_name' => $rep->name,
-            'contact_number' => '0917 123 4567', 'place_of_operation' => 'Barangay Poblacion, Lingayen, Pangasinan',
+            'contact_number' => '0917 123 4567', 'place_barangay' => 'Poblacion', 'place_detail' => '',
             'certify' => '1', 'certified_name' => $rep->name,
         ])->assertSessionHasNoErrors();
 
@@ -44,20 +44,49 @@ abstract class TestCase extends BaseTestCase
         return collect($keys)->mapWithKeys(fn (string $key) => [$key => UploadedFile::fake()->create("{$key}.pdf", 100, 'application/pdf')])->all();
     }
 
-    /** Step 5: post uploads (and anything else, such as ocr_text) to the draft. */
-    protected function uploadRequirements(User $rep, array $documents, array $extra = []): TestResponse
-    {
-        return $this->actingAs($rep)->post(route('cso.application.requirements'), $extra + ['step' => 'requirements', 'action' => 'next', 'documents' => $documents]);
-    }
-
-    /** The whole online application, submitted; with $optional the DOLE/SEC certificate too. */
-    protected function applyOnline(User $rep, string $type = 'new', bool $optional = false): ApplicationModel
+    /** Steps 3 to 5: members, form, and submit. The application waits for the Desk Office (submitted). */
+    protected function submitForm(User $rep, string $type = 'new'): ApplicationModel
     {
         $draft = $this->startApplication($rep, $type);
-        $keys = collect(ApplicationSteps::uploads($draft))->reject(fn (array $t) => $t['optional'] && ! $optional)->keys()->all();
-        $this->uploadRequirements($rep, $this->requirementFiles($keys))->assertSessionHasNoErrors();
         $this->actingAs($rep)->post(route('cso.application.submit'))->assertSessionHasNoErrors();
 
         return $draft->fresh();
+    }
+
+    /** The Desk Office approves the application form, which asks for the requirements. */
+    protected function approveForm(ApplicationModel $application, ?User $admin = null): ApplicationModel
+    {
+        $this->actingAs($admin ?? User::factory()->admin()->create())
+            ->post(route('admin.applications.approve-form', $application))->assertSessionHasNoErrors();
+
+        return $application->fresh();
+    }
+
+    /** The Desk Office records a Sangguniang Bayan reading: session date, outcome, remarks for the CSO. */
+    protected function recordReading(ApplicationModel $application, string $stage, string $outcome = 'passed', ?User $admin = null, string $remarks = 'Discussed and found in order.'): TestResponse
+    {
+        return $this->actingAs($admin ?? User::factory()->admin()->create())->patch(route('admin.applications.stage', $application), [
+            'sb_stage' => $stage, 'outcome' => $outcome, 'remarks' => $remarks, 'held_on' => now()->toDateString(),
+        ]);
+    }
+
+    /** Step 6: post uploads (and anything else, such as ocr_text) once the form is approved; submits unless action=later. */
+    protected function uploadRequirements(User $rep, array $documents, array $extra = []): TestResponse
+    {
+        return $this->actingAs($rep)->post(route('cso.application.requirements'), $extra + ['action' => 'submit', 'documents' => $documents]);
+    }
+
+    /**
+     * The whole online application: form submitted, approved by the Desk Office, requirements
+     * submitted (requirements_submitted, ready for the SB readings). With $optional the DOLE/SEC
+     * certificate too.
+     */
+    protected function applyOnline(User $rep, string $type = 'new', bool $optional = false): ApplicationModel
+    {
+        $application = $this->approveForm($this->submitForm($rep, $type));
+        $keys = collect(ApplicationSteps::uploads($application))->reject(fn (array $t) => $t['optional'] && ! $optional)->keys()->all();
+        $this->uploadRequirements($rep, $this->requirementFiles($keys))->assertSessionHasNoErrors();
+
+        return $application->fresh();
     }
 }

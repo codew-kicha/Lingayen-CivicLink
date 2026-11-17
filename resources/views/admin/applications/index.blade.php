@@ -11,7 +11,7 @@
     </x-slot:actions>
 
     <x-filter-bar search="Search organization or barangay"
-                  :chips="['' => 'All', 'review' => 'Under review', 'approved' => 'Approved', 'rejected' => 'Rejected']" />
+                  :chips="['' => 'All', 'review' => 'To review', 'requirements' => 'Waiting for requirements', 'approved' => 'Approved', 'rejected' => 'Rejected']" />
 
     @php $filtered = request()->filled('status') || request()->filled('q'); @endphp
 

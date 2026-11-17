@@ -44,7 +44,7 @@ class AppServiceProvider extends ServiceProvider
             $user = auth()->user();
             $view->with('navCounts', match (true) {
                 (bool) $user?->isAdmin() => [
-                    'pendingApplications' => ApplicationModel::whereIn('status', ['submitted', 'under_review'])->count(),
+                    'pendingApplications' => ApplicationModel::whereIn('status', ApplicationModel::WITH_OFFICE)->count(),
                     'pendingActivities' => Activity::where('status', 'pending')->count(),
                 ],
                 (bool) $user?->isCsoRep() => ['unreadNotifications' => $user->unreadNotifications()->count()],

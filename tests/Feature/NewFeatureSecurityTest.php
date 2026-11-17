@@ -53,13 +53,12 @@ class NewFeatureSecurityTest extends TestCase
     {
         Storage::fake('local');
         $owner = $this->rep();
-        $this->startApplication($owner);
+        $ownerDraft = $this->approveForm($this->submitForm($owner));
         $this->uploadRequirements($owner, $this->requirementFiles(['fee_receipt']), ['action' => 'later']);
-        $receipt = $owner->organization->documents()->firstOrFail();
-        $ownerDraft = ApplicationSteps::draft($owner->organization);
+        $receipt = $owner->organization->documents()->where('document_type', 'fee_receipt')->firstOrFail();
 
         $other = $this->rep();
-        $this->startApplication($other);
+        $this->approveForm($this->submitForm($other));
 
         // Removing, downloading or viewing the owner's draft and files is refused.
         $this->actingAs($other)->delete(route('cso.application.documents.destroy', $receipt))->assertNotFound();
@@ -67,9 +66,10 @@ class NewFeatureSecurityTest extends TestCase
         $this->actingAs($other)->get(route('cso.applications.show', $ownerDraft))->assertForbidden();
         $this->assertModelExists($receipt);
 
-        // Steps only ever act on the signed-in organization's own draft.
-        $this->actingAs($other)->post(route('cso.application.submit'));
-        $this->assertSame('draft', $ownerDraft->fresh()->status);
+        // Steps only ever act on the signed-in organization's own application.
+        $this->uploadRequirements($other, $this->requirementFiles(['fee_receipt', 'constitution_bylaws']));
+        $this->assertSame('requirements_pending', $ownerDraft->fresh()->status);
+        $this->assertSame(1, $ownerDraft->documents()->where('document_type', 'fee_receipt')->count());
     }
 
     public function test_a_draft_can_never_be_reviewed_or_approved(): void
@@ -165,7 +165,7 @@ class NewFeatureSecurityTest extends TestCase
     {
         Storage::fake('local');
         $rep = $this->rep();
-        $this->startApplication($rep);
+        $this->approveForm($this->submitForm($rep));
 
         foreach (range(1, 30) as $_) {
             $this->uploadRequirements($rep, [], ['action' => 'later']);

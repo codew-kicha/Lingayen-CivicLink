@@ -84,6 +84,9 @@ Alpine.data('heroVideo', () => ({
         const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
         const saveData = navigator.connection && navigator.connection.saveData;
 
+        // Phones only autoplay a video that is muted as a property, not just as an attribute. If the
+        // browser still refuses (e.g. iOS Low Power Mode), the poster simply stays.
+        this.$refs.video.muted = true;
         if (!reduceMotion && !saveData) this.$refs.video.play().catch(() => {});
     },
 }));
@@ -373,6 +376,10 @@ Alpine.data('countUp', (target) => ({
 Alpine.data('chart', ({ shape = 'column', metric = null } = {}) => ({
     tip: null,
     picked: null,
+    // On the sector chart: the colour that was clicked within the picked bar, and the colour the
+    // legend highlights across every bar.
+    pickedSource: null,
+    source: null,
     metric,
     more: false,
 
@@ -391,8 +398,48 @@ Alpine.data('chart', ({ shape = 'column', metric = null } = {}) => ({
         this.tip = null;
     },
 
-    pick(key) {
-        this.picked = this.picked === key ? null : key;
+    pick(key, source = null) {
+        const same = this.picked === key && this.pickedSource === source;
+        this.picked = same ? null : key;
+        this.pickedSource = same ? null : source;
+    },
+}));
+
+// <x-info-tip>: a metric's definition beside it. Hover or focus shows it; a click pins it open until
+// Esc, a click elsewhere, or scrolling. It sits in the top layer (popover) where supported, placed
+// under the button (above when there's no room) and kept inside the window.
+Alpine.data('infoTip', () => ({
+    open: false,
+    pinned: false,
+
+    show() {
+        this.open = true;
+        this.$nextTick(() => this.place());
+    },
+
+    hide(force = false) {
+        if (this.pinned && !force) return;
+        this.pinned = false;
+        this.open = false;
+        if (this.$refs.tip.matches?.(':popover-open')) this.$refs.tip.hidePopover();
+    },
+
+    pin() {
+        if (this.pinned) return this.hide(true);
+        this.pinned = true;
+        this.show();
+    },
+
+    place() {
+        const tip = this.$refs.tip;
+        if (tip.showPopover && !tip.matches(':popover-open')) tip.showPopover();
+        const button = this.$refs.button.getBoundingClientRect();
+        const width = Math.min(288, window.innerWidth - 32);
+        tip.style.inset = 'auto';
+        tip.style.width = `${width}px`;
+        tip.style.left = `${Math.min(Math.max(button.left + button.width / 2 - width / 2, 16), window.innerWidth - width - 16)}px`;
+        const below = button.bottom + 8;
+        tip.style.top = below + tip.offsetHeight > window.innerHeight - 8 ? `${Math.max(8, button.top - 8 - tip.offsetHeight)}px` : `${below}px`;
     },
 }));
 

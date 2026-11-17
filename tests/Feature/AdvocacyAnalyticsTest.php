@@ -210,7 +210,7 @@ class AdvocacyAnalyticsTest extends TestCase
 
         $workbook = IOFactory::load($response->getFile()->getPathname());
         $this->assertSame(
-            ['Summary', 'Sector comparison', 'Monthly trend', 'At-risk organizations', 'Barangays', 'Top contributors', 'Awards ranking'],
+            ['Summary', 'Sector comparison', 'Monthly trend', 'At-risk organizations', 'Barangays', 'Top contributors', 'Awards ranking', 'Definitions'],
             $workbook->getSheetNames(),
         );
         $this->assertSame('Workbook Weavers', $workbook->getSheetByName('Top contributors')->getCell('A2')->getValue());

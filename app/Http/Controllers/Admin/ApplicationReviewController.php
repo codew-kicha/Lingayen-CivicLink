@@ -4,13 +4,16 @@ namespace App\Http\Controllers\Admin;
 
 use App\Exports\ReportSheet;
 use App\Http\Controllers\Controller;
-use App\Support\Mailer;
 use App\Http\Requests\RejectApplicationRequest;
 use App\Http\Requests\UpdateSbStageRequest;
 use App\Models\Accreditation;
 use App\Models\ApplicationModel;
+use App\Models\AuditLog;
 use App\Notifications\ApplicationStatusChanged;
+use App\Notifications\SbReadingRecorded;
+use App\Services\ApplicationSteps;
 use App\Support\ListPagination;
+use App\Support\Mailer;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -22,9 +25,10 @@ use Symfony\Component\HttpFoundation\Response;
 
 class ApplicationReviewController extends Controller
 {
-    /** Filter chips on the queue: value => statuses. "Under review" is everything still waiting on PESO. */
+    /** Filter chips on the queue: value => statuses. "To review" is everything waiting on PESO. */
     public const FILTERS = [
-        'review' => ['submitted', 'under_review'],
+        'review' => ApplicationModel::WITH_OFFICE,
+        'requirements' => ['requirements_pending'],
         'approved' => ['approved'],
         'rejected' => ['rejected'],
     ];
@@ -78,7 +82,7 @@ class ApplicationReviewController extends Controller
                 ->where('name', 'like', "%{$term}%")
                 ->orWhere('barangay', 'like', "%{$term}%")))
             // CASE rather than MySQL's FIELD() so the same query runs under SQLite in the test suite.
-            ->orderByRaw("CASE WHEN status IN ('submitted', 'under_review') THEN 0 ELSE 1 END")
+            ->orderByRaw("CASE WHEN status IN ('".implode("', '", ApplicationModel::WITH_OFFICE)."') THEN 0 ELSE 1 END")
             ->orderBy('submitted_at', $direction)
             ->orderBy('id', $direction);
     }
@@ -94,22 +98,99 @@ class ApplicationReviewController extends Controller
         abort_if($application->status === 'draft', 404);
 
         return view('admin.applications.show', [
-            'application' => $application->load(['organization.members', 'documents', 'submittedBy', 'reviewedBy']),
+            'application' => $application->load(['organization.members', 'documents', 'submittedBy', 'reviewedBy', 'formApprovedBy']),
         ]);
     }
 
-    public function updateStage(UpdateSbStageRequest $request, ApplicationModel $application): RedirectResponse
+    /**
+     * Step one of the review (pre-final defense panel): the office approves the application form and
+     * member list, and only then asks for the other requirements. An application filed on paper may
+     * already carry all of them; it goes straight to requirements_submitted.
+     */
+    public function approveForm(Request $request, ApplicationModel $application): RedirectResponse
     {
-        abort_unless(in_array($application->status, ['submitted', 'under_review'], true), 422);
+        $this->authorize('review', $application);
+        abort_unless($application->status === 'submitted', 422);
 
+        $complete = ApplicationSteps::missingUploads($application)->isEmpty();
         $application->update([
-            'sb_stage' => $request->validated('sb_stage'),
-            'status' => $application->status === 'submitted' ? 'under_review' : $application->status,
+            'status' => $complete ? 'requirements_submitted' : 'requirements_pending',
+            'form_approved_at' => now(),
+            'form_approved_by' => $request->user()->id,
+            'requirements_submitted_at' => $complete ? now() : null,
         ]);
+        AuditLog::record('application.form_approved', $application->organization, ['application_id' => $application->id]);
 
         $sent = Mailer::send($application->organization->user, new ApplicationStatusChanged($application));
 
-        return back()->with('status', 'Reading stage updated.')->with($sent ? [] : ['error' => Mailer::FAILED]);
+        return back()->with('status', $complete
+            ? 'Application form approved. Its requirements are already attached; record the readings when the SB takes it up.'
+            : 'Application form approved. The organization has been asked to upload its requirements.')
+            ->with($sent ? [] : ['error' => Mailer::FAILED]);
+    }
+
+    /** The requirements need fixing (a wrong receipt, an unreadable scan): back to the CSO with a note. */
+    public function returnRequirements(Request $request, ApplicationModel $application): RedirectResponse
+    {
+        $this->authorize('review', $application);
+        abort_unless($application->status === 'requirements_submitted', 422);
+        $note = $request->validate(
+            ['requirements_note' => ['required', 'string', 'max:2000']],
+            ['requirements_note.required' => 'Say what the organization needs to fix.'],
+        )['requirements_note'];
+
+        $application->update(['status' => 'requirements_pending', 'requirements_note' => $note]);
+        AuditLog::record('application.requirements_returned', $application->organization, ['application_id' => $application->id]);
+
+        $sent = Mailer::send($application->organization->user, new ApplicationStatusChanged($application));
+
+        return back()->with('status', 'Requirements returned to the organization with your note.')->with($sent ? [] : ['error' => Mailer::FAILED]);
+    }
+
+    /**
+     * Records a Sangguniang Bayan reading and tells the CSO what happened (pre-final defense panel):
+     * the reading, the session date, the outcome and the office's remarks. A passed reading moves the
+     * application to that stage; deferred or returned leaves it where it was. Going back one stage
+     * corrects a mistake: the last recorded reading is removed and the CSO is not notified again.
+     */
+    public function updateStage(UpdateSbStageRequest $request, ApplicationModel $application): RedirectResponse
+    {
+        $stage = $request->validated('sb_stage');
+
+        if (! $request->forward()) {
+            DB::transaction(function () use ($application, $stage) {
+                $application->readings()->where('stage', $application->sb_stage)->where('outcome', 'passed')->reorder()->latest('id')->first()?->delete();
+                $application->update(['sb_stage' => $stage]);
+            });
+            AuditLog::record('application.reading_undone', $application->organization, ['application_id' => $application->id, 'back_to' => $stage]);
+
+            return back()->with('status', 'Moved back to '.strtolower(ApplicationModel::SB_STAGES[$stage]).'. The organization was not notified of the correction.');
+        }
+
+        $outcome = $stage === 'endorsed' ? 'passed' : $request->validated('outcome');
+        $reading = DB::transaction(function () use ($application, $request, $stage, $outcome) {
+            $reading = $application->readings()->create([
+                'stage' => $stage,
+                'outcome' => $outcome,
+                'remarks' => $request->validated('remarks') ?: null,
+                'held_on' => $request->validated('held_on'),
+                'recorded_by' => $request->user()->id,
+            ]);
+            $application->update([
+                'sb_stage' => $outcome === 'passed' ? $stage : $application->sb_stage,
+                'status' => 'under_review',
+            ]);
+
+            return $reading;
+        });
+        AuditLog::record('application.reading_recorded', $application->organization, [
+            'application_id' => $application->id, 'stage' => $stage, 'outcome' => $outcome,
+        ]);
+
+        $sent = Mailer::send($application->organization->user, new SbReadingRecorded($application, $reading));
+
+        return back()->with('status', $reading->stageLabel().' recorded ('.strtolower($reading->outcomeLabel()).'). The organization has been sent your remarks.')
+            ->with($sent ? [] : ['error' => Mailer::FAILED]);
     }
 
     /**
@@ -127,7 +208,8 @@ class ApplicationReviewController extends Controller
         ], ['expires_at.after' => 'The expiry date must be after today.', 'expires_at.before' => 'Choose an expiry date within ten years.'])['expires_at']
             ?? now()->addYears(3)->toDateString();
 
-        abort_unless(in_array($application->status, ['submitted', 'under_review'], true), 422);
+        // Only once the requirements are in; the endorsement check below explains what is still missing.
+        abort_unless(in_array($application->status, ['requirements_submitted', 'under_review'], true), 422);
 
         // The Sangguniang Bayan decides; the office issues the accreditation only after its endorsement.
         if ($application->sb_stage !== 'endorsed') {
@@ -167,7 +249,7 @@ class ApplicationReviewController extends Controller
 
     public function reject(RejectApplicationRequest $request, ApplicationModel $application): RedirectResponse
     {
-        abort_unless(in_array($application->status, ['submitted', 'under_review'], true), 422);
+        abort_unless(in_array($application->status, ApplicationModel::OPEN, true), 422);
 
         $application->update([
             'status' => 'rejected',

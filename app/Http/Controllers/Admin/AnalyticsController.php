@@ -37,6 +37,7 @@ class AnalyticsController extends Controller
             'previous' => $previous,
             'before' => $previous->summary(),
             'highlights' => $report->highlights(),
+            'insights' => $report->insights(),
             'monthActivities' => $report->activitiesByMonth(),
             'organizations' => $report->organizationRows(),
             'atRiskTotal' => $data['atRisk']->count(),

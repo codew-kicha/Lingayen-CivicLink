@@ -1,7 +1,9 @@
-{{-- Step 6: everything at a glance, with a way back to each step, then submit to the Desk Office. --}}
+{{--
+    Step 5: everything at a glance, with a way back to each step, then submit to the Desk Office. The
+    other requirements are shown locked: they are asked for only after the form is approved.
+--}}
 @php
     $form = $draft->form_data ?? [];
-    $saved = $draft->documents->keyBy('document_type');
 @endphp
 
 <x-application-frame :draft="$draft" :step="$step" :done="$done">
@@ -55,30 +57,38 @@
 
         <div class="space-y-6">
             <section class="card" aria-labelledby="docs-title">
-                <div class="flex items-center gap-3 border-b border-line px-6 py-4">
-                    <h2 id="docs-title" class="card-title">Requirements</h2>
-                    <a href="{{ route('cso.application.step', 'requirements') }}" class="ml-auto text-sm font-semibold text-primary hover:underline">Edit</a>
+                <div class="border-b border-line px-6 py-4">
+                    <h2 id="docs-title" class="card-title">Sent now</h2>
                 </div>
                 <ul class="divide-y divide-line px-6">
                     @foreach (config('document_types') as $key => $type)
-                        @continue(! empty($type['new_only']) && $draft->type !== 'new')
+                        @continue(empty($type['made_online']))
                         <li class="flex items-start gap-3 py-3 text-sm">
-                            @if (! empty($type['made_online']) || $saved->has($key))
-                                <x-phosphor-check-circle-fill class="mt-hair h-5 w-5 shrink-0 text-success" aria-hidden="true" />
-                            @else
-                                <x-phosphor-circle class="mt-hair h-5 w-5 shrink-0 text-muted" aria-hidden="true" />
-                            @endif
+                            <x-phosphor-check-circle-fill class="mt-hair h-5 w-5 shrink-0 text-success" aria-hidden="true" />
                             <span class="min-w-0">
                                 <span class="block font-semibold text-ink">{{ $type['label'] }}</span>
-                                <span class="block text-muted">
-                                    @if (! empty($type['made_online']))
-                                        Made from this application when you submit
-                                    @elseif ($saved->has($key))
-                                        {{ $saved[$key]->original_filename }}
-                                    @else
-                                        Not provided (optional)
-                                    @endif
-                                </span>
+                                <span class="block text-muted">Made from this application when you submit</span>
+                            </span>
+                        </li>
+                    @endforeach
+                </ul>
+            </section>
+
+            <section class="card" aria-labelledby="later-title">
+                <div class="flex items-center gap-3 border-b border-line px-6 py-4">
+                    <x-phosphor-lock-simple class="h-5 w-5 shrink-0 text-muted" aria-hidden="true" />
+                    <h2 id="later-title" class="card-title">After your form is approved</h2>
+                </div>
+                <p class="px-6 pt-4 text-sm text-muted">
+                    Don't pay or upload these yet. Once the Desk Office approves your form you will be notified, and this step opens.
+                </p>
+                <ul class="divide-y divide-line px-6 pb-2">
+                    @foreach ($uploads as $key => $type)
+                        <li class="flex items-start gap-3 py-3 text-sm">
+                            <x-phosphor-circle class="mt-hair h-5 w-5 shrink-0 text-muted" aria-hidden="true" />
+                            <span class="min-w-0">
+                                <span class="block font-semibold text-ink">{{ $type['label'] }}</span>
+                                @if ($type['optional'])<span class="block text-muted">Optional</span>@endif
                             </span>
                         </li>
                     @endforeach
@@ -89,8 +99,8 @@
                 @csrf
                 <h2 class="card-title">Send to the Desk Office</h2>
                 <p class="text-sm text-muted">
-                    The Desk Office reviews your application, then it goes through the Sangguniang Bayan's readings. You can follow
-                    each stage here and you are notified of every change. You can't edit it once it is sent.
+                    The Desk Office reviews your form and member list first. Once it is approved you upload the other requirements,
+                    then it goes through the Sangguniang Bayan's readings. You are notified of every change. You can't edit it once it is sent.
                 </p>
                 <button type="submit" class="btn-primary w-full">
                     <x-phosphor-paper-plane-tilt class="h-4 w-4" aria-hidden="true" />Submit application

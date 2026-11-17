@@ -135,7 +135,7 @@ class ScreenSmokeTest extends TestCase
         // Applying is a set of steps; the old address leads there, and each reached step renders.
         $this->actingAs($rep)->get(route('cso.applications.create'))->assertRedirect(route('cso.application'));
         $this->actingAs($rep)->get(route('cso.application'))->assertRedirect(route('cso.application.step', 'members'));
-        $this->actingAs($rep)->get(route('cso.application.step', 'members'))->assertOk()->assertSee('Step 3 of 6');
+        $this->actingAs($rep)->get(route('cso.application.step', 'members'))->assertOk()->assertSee('Step 3 of 7');
 
         $this->actingAs($rep)->get(route('cso.applications.show', $application))->assertOk();
     }

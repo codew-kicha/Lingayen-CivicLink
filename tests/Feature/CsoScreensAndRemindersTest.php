@@ -45,12 +45,12 @@ class CsoScreensAndRemindersTest extends TestCase
     public function test_a_missing_requirement_keeps_the_application_on_its_step(): void
     {
         $rep = $this->rep();
-        $this->startApplication($rep);
+        $this->approveForm($this->submitForm($rep));
 
         $this->uploadRequirements($rep, [])
-            ->assertRedirect(route('cso.application.step', 'requirements'))
+            ->assertRedirect(route('cso.application.requirements.show'))
             ->assertSessionHasErrors(['documents.fee_receipt', 'documents.constitution_bylaws']);
-        $this->actingAs($rep)->get(route('cso.application.step', 'requirements'))->assertOk()
+        $this->actingAs($rep)->get(route('cso.application.requirements.show'))->assertOk()
             ->assertSee('Upload your Official Receipt of the Accreditation Fee.');
     }
 

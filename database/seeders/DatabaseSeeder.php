@@ -5,22 +5,24 @@ namespace Database\Seeders;
 use App\Models\Accreditation;
 use App\Models\Activity;
 use App\Models\AnnualReport;
-use App\Models\AuditLog;
 use App\Models\ApplicationModel;
+use App\Models\AuditLog;
 use App\Models\Document;
 use App\Models\NewsPost;
 use App\Models\OfficeNotice;
 use App\Models\Organization;
+use App\Models\OrganizationMember;
 use App\Models\User;
 use App\Notifications\OfficeNoticeSent;
 use App\Services\ApplicationSteps;
 use App\Services\DocumentPrecheck;
 use App\Services\PerformanceScoreCalculator;
 use App\Services\SheetChecks;
-use Illuminate\Support\Facades\Notification;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -82,7 +84,7 @@ class DatabaseSeeder extends Seeder
             'last_name' => $representative->last_name ?? 'Representative',
             'first_name' => $representative->first_name ?? $representative->name,
             'middle_name' => $representative->middle_name,
-            'position' => \App\Models\OrganizationMember::REPRESENTATIVE,
+            'position' => OrganizationMember::REPRESENTATIVE,
             'contact_number' => ApplicationSteps::localPhone($representative->phone),
             'email' => $representative->email,
         ]);
@@ -301,11 +303,14 @@ class DatabaseSeeder extends Seeder
         $organizations[2]->activities()->where('status', 'pending')->first()?->partnerOrganizations()->attach($organizations[0]->id);
     }
 
-    /** Applications sitting at each Sangguniang Bayan reading stage. */
+    /**
+     * Applications at each point of the review (pre-final defense panel's order): a form waiting for
+     * approval, one waiting for its requirements, one with requirements in, and one at each reading.
+     */
     private function organizationsInReview(): void
     {
         $stages = [
-            ['not_endorsed', 'Tonton Neighborhood Association', 'Independent Organizations', 'Tonton',
+            ['submitted', 'Tonton Neighborhood Association', 'Independent Organizations', 'Tonton',
                 'Keeps Tonton\'s streets clean and lit, and organizes the barangay\'s neighborhood watch.'],
             ['first_reading', 'Estanza Fisherfolk Alliance', 'Farmers and Fisherfolks', 'Estanza',
                 'Unites small-scale fishers in Estanza to protect fishing grounds and sell their catch at fair prices.'],
@@ -313,6 +318,10 @@ class DatabaseSeeder extends Seeder
                 'Volunteers who run health education sessions and help residents reach the rural health unit.'],
             ['third_reading', 'Maniboc TODA', 'TODA', 'Maniboc',
                 'Represents tricycle operators and drivers serving Maniboc and the routes to the town proper.'],
+            ['requirements_pending', 'Namolan Women\'s Livelihood Group', 'KALIPI (Women\'s)', 'Namolan',
+                'Trains Namolan women in food processing and handicrafts and helps them sell at the town market.'],
+            ['requirements_submitted', 'Quibaol Senior Citizens Association', 'Senior Citizen', 'Quibaol',
+                'Looks after Quibaol\'s elderly: monthly check-ups, social pension follow-ups, and home visits.'],
         ];
 
         foreach ($stages as $index => [$stage, $name, $sector, $barangay, $advocacy]) {
@@ -331,19 +340,62 @@ class DatabaseSeeder extends Seeder
 
             self::seedMembers($organization, $user, 5);
 
+            $reading = array_key_exists($stage, ApplicationModel::SB_STAGES);
+            $submittedAt = now()->subDays(($index + 1) * 9);
             $application = ApplicationModel::factory()
                 ->for($organization)
-                ->atStage($stage)
+                ->atStage($reading ? $stage : 'not_endorsed')
                 ->create([
-                    'status' => $stage === 'not_endorsed' ? 'submitted' : 'under_review',
+                    'status' => $reading ? 'under_review' : $stage,
                     'submitted_by' => $user->id,
-                    'submitted_at' => now()->subDays(($index + 1) * 9),
+                    'submitted_at' => $submittedAt,
+                    'form_approved_at' => $stage === 'submitted' ? null : $submittedAt->copy()->addDays(3),
+                    'requirements_submitted_at' => in_array($stage, ['submitted', 'requirements_pending'], true) ? null : $submittedAt->copy()->addDays(5),
                 ]);
 
+            // The readings held so far, each with the feedback the CSO received (pre-final defense panel).
+            if ($reading) {
+                $this->readings($application, $stage, $submittedAt->copy()->addDays(7));
+            }
+
+            // Before the form is approved only the two documents made online exist; the rest come after.
             // The second-reading applicant attached its receipt in the by-laws slot; the pre-check flags it.
             $this->documents($organization, $application, ocr: $stage === 'second_reading' ? [
                 'constitution_bylaws' => 'Official Receipt. Office of the Municipal Treasurer. Amount: PHP 1,000.00.',
-            ] : []);
+            ] : [], only: in_array($stage, ['submitted', 'requirements_pending'], true) ? ['accreditation_form', 'officers_members_list'] : null);
+        }
+    }
+
+    /** Every reading up to $stage, a week apart; the second reading was deferred once before passing. */
+    private function readings(ApplicationModel $application, string $stage, Carbon $from): void
+    {
+        $remarks = [
+            'first_reading' => 'Taken up in the first reading. The council noted the organization\'s officers and asked that the member list be kept current. No changes needed.',
+            'second_reading' => 'Second reading completed. The committee on social services confirmed the documents and recommended the application to the council.',
+            'third_reading' => 'Approved on third reading. The Sangguniang Bayan will issue its endorsement at the next session.',
+        ];
+        $admin = User::where('role', 'admin')->first();
+        $held = $from->copy();
+
+        foreach (array_keys(ApplicationModel::SB_STAGES) as $key) {
+            if ($key === 'not_endorsed') {
+                continue;
+            }
+            if ($key === 'second_reading') {
+                $application->readings()->create([
+                    'stage' => $key, 'outcome' => 'deferred', 'held_on' => $held->toDateString(), 'recorded_by' => $admin?->id,
+                    'remarks' => 'Not reached on the agenda because of the budget hearing. To be taken up at the next regular session.',
+                ]);
+                $held->addWeek();
+            }
+            $application->readings()->create([
+                'stage' => $key, 'outcome' => 'passed', 'held_on' => $held->toDateString(), 'recorded_by' => $admin?->id,
+                'remarks' => $remarks[$key] ?? null,
+            ]);
+            if ($key === $stage) {
+                break;
+            }
+            $held->addWeek();
         }
     }
 
@@ -522,12 +574,11 @@ class DatabaseSeeder extends Seeder
     {
         $accredited = Organization::where('public_visibility', true)->take(3)->get();
 
-
         foreach (self::NEWS_POSTS as $index => [$title, $body]) {
             $post = NewsPost::factory()->create([
                 'author_id' => $admin->id,
                 'title' => $title,
-                'slug' => \Illuminate\Support\Str::slug($title),
+                'slug' => Str::slug($title),
                 'body' => $body,
                 // Newest first, roughly a week apart, so the Resources news list runs to three pages.
                 'published_at' => now()->subDays($index * 7 + 2),
@@ -611,7 +662,7 @@ class DatabaseSeeder extends Seeder
      * Placeholder uploads with realistic OCR pre-check results. $ocr overrides the text "read" from
      * a requirement, to show the reviewer's flags (a wrong file, a handwritten scan).
      */
-    private function documents(Organization $organization, ApplicationModel $application, bool $expiring = false, array $ocr = []): void
+    private function documents(Organization $organization, ApplicationModel $application, bool $expiring = false, array $ocr = [], ?array $only = null): void
     {
         $readText = [
             'accreditation_form' => "ACCREDITATION FORM For New Application (CSO). Name of Organization: {$organization->name}. Name of Representative. Place of Operation: Barangay {$organization->barangay}.",
@@ -622,6 +673,9 @@ class DatabaseSeeder extends Seeder
         ];
 
         foreach (array_keys(config('document_types')) as $index => $type) {
+            if ($only !== null && ! in_array($type, $only, true)) {
+                continue;
+            }
             $check = DocumentPrecheck::evaluate($type, array_key_exists($type, $ocr) ? $ocr[$type] : $readText[$type], $organization->name);
 
             $path = "documents/{$organization->id}/sample-{$application->id}-{$type}.pdf";

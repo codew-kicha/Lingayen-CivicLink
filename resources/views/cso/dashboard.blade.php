@@ -21,6 +21,7 @@
             $showLapsed = $lapsed && (! $latestApplication || $latestApplication->status === 'approved');
             $draftStep = $draft ? \App\Services\ApplicationSteps::current($draft) : null;
             $draftNumber = $draftStep ? \App\Services\ApplicationSteps::number($draftStep) : null;
+            $totalSteps = count(\App\Services\ApplicationSteps::STEPS);
             $waiting = collect();
             if ($pendingActivities) {
                 $waiting->push(['hourglass', $pendingActivities.' '.Str::plural('activity', $pendingActivities).' awaiting verification', false]);
@@ -30,7 +31,7 @@
             }
             $tiles = [
                 ! $accreditation && $draft
-                    ? ['Accreditation', 'Application in progress', "Step {$draftNumber} of 6 · continue", 'clipboard-text', route('cso.application'), false]
+                    ? ['Accreditation', 'Application in progress', "Step {$draftNumber} of {$totalSteps} · continue", 'clipboard-text', route('cso.application'), false]
                     : ($accreditation
                     ? ['Accreditation', 'Active', "Until {$accreditation->expires_at->format('d M Y')} · {$daysLeft} days left", 'seal-check', null, $daysLeft <= 60]
                     : ($showLapsed
@@ -45,7 +46,9 @@
         @endphp
 
         <x-slot:actions>
-            @if ($draft)
+            @if ($awaitingRequirements)
+                <a href="{{ route('cso.application.requirements.show') }}" class="btn-primary">Upload requirements</a>
+            @elseif ($draft)
                 <a href="{{ route('cso.application') }}" class="btn-primary">Continue your application</a>
             @elseif ($showLapsed)
                 <a href="{{ route('cso.application') }}" class="btn-primary">File a renewal</a>
@@ -68,13 +71,29 @@
                 <div class="min-w-0 flex-1 basis-64">
                     <h2 id="draft-title" class="card-title">Your {{ $draft->type === 'renewal' ? 'renewal' : 'application' }} is in progress</h2>
                     <p class="mt-1 text-sm text-muted">
-                        Step {{ $draftNumber }} of 6: {{ \App\Services\ApplicationSteps::STEPS[$draftStep] }}. Everything so far is saved.
+                        Step {{ $draftNumber }} of {{ $totalSteps }}: {{ \App\Services\ApplicationSteps::STEPS[$draftStep] }}. Everything so far is saved.
                     </p>
                     <div class="mt-3 h-1.5 max-w-md overflow-hidden rounded-full bg-canvas" aria-hidden="true">
-                        <div class="h-full rounded-full bg-primary" style="width: {{ round(($draftNumber - 1) / 6 * 100) }}%"></div>
+                        <div class="h-full rounded-full bg-primary" style="width: {{ round(($draftNumber - 1) / $totalSteps * 100) }}%"></div>
                     </div>
                 </div>
                 <a href="{{ route('cso.application') }}" class="btn-primary">Continue <x-phosphor-arrow-right class="h-4 w-4" aria-hidden="true" /></a>
+            </section>
+        @endif
+
+        @if ($awaitingRequirements)
+            {{-- The form was approved: the requirements are what the office now waits for. --}}
+            <section class="card mb-6 flex flex-wrap items-center gap-4 border-warning/40 bg-warning-subtle p-6" aria-labelledby="requirements-title">
+                <x-phosphor-upload-simple class="h-8 w-8 shrink-0 text-warning" aria-hidden="true" />
+                <div class="min-w-0 flex-1 basis-64">
+                    <h2 id="requirements-title" class="card-title">
+                        {{ $awaitingRequirements->requirements_note ? 'Your requirements were returned for correction' : 'Your application form was approved' }}
+                    </h2>
+                    <p class="mt-1 text-sm text-ink">
+                        {{ $awaitingRequirements->requirements_note ?: 'Upload the official receipt and the other requirements. Your application goes to the Sangguniang Bayan once they are in.' }}
+                    </p>
+                </div>
+                <a href="{{ route('cso.application.requirements.show') }}" class="btn-primary">Upload requirements <x-phosphor-arrow-right class="h-4 w-4" aria-hidden="true" /></a>
             </section>
         @endif
 

@@ -26,11 +26,11 @@ class SecurityTest extends TestCase
         $rep = User::factory()->create();
         Organization::factory()->for($rep)->create();
 
-        $this->startApplication($rep);
+        $this->approveForm($this->submitForm($rep));
         $this->uploadRequirements($rep, ['fee_receipt' => UploadedFile::fake()->create('payload.php', 10, 'application/x-php')])
             ->assertSessionHasErrors('documents.fee_receipt');
 
-        $this->assertDatabaseCount('documents', 0);
+        $this->assertDatabaseMissing('documents', ['document_type' => 'fee_receipt']);   // only the two made-online PDFs exist
     }
 
     public function test_upload_rejects_a_file_over_the_size_limit(): void
@@ -40,11 +40,11 @@ class SecurityTest extends TestCase
         $rep = User::factory()->create();
         Organization::factory()->for($rep)->create();
 
-        $this->startApplication($rep);
+        $this->approveForm($this->submitForm($rep));
         $this->uploadRequirements($rep, ['fee_receipt' => UploadedFile::fake()->create('huge.pdf', 6000, 'application/pdf')])
             ->assertSessionHasErrors('documents.fee_receipt');
 
-        $this->assertDatabaseCount('documents', 0);
+        $this->assertDatabaseMissing('documents', ['document_type' => 'fee_receipt']);   // only the two made-online PDFs exist
     }
 
     public function test_a_cso_cannot_download_another_organisations_document(): void

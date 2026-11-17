@@ -19,7 +19,7 @@ class DashboardController extends Controller
     {
         return view('admin.dashboard', [
             'counts' => [
-                'awaiting_review' => ApplicationModel::whereIn('status', ['submitted', 'under_review'])->count(),
+                'awaiting_review' => ApplicationModel::whereIn('status', ApplicationModel::WITH_OFFICE)->count(),
                 'pending_activities' => Activity::where('status', 'pending')->count(),
                 'active_accreditations' => Accreditation::where('status', 'active')->count(),
                 'expiring_soon' => Accreditation::where('status', 'active')
@@ -29,7 +29,7 @@ class DashboardController extends Controller
                 'inactive' => Organization::inactive()->count(),
             ],
             'recentApplications' => ApplicationModel::with('organization')
-                ->whereIn('status', ['submitted', 'under_review'])
+                ->whereIn('status', ApplicationModel::WITH_OFFICE)
                 ->latest('submitted_at')
                 ->limit(5)
                 ->get(),
@@ -59,7 +59,7 @@ class DashboardController extends Controller
      */
     private function details(): array
     {
-        $waiting = fn () => ApplicationModel::whereIn('status', ['submitted', 'under_review']);
+        $waiting = fn () => ApplicationModel::whereIn('status', ApplicationModel::WITH_OFFICE);
         $pending = fn () => Activity::where('status', 'pending');
         $days = fn ($date) => $date ? (int) Carbon::parse($date)->diffInDays(now()) : null;
 

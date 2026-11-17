@@ -1,13 +1,30 @@
 {{--
-    Step 5: the requirements other offices issue (or the organization writes), uploaded as scans or
-    photos. Each upload is read in the browser for the pre-check (documentPrecheck) and saved to the
-    draft straight away; a saved file shows with its verdict and can be replaced or removed.
+    Step 6: the requirements other offices issue (or the organization writes), uploaded as scans or
+    photos. Open only once the Desk Office has approved the application form (pre-final defense panel:
+    nothing is paid or uploaded before that); the controller refuses uploads otherwise. Each upload is
+    read in the browser for the pre-check (documentPrecheck) and saved straight away; a saved file
+    shows with its verdict and can be replaced or removed. "Submit requirements" sends them back.
 --}}
 @php
     $saved = $draft->documents->keyBy('document_type');
 @endphp
 
 <x-application-frame :draft="$draft" :step="$step" :done="$done">
+    @if ($draft->requirements_note)
+        <div role="alert" class="mb-6 rounded-md border border-warning/40 bg-warning-subtle px-4 py-3 text-sm">
+            <p class="font-semibold text-warning">The Desk Office returned your requirements</p>
+            <p class="mt-1 text-ink">{{ $draft->requirements_note }}</p>
+        </div>
+    @else
+        <div class="mb-6 flex items-start gap-3 rounded-md border border-success/40 bg-success-subtle px-4 py-3 text-sm">
+            <x-phosphor-seal-check class="mt-hair h-5 w-5 shrink-0 text-success" aria-hidden="true" />
+            <p class="text-ink">
+                <span class="font-semibold text-success">Your application form was approved{{ $draft->form_approved_at ? ' on '.$draft->form_approved_at->format('d F Y') : '' }}.</span>
+                Upload the requirements below, then submit them. Your application goes to the Sangguniang Bayan once the Desk Office has checked them.
+            </p>
+        </div>
+    @endif
+
     <form method="POST" action="{{ route('cso.application.requirements') }}" enctype="multipart/form-data" class="card">
         @csrf
         <input type="hidden" name="step" value="requirements">
@@ -73,12 +90,12 @@
         </div>
 
         <div class="flex flex-wrap items-center gap-3 border-t border-line px-6 py-4">
-            <a href="{{ route('cso.application.step', 'form') }}" class="btn-ghost">
-                <x-phosphor-arrow-left class="h-4 w-4" aria-hidden="true" />Back
+            <a href="{{ route('cso.applications.show', $draft) }}" class="btn-ghost">
+                <x-phosphor-arrow-left class="h-4 w-4" aria-hidden="true" />Your application
             </a>
             <button type="submit" name="action" value="later" class="btn-secondary ml-auto">Save and finish later</button>
-            <button type="submit" name="action" value="next" class="btn-primary">
-                Save and continue <x-phosphor-arrow-right class="h-4 w-4" aria-hidden="true" />
+            <button type="submit" name="action" value="submit" class="btn-primary">
+                <x-phosphor-paper-plane-tilt class="h-4 w-4" aria-hidden="true" />Submit requirements
             </button>
         </div>
     </form>

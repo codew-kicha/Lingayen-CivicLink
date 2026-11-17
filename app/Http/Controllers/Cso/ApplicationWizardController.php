@@ -16,17 +16,30 @@ use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 /**
- * The application pages after sign-up: members, the accreditation form (filled in online), the other
- * requirements, then review and submit (App\Services\ApplicationSteps). Each page saves to the draft
- * application, so the representative can leave and pick up on the first unfinished step.
+ * The application pages after sign-up: members, the accreditation form (filled in online), then
+ * review and submit (App\Services\ApplicationSteps). Each page saves to the draft application, so
+ * the representative can leave and pick up on the first unfinished step.
+ *
+ * The other requirements have their own page, open only while the application is
+ * requirements_pending (the Desk Office approved the form). The upload endpoints refuse anything
+ * else with 403, so hiding the page is not the only guard.
  */
 class ApplicationWizardController extends Controller
 {
-    /** Where "Apply for accreditation" leads: the open review, or the draft's first unfinished step. */
+    /**
+     * Where "Apply for accreditation" leads: the requirements once the form is approved, the open
+     * review, or the draft's first unfinished step.
+     */
     public function resume(Request $request): RedirectResponse
     {
         $this->authorize('create', ApplicationModel::class);
         $organization = $request->user()->organization;
+
+        if (ApplicationSteps::awaitingRequirements($organization)) {
+            $request->session()->reflash();
+
+            return redirect()->route('cso.application.requirements.show');
+        }
 
         if ($open = ApplicationSteps::inReview($organization)) {
             return redirect()->route('cso.applications.show', $open)
@@ -100,11 +113,14 @@ class ApplicationWizardController extends Controller
             'organization_name' => ['required', 'string', 'max:255'],
             'representative_name' => ['required', 'string', 'max:255'],
             'contact_number' => ['required', 'string', 'max:40'],
-            'place_of_operation' => ['required', 'string', 'max:255'],
+            'place_barangay' => ['required', Rule::in(config('barangays'))],
+            'place_detail' => ['nullable', 'string', 'max:150'],
             'certify' => ['accepted'],
             'certified_name' => ['required', 'string', 'max:255'],
         ], [
             'certify.accepted' => 'Tick the box to certify that the form is true and correct.',
+            'place_barangay.required' => 'Choose the barangay where the organization operates.',
+            'place_barangay.in' => 'Choose a barangay of Lingayen from the list.',
             'certified_name.required' => 'Type your full name to certify the form.',
         ]);
 
@@ -115,7 +131,10 @@ class ApplicationWizardController extends Controller
 
         $draft->update([
             'type' => $data['type'],
-            'form_data' => collect($data)->except(['type', 'certify'])->all() + ['certified_at' => now()->toIso8601String()],
+            'form_data' => collect($data)->except(['type', 'certify'])->all() + [
+                'place_of_operation' => ApplicationSteps::placeOfOperation($data['place_barangay'], $data['place_detail'] ?? null),
+                'certified_at' => now()->toIso8601String(),
+            ],
         ]);
 
         return $this->next($request, $draft, 'Accreditation form saved.');
@@ -132,13 +151,28 @@ class ApplicationWizardController extends Controller
         return ApplicationSteps::formPdf($draft)->stream('accreditation-form-preview.pdf');
     }
 
-    public function saveRequirements(Request $request): RedirectResponse
+    /** Step 6: the requirements page, only once the Desk Office has approved the form. */
+    public function requirements(Request $request): View|RedirectResponse
     {
-        [$draft, $redirect] = $this->draft($request);
-        if ($redirect) {
-            return $redirect;
+        $this->authorize('create', ApplicationModel::class);
+        $application = ApplicationSteps::awaitingRequirements($request->user()->organization);
+        if (! $application) {
+            return redirect()->route('cso.application')
+                ->with('status', 'The requirements open once the Desk Office approves your application form. You will be notified.');
         }
 
+        return view('cso.application.requirements', [
+            'draft' => $application->load('documents'),
+            'organization' => $application->organization,
+            'step' => 'requirements',
+            'done' => ApplicationSteps::done($application),
+            'uploads' => ApplicationSteps::uploads($application),
+        ]);
+    }
+
+    public function saveRequirements(Request $request): RedirectResponse
+    {
+        $draft = $this->approved($request);
         $uploads = ApplicationSteps::uploads($draft);
         $request->validate([
             'documents' => ['array'],
@@ -176,31 +210,30 @@ class ApplicationWizardController extends Controller
         }
 
         if ($request->input('action') === 'later') {
-            return redirect()->route('cso.application.step', 'requirements')->with('status', 'Uploads saved. Come back any time to finish.');
+            return redirect()->route('cso.application.requirements.show')->with('status', 'Uploads saved. Come back any time to finish.');
         }
 
-        $missing = collect($uploads)->reject(fn (array $type) => $type['optional'])
-            ->keys()->diff($draft->documents()->pluck('document_type'));
+        $missing = ApplicationSteps::missingUploads($draft);
         if ($missing->isNotEmpty()) {
-            return redirect()->route('cso.application.step', 'requirements')->withErrors($missing->mapWithKeys(fn ($key) => [
+            return redirect()->route('cso.application.requirements.show')->withErrors($missing->mapWithKeys(fn ($key) => [
                 "documents.{$key}" => 'Upload your '.$uploads[$key]['label'].'.',
             ])->all());
         }
 
-        return redirect()->route('cso.application.step', 'review')->with('status', 'Requirements saved.');
+        ApplicationSteps::submitRequirements($draft);
+
+        return redirect()->route('cso.applications.show', $draft)
+            ->with('status', 'Requirements submitted. The Desk Office checks them, then your application goes to the Sangguniang Bayan.');
     }
 
     public function removeDocument(Request $request, Document $document): RedirectResponse
     {
-        [$draft, $redirect] = $this->draft($request);
-        if ($redirect) {
-            return $redirect;
-        }
+        $draft = $this->approved($request);
         abort_unless($document->application_id === $draft->id && $document->ocr_status !== 'generated', 404);
 
         $this->forget($document);
 
-        return redirect()->route('cso.application.step', 'requirements')->with('status', 'File removed.');
+        return redirect()->route('cso.application.requirements.show')->with('status', 'File removed.');
     }
 
     public function submit(Request $request): RedirectResponse
@@ -217,7 +250,7 @@ class ApplicationWizardController extends Controller
         ApplicationSteps::submit($draft, $request->user());
 
         return redirect()->route('cso.applications.show', $draft)
-            ->with('status', 'Application submitted. The Desk Office will review it and you will be notified of any change.');
+            ->with('status', 'Application submitted. The Desk Office reviews your form; once it is approved you will be notified to upload the other requirements.');
     }
 
     /** The organization's draft; without one, back to the start (which makes one or shows the review). */
@@ -228,6 +261,19 @@ class ApplicationWizardController extends Controller
         $draft = ApplicationSteps::draft($organization);
 
         return $draft ? [$draft, null] : [null, redirect()->route('cso.application')];
+    }
+
+    /**
+     * The application waiting for its requirements. Anything else (a draft, one still with the Desk
+     * Office, a decided one) is refused: requirements are accepted only after the form is approved.
+     */
+    private function approved(Request $request): ApplicationModel
+    {
+        $this->authorize('create', ApplicationModel::class);
+        $application = ApplicationSteps::awaitingRequirements($request->user()->organization);
+        abort_unless($application, 403, 'Upload the requirements once the Desk Office has approved your application form.');
+
+        return $application;
     }
 
     private function next(Request $request, ApplicationModel $draft, string $message): RedirectResponse

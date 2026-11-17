@@ -7,13 +7,18 @@
 
 <x-layouts.public>
     {{-- Hero: the municipality's own loop (public/videos/lingayen_hero.mp4), shown whole like pcnc.com.ph's
-         hero. It loops continuously with no controls (client's choice). Visitors whose device asks
-         for reduced motion or data saving get the poster frame and the video never downloads. --}}
+         hero. The smaller Lingayen seal and its flip are part of the video itself (pre-final defense
+         panel), so nothing is laid over it. It plays on its own, muted and inline, looping with no
+         controls (client's choice); heroVideo starts it so that visitors whose device asks for reduced
+         motion or data saving get the poster (the video's first frame) and the video never downloads.
+         ?v= is the file's date, so a replaced video is never served from an old cache. --}}
+    @php $heroVersion = fn (string $file) => asset("videos/$file").'?v='.@filemtime(public_path("videos/$file")); @endphp
     <section x-data="heroVideo" aria-label="Lingayen's civil society organizations" class="relative bg-paper">
-        <video x-ref="video" muted loop playsinline preload="none" aria-hidden="true"
-               poster="{{ asset('videos/lingayen_hero-poster.jpg') }}"
+        <video x-ref="video" muted loop playsinline preload="none" aria-hidden="true" disablepictureinpicture
+               poster="{{ $heroVersion('lingayen_hero-poster.jpg') }}"
                class="block aspect-video max-h-[78vh] w-full object-cover">
-            <source src="{{ asset('videos/lingayen_hero.mp4') }}" type="video/mp4">
+            <source src="{{ $heroVersion('lingayen_hero.mp4') }}" type="video/mp4">
+            <img src="{{ $heroVersion('lingayen_hero-poster.jpg') }}" alt="" class="block aspect-video w-full object-cover">
         </video>
     </section>
 

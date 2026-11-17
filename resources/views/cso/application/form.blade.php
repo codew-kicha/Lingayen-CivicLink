@@ -7,6 +7,9 @@
     $form = $draft->form_data ?? [];
     $value = fn (string $field) => old($field, $form[$field] ?? '');
     $type = old('type', $draft->type);
+    // Drafts started before the barangay list fall back to the organization's own barangay.
+    $placeBarangay = old('place_barangay', $form['place_barangay'] ?? $organization->barangay);
+    $placeDetail = old('place_detail', $form['place_detail'] ?? '');
 @endphp
 
 <x-application-frame :draft="$draft" :step="$step" :done="$done">
@@ -52,7 +55,6 @@
                     'organization_name' => ['Name of Organization', 'organization'],
                     'representative_name' => ['Name of Representative', 'name'],
                     'contact_number' => ['Contact No. of Representative', 'tel'],
-                    'place_of_operation' => ['Place of Operation', 'street-address'],
                 ] as $field => [$label, $autocomplete])
                     <div>
                         <label for="{{ $field }}" class="field-label">{{ $label }}</label>
@@ -63,6 +65,36 @@
                     </div>
                 @endforeach
             </div>
+
+            {{-- Place of Operation: the barangay from Lingayen's list, plus the specific place within it. --}}
+            <fieldset x-data="{ barangay: @js($placeBarangay), detail: @js($placeDetail) }">
+                <legend class="field-label">Place of Operation</legend>
+                <div class="grid gap-4 sm:grid-cols-2">
+                    <div>
+                        <label for="place_barangay" class="text-sm text-muted">Barangay</label>
+                        <select id="place_barangay" name="place_barangay" x-model="barangay" required
+                                @error('place_barangay') aria-invalid="true" aria-describedby="place_barangay-error" @enderror
+                                class="field-input @error('place_barangay') field-input-error @enderror">
+                            <option value="">Choose a barangay</option>
+                            @foreach (config('barangays') as $name)
+                                <option value="{{ $name }}" @selected($placeBarangay === $name)>{{ $name }}</option>
+                            @endforeach
+                        </select>
+                        @error('place_barangay')<p id="place_barangay-error" class="field-error">{{ $message }}</p>@enderror
+                    </div>
+                    <div>
+                        <label for="place_detail" class="text-sm text-muted">Specific place <span class="font-normal">(optional)</span></label>
+                        <input id="place_detail" name="place_detail" x-model="detail" maxlength="150" autocomplete="street-address"
+                               placeholder="e.g. Purok 3, beside the barangay hall"
+                               @error('place_detail') aria-invalid="true" aria-describedby="place_detail-error" @enderror
+                               class="field-input @error('place_detail') field-input-error @enderror">
+                        @error('place_detail')<p id="place_detail-error" class="field-error">{{ $message }}</p>@enderror
+                    </div>
+                </div>
+                <p class="field-hint" x-show="barangay" x-cloak>
+                    On the form: <span class="font-semibold text-ink" x-text="(detail.trim() ? detail.trim() + ', ' : '') + 'Barangay ' + barangay + ', Lingayen, Pangasinan'"></span>
+                </p>
+            </fieldset>
 
             <div class="rounded-md border border-line bg-canvas p-4">
                 <p class="text-sm font-semibold text-ink">Attached automatically</p>

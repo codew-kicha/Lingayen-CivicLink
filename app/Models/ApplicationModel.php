@@ -15,6 +15,24 @@ class ApplicationModel extends Model
     protected $table = 'applications';
 
     /**
+     * Pre-final defense panel: the application form goes first and the other requirements follow
+     * once the Desk Office approves it. In order, with what each status means to the CSO.
+     */
+    public const FLOW = [
+        'submitted' => 'Application form submitted',
+        'requirements_pending' => 'Form approved, requirements pending',
+        'requirements_submitted' => 'Requirements submitted',
+        'under_review' => 'Sangguniang Bayan readings',
+        'approved' => 'Accredited',
+    ];
+
+    /** Not decided yet: an organization files no second application while one of these is open. */
+    public const OPEN = ['submitted', 'requirements_pending', 'requirements_submitted', 'under_review'];
+
+    /** Waiting on the Desk Office (the queue, the dashboard and the sidebar count). */
+    public const WITH_OFFICE = ['submitted', 'requirements_submitted', 'under_review'];
+
+    /**
      * The Sangguniang Bayan stages, in order. The office records them one at a time; an application
      * can be approved (accreditation issued) only once it has reached 'endorsed'.
      */
@@ -38,6 +56,7 @@ class ApplicationModel extends Model
     protected $fillable = [
         'organization_id', 'type', 'status', 'submission_channel', 'sb_stage',
         'submitted_by', 'reviewed_by', 'rejection_reason', 'submitted_at', 'reviewed_at', 'form_data',
+        'form_approved_at', 'form_approved_by', 'requirements_submitted_at', 'requirements_note',
     ];
 
     protected function casts(): array
@@ -45,6 +64,8 @@ class ApplicationModel extends Model
         return [
             'submitted_at' => 'datetime',
             'reviewed_at' => 'datetime',
+            'form_approved_at' => 'datetime',
+            'requirements_submitted_at' => 'datetime',
             'form_data' => 'array',
         ];
     }
@@ -72,5 +93,22 @@ class ApplicationModel extends Model
     public function reviewedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'reviewed_by');
+    }
+
+    /** The Sangguniang Bayan readings the office recorded, oldest first. */
+    public function readings(): HasMany
+    {
+        return $this->hasMany(ApplicationReading::class, 'application_id')->orderBy('held_on')->orderBy('id');
+    }
+
+    public function formApprovedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'form_approved_by');
+    }
+
+    /** True once the Desk Office has approved the application form (requirements may be uploaded). */
+    public function formApproved(): bool
+    {
+        return in_array($this->status, ['requirements_pending', 'requirements_submitted', 'under_review', 'approved'], true);
     }
 }

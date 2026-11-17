@@ -57,12 +57,37 @@ class ApplicationStepsTest extends TestCase
 
         // The form starts from the organization and the account.
         $this->actingAs($rep)->get(route('cso.application.step', 'form'))->assertOk()
-            ->assertSee('Step 4 of 6')->assertSee('value="Libsong Youth Circle"', false)
-            ->assertSee('value="Barangay Libsong East, Lingayen, Pangasinan"', false);
+            ->assertSee('Step 4 of 7')->assertSee('value="Libsong Youth Circle"', false)
+            ->assertSee('<option value="Libsong East" selected>', false);
 
         // Leaving and coming back lands on the form again.
         $this->actingAs($rep)->get(route('cso.application'))->assertRedirect(route('cso.application.step', 'form'));
-        $this->actingAs($rep)->get(route('cso.dashboard'))->assertSee('Your application is in progress')->assertSee('Step 4 of 6');
+        $this->actingAs($rep)->get(route('cso.dashboard'))->assertSee('Your application is in progress')->assertSee('Step 4 of 7');
+    }
+
+    public function test_the_place_of_operation_is_a_barangay_from_the_list_plus_the_specific_place(): void
+    {
+        $rep = $this->rep();
+        $this->actingAs($rep)->get(route('cso.application'));
+        $this->actingAs($rep)->post(route('cso.application.members'), ['step' => 'members', 'action' => 'next', 'members' => $this->memberRows()]);
+        $form = [
+            'step' => 'form', 'type' => 'new', 'organization_name' => 'Libsong Youth Circle', 'representative_name' => 'Ana Reyes',
+            'contact_number' => '0917 123 4567', 'certify' => '1', 'certified_name' => 'Ana Reyes',
+        ];
+
+        // Only Lingayen's barangays are accepted.
+        $this->actingAs($rep)->post(route('cso.application.form'), $form + ['place_barangay' => 'Makati'])
+            ->assertSessionHasErrors('place_barangay');
+
+        // The specific place leads; the form shows both.
+        $this->actingAs($rep)->post(route('cso.application.form'), $form + ['place_barangay' => 'Sabangan', 'place_detail' => ' Purok 3, beside the chapel '])
+            ->assertSessionHasNoErrors();
+        $data = ApplicationSteps::draft($rep->organization)->form_data;
+        $this->assertSame(['Sabangan', 'Purok 3, beside the chapel, Barangay Sabangan, Lingayen, Pangasinan'], [$data['place_barangay'], $data['place_of_operation']]);
+
+        // Without one, just the barangay.
+        $this->actingAs($rep)->post(route('cso.application.form'), $form + ['place_barangay' => 'Sabangan']);
+        $this->assertSame('Barangay Sabangan, Lingayen, Pangasinan', ApplicationSteps::draft($rep->organization)->form_data['place_of_operation']);
     }
 
     public function test_the_form_needs_a_certification(): void
@@ -73,7 +98,7 @@ class ApplicationStepsTest extends TestCase
 
         $this->actingAs($rep)->post(route('cso.application.form'), [
             'step' => 'form', 'type' => 'new', 'organization_name' => 'Libsong Youth Circle', 'representative_name' => 'Ana Reyes',
-            'contact_number' => '0917 123 4567', 'place_of_operation' => 'Barangay Libsong East',
+            'contact_number' => '0917 123 4567', 'place_barangay' => 'Libsong East',
         ])->assertSessionHasErrors(['certify', 'certified_name']);
         $this->assertNull(ApplicationSteps::draft($rep->organization)->form_data['certified_at'] ?? null);
     }
@@ -93,9 +118,10 @@ class ApplicationStepsTest extends TestCase
         // The completed form can be previewed before submitting.
         $this->actingAs($rep)->get(route('cso.application.preview'))->assertOk()->assertHeader('content-type', 'application/pdf');
 
-        $this->uploadRequirements($rep, $this->requirementFiles(['fee_receipt', 'constitution_bylaws']))->assertRedirect(route('cso.application.step', 'review'));
+        // The form goes on its own; the other requirements are shown as coming after approval.
         $this->actingAs($rep)->get(route('cso.application.step', 'review'))->assertOk()
-            ->assertSee('Made from this application when you submit')->assertSee('Submit application');
+            ->assertSee('Made from this application when you submit')->assertSee('After your form is approved')
+            ->assertSee('Official Receipt', false)->assertSee('Submit application');
         $this->actingAs($rep)->post(route('cso.application.submit'))->assertRedirect(route('cso.applications.show', $draft));
 
         $application = $draft->fresh('documents');
@@ -115,15 +141,15 @@ class ApplicationStepsTest extends TestCase
     {
         Storage::fake('local');
         $rep = $this->rep();
-        $this->startApplication($rep);
+        $this->approveForm($this->submitForm($rep));
         $this->uploadRequirements($rep, $this->requirementFiles(['fee_receipt']), ['action' => 'later'])->assertSessionHasNoErrors();
         $receipt = $rep->organization->documents()->where('document_type', 'fee_receipt')->firstOrFail();
 
         $other = $this->rep();
-        $this->startApplication($other);
+        $this->approveForm($this->submitForm($other));
         $this->actingAs($other)->delete(route('cso.application.documents.destroy', $receipt))->assertNotFound();
 
-        $this->actingAs($rep)->delete(route('cso.application.documents.destroy', $receipt))->assertRedirect(route('cso.application.step', 'requirements'));
+        $this->actingAs($rep)->delete(route('cso.application.documents.destroy', $receipt))->assertRedirect(route('cso.application.requirements.show'));
         $this->assertModelMissing($receipt);
         Storage::assertMissing($receipt->file_path);
     }

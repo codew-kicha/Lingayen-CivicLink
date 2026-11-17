@@ -20,7 +20,7 @@ class ApplicationStagesTest extends TestCase
         $application = ApplicationModel::factory()->create(['status' => 'under_review', 'sb_stage' => 'second_reading']);
 
         $this->actingAs($admin)->get(route('admin.applications.show', $application))
-            ->assertSee('Record: Third reading')->assertSee('Back to first reading');
+            ->assertSee('Record third reading and notify')->assertSee('Undo: back to first reading');
 
         $this->actingAs($admin)->patch(route('admin.applications.stage', $application), ['sb_stage' => 'first_reading'])->assertSessionHasNoErrors();
         $this->assertSame('first_reading', $application->fresh()->sb_stage);

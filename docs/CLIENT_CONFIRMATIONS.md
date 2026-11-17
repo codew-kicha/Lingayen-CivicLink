@@ -11,11 +11,14 @@ far, and what would change.
   for nothing.
 - **Client so far:** the process is strict because the Desk Office follows the LGU's procedure; the
   receipt is one of the five requirements on the Sangguniang Bayan's form.
-- **If the office agrees to change it:** the receipt moves out of the application and becomes a
-  step after the Desk Office's review or after endorsement. The CSO would see "Pay the fee at the
-  Municipal Treasury, then upload the receipt" only once the application is found complete, and
-  approval would wait for the receipt.
-- **Today:** the receipt is uploaded with the other requirements (step 5 of the application).
+- **Built (14 November 2026), following the panel:** the application form and member list are
+  submitted on their own. The Desk Office approves the form first; only then is the CSO notified
+  and allowed to upload the receipt, the constitution and the DOLE/SEC certificate (step 6). The
+  Sangguniang Bayan readings start once those are in. The server refuses requirement uploads before
+  approval. Flow: Submitted → Requirements pending → Requirements submitted → Under review →
+  Accredited.
+- **Still to confirm with the office:** that this order matches the LGU's procedure. If the office
+  needs the receipt at filing after all, it can approve the form on the same day it is filed.
 
 ## 2. A resolution for each Sangguniang Bayan reading
 

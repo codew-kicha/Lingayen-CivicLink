@@ -63,6 +63,8 @@ Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->name('ad
     Route::get('/applications/export', [Admin\ApplicationReviewController::class, 'export'])->name('applications.export');
     Route::get('/applications/{application}', [Admin\ApplicationReviewController::class, 'show'])->name('applications.show');
     Route::patch('/applications/{application}/stage', [Admin\ApplicationReviewController::class, 'updateStage'])->name('applications.stage');
+    Route::post('/applications/{application}/approve-form', [Admin\ApplicationReviewController::class, 'approveForm'])->name('applications.approve-form');
+    Route::post('/applications/{application}/return-requirements', [Admin\ApplicationReviewController::class, 'returnRequirements'])->name('applications.return-requirements');
     Route::post('/applications/{application}/approve', [Admin\ApplicationReviewController::class, 'approve'])->name('applications.approve');
     Route::post('/applications/{application}/reject', [Admin\ApplicationReviewController::class, 'reject'])->name('applications.reject');
 
@@ -143,6 +145,7 @@ Route::middleware(['auth', 'verified', 'role:cso_rep'])->prefix('cso')->name('cs
     // Applying: members, the form filled in online, the other requirements, review and submit.
     Route::get('/application', [Cso\ApplicationWizardController::class, 'resume'])->name('application');
     Route::get('/application/preview', [Cso\ApplicationWizardController::class, 'preview'])->name('application.preview');
+    Route::get('/application/requirements', [Cso\ApplicationWizardController::class, 'requirements'])->name('application.requirements.show');
     Route::get('/application/{step}', [Cso\ApplicationWizardController::class, 'show'])
         ->whereIn('step', \App\Services\ApplicationSteps::PAGES)->name('application.step');
     Route::post('/application/members', [Cso\ApplicationWizardController::class, 'saveMembers'])->name('application.members');

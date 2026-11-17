@@ -25,6 +25,8 @@ class DashboardController extends Controller
             'latestApplication' => $organization?->applications()->where('status', '!=', 'draft')->latest('id')->first(),
             // An application being prepared (members, form, requirements): the dashboard says where it stands.
             'draft' => $organization ? ApplicationSteps::draft($organization) : null,
+            // The form was approved and the requirements are due (pre-final defense panel's order).
+            'awaitingRequirements' => $organization ? ApplicationSteps::awaitingRequirements($organization) : null,
             'score' => $organization?->performanceScores()->latest('computed_at')->first(),
             'pendingActivities' => $organization?->activities()->where('status', 'pending')->count() ?? 0,
             'verifiedActivities' => $organization?->activities()->where('status', 'verified')->count() ?? 0,

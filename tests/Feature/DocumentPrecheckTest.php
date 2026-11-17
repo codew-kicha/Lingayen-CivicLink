@@ -72,7 +72,7 @@ class DocumentPrecheckTest extends TestCase
         $rep = User::factory()->create();
         $organization = Organization::factory()->for($rep)->create();
 
-        $this->startApplication($rep);
+        $this->approveForm($this->submitForm($rep));
         $this->uploadRequirements($rep, $this->requirementFiles(['fee_receipt', 'constitution_bylaws', 'dole_sec_certification']), [
             'ocr_text' => [
                 'fee_receipt' => self::RECEIPT,                          // right document
@@ -80,7 +80,6 @@ class DocumentPrecheckTest extends TestCase
                 'dole_sec_certification' => 'scribbles',                 // handwritten / unreadable
             ],
         ])->assertSessionHasNoErrors()->assertRedirect();
-        $this->actingAs($rep)->post(route('cso.application.submit'))->assertSessionHasNoErrors();
 
         $status = Document::pluck('ocr_status', 'document_type');
         $this->assertSame('matched', $status['fee_receipt']);
@@ -117,7 +116,7 @@ class DocumentPrecheckTest extends TestCase
         $rep = User::factory()->create();
         Organization::factory()->for($rep)->create();
 
-        $this->startApplication($rep);
+        $this->approveForm($this->submitForm($rep));
         $this->uploadRequirements($rep, [], ['ocr_text' => ['fee_receipt' => str_repeat('a', 20001)]])
             ->assertSessionHasErrors('ocr_text.fee_receipt');
     }

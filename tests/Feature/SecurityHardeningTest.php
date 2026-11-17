@@ -223,7 +223,7 @@ class SecurityHardeningTest extends TestCase
         $path = tempnam(sys_get_temp_dir(), 'upl');
         file_put_contents($path, "<?php\necho 'This is not a receipt.';\n");
 
-        $this->startApplication($rep);
+        $this->approveForm($this->submitForm($rep));
         $this->uploadRequirements($rep, ['fee_receipt' => new UploadedFile($path, 'receipt.pdf', 'application/pdf', null, true)])
             ->assertSessionHasErrors('documents.fee_receipt');
     }

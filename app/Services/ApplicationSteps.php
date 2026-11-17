@@ -3,46 +3,59 @@
 namespace App\Services;
 
 use App\Models\ApplicationModel;
+use App\Models\AuditLog;
 use App\Models\Document;
 use App\Models\Organization;
 use App\Models\OrganizationMember;
 use App\Models\User;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 /**
  * Registration and the accreditation application as one guided path (pre-final defense panel):
- * account, email code, members, the accreditation form filled in online, the other requirements,
- * then review and submit. Steps 3 to 6 work on a draft application, so everything is saved as the
- * representative goes and they can stop and come back. Submitting produces the accreditation form and
- * the officer list from what was entered, and the application joins the Desk Office's queue.
+ * account, email code, members, the accreditation form filled in online, then review and submit.
+ * Steps 3 to 5 work on a draft application, so everything is saved as the representative goes and
+ * they can stop and come back. Submitting produces the accreditation form and the officer list from
+ * what was entered, and the application joins the Desk Office's queue.
+ *
+ * The other requirements (official receipt, constitution, DOLE/SEC) come after: the panel asked
+ * that nothing be paid or uploaded before the Desk Office approves the application form. Step 6
+ * opens only then (status requirements_pending), and step 7 is the Sangguniang Bayan's readings.
  */
 class ApplicationSteps
 {
-    /** Every step, in order; the first two happen at sign-up. */
+    /** Every step, in order; the first two happen at sign-up, the last is the SB's. */
     public const STEPS = [
         'account' => 'Account',
         'email' => 'Confirm email',
         'members' => 'Members',
         'form' => 'Accreditation form',
-        'requirements' => 'Other requirements',
         'review' => 'Review and submit',
+        'requirements' => 'Requirements',
+        'readings' => 'SB readings',
     ];
 
-    /** The steps with a page of their own inside the CSO area. */
-    public const PAGES = ['members', 'form', 'requirements', 'review'];
+    /** The draft's pages, before the application is sent. */
+    public const PAGES = ['members', 'form', 'review'];
 
     public static function draft(Organization $organization): ?ApplicationModel
     {
         return $organization->applications()->where('status', 'draft')->latest('id')->first();
     }
 
-    /** An application already with the Desk Office: no second one until it is decided. */
+    /** An application sent and not yet decided: no second one until it is. */
     public static function inReview(Organization $organization): ?ApplicationModel
     {
-        return $organization->applications()->whereIn('status', ['submitted', 'under_review'])->latest('id')->first();
+        return $organization->applications()->whereIn('status', ApplicationModel::OPEN)->latest('id')->first();
+    }
+
+    /** The application whose form the Desk Office approved, waiting for the requirements. */
+    public static function awaitingRequirements(Organization $organization): ?ApplicationModel
+    {
+        return $organization->applications()->where('status', 'requirements_pending')->latest('id')->first();
     }
 
     /**
@@ -59,7 +72,7 @@ class ApplicationSteps
             'submission_channel' => 'online',
             'submitted_by' => $user->id,
             'form_data' => array_merge(self::formDefaults($organization, $user), array_intersect_key(
-                $previous?->form_data ?? [], array_flip(['organization_name', 'representative_name', 'contact_number', 'place_of_operation'])
+                $previous?->form_data ?? [], array_flip(['organization_name', 'representative_name', 'contact_number', 'place_barangay', 'place_detail', 'place_of_operation'])
             )),
         ]);
     }
@@ -70,8 +83,19 @@ class ApplicationSteps
             'organization_name' => $organization->name,
             'representative_name' => $user->name,
             'contact_number' => self::localPhone($user->phone),
-            'place_of_operation' => "Barangay {$organization->barangay}, Lingayen, Pangasinan",
+            'place_barangay' => $organization->barangay,
+            'place_detail' => '',
+            'place_of_operation' => self::placeOfOperation($organization->barangay),
         ];
+    }
+
+    /**
+     * The Place of Operation as written on the form: the specific place (purok, street, landmark) if
+     * given, then the barangay chosen from Lingayen's list.
+     */
+    public static function placeOfOperation(string $barangay, ?string $detail = null): string
+    {
+        return (filled($detail) ? trim($detail).', ' : '')."Barangay {$barangay}, Lingayen, Pangasinan";
     }
 
     /** +639171234567 as 0917 123 4567. */
@@ -89,17 +113,21 @@ class ApplicationSteps
             ->all();
     }
 
-    /** @return array<string, bool> which of the four pages are complete */
+    /** The required uploads not yet attached to the application (keys). */
+    public static function missingUploads(ApplicationModel $application): Collection
+    {
+        return collect(self::uploads($application))->reject(fn (array $type) => $type['optional'])->keys()
+            ->diff($application->documents()->pluck('document_type'))->values();
+    }
+
+    /** @return array<string, bool> which of the draft's pages are complete */
     public static function done(ApplicationModel $application): array
     {
         $members = $application->organization->members()->get(['position'])->toArray();
-        $uploaded = $application->documents()->pluck('document_type')->all();
-        $missing = collect(self::uploads($application))->reject(fn (array $type) => $type['optional'])->keys()->diff($uploaded);
 
         $done = [
             'members' => count($members) >= OrganizationMember::MINIMUM && OrganizationMember::representativeProblem($members) === null,
             'form' => filled($application->form_data['certified_at'] ?? null),
-            'requirements' => $missing->isEmpty(),
         ];
 
         return $done + ['review' => ! in_array(false, $done, true)];
@@ -111,7 +139,7 @@ class ApplicationSteps
         return collect(self::done($application))->except('review')->search(false) ?: 'review';
     }
 
-    /** "Step 4 of 6" for a page. */
+    /** "Step 4 of 7" for a page. */
     public static function number(string $step): int
     {
         return array_search($step, array_keys(self::STEPS), true) + 1;
@@ -132,8 +160,20 @@ class ApplicationSteps
     }
 
     /**
+     * The requirements are in: back to the Desk Office for checking, then the SB readings. A note
+     * from an earlier return is cleared.
+     */
+    public static function submitRequirements(ApplicationModel $application): void
+    {
+        $application->update(['status' => 'requirements_submitted', 'requirements_submitted_at' => now(), 'requirements_note' => null]);
+
+        AuditLog::record('application.requirements_submitted', $application->organization, ['application_id' => $application->id]);
+    }
+
+    /**
      * Sends the draft to the Desk Office: the accreditation form and the officer list are produced as
      * documents (marked 'generated', so the pre-check doesn't apply), then it joins the review queue.
+     * The other requirements wait until the form is approved.
      */
     public static function submit(ApplicationModel $application, User $user): void
     {
@@ -150,7 +190,7 @@ class ApplicationSteps
                 'accreditation_form' => [self::formPdf($application, final: true)->output(), 'Accreditation Form ('.($application->type === 'new' ? 'new application' : 'renewal').').pdf'],
                 'officers_members_list' => [Pdf::loadView('pdf.officers-members', [
                     'organization' => $organization,
-                    'members' => $organization->members()->orderByRaw("CASE WHEN position = ? THEN 0 ELSE 1 END", [OrganizationMember::REPRESENTATIVE])->orderBy('id')->get(),
+                    'members' => $organization->members()->orderByRaw('CASE WHEN position = ? THEN 0 ELSE 1 END', [OrganizationMember::REPRESENTATIVE])->orderBy('id')->get(),
                     'asOf' => now(),
                 ])->output(), 'List of Officers and Members.pdf'],
             ];
@@ -176,6 +216,6 @@ class ApplicationSteps
             ]);
         });
 
-        \App\Models\AuditLog::record('application.submitted', $organization, ['application_id' => $application->id, 'type' => $application->type]);
+        AuditLog::record('application.submitted', $organization, ['application_id' => $application->id, 'type' => $application->type]);
     }
 }

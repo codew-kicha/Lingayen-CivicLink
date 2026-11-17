@@ -29,7 +29,29 @@
                     <div>
                         <p class="text-sm font-semibold text-muted">Sangguniang Bayan reading stage</p>
                         <div class="mt-2"><x-sb-stepper :stage="$application->sb_stage" /></div>
+                        <x-reading-history :readings="$application->readings" class="mt-4" />
                     </div>
+
+                    <dl class="grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
+                        <div>
+                            <dt class="text-muted">Application form</dt>
+                            <dd class="text-ink">
+                                {{ $application->form_approved_at ? 'Approved '.$application->form_approved_at->format('d M Y') : 'Not approved yet' }}
+                            </dd>
+                        </div>
+                        <div>
+                            <dt class="text-muted">Requirements</dt>
+                            <dd class="text-ink">
+                                @if ($application->requirements_submitted_at)
+                                    Submitted {{ $application->requirements_submitted_at->format('d M Y') }}
+                                @elseif ($application->status === 'requirements_pending')
+                                    Waiting for the organization
+                                @else
+                                    Asked for after the form is approved
+                                @endif
+                            </dd>
+                        </div>
+                    </dl>
 
                     @if ($application->status === 'rejected' && $application->rejection_reason)
                         <div class="rounded-sm border border-danger bg-danger-subtle px-4 py-3">
@@ -162,7 +184,53 @@
 
         <aside class="xl:sticky xl:top-8">
             @can('review', $application)
-                @if (in_array($application->status, ['submitted', 'under_review'], true))
+                {{--
+                    Pre-final defense panel's order: the form is approved first, then the requirements
+                    come in, then the SB readings and the accreditation.
+                --}}
+                @if ($application->status === 'submitted')
+                    <section class="card" aria-labelledby="review-title">
+                        <div class="border-b border-line px-6 py-4">
+                            <h2 id="review-title" class="card-title">Review the application form</h2>
+                        </div>
+                        <div class="p-6">
+                            <p class="text-sm text-muted">
+                                Check the accreditation form and the member list. Approving asks the organization to upload the official
+                                receipt and the other requirements; they are notified by email and on their dashboard.
+                            </p>
+                            <form method="POST" action="{{ route('admin.applications.approve-form', $application) }}" class="mt-4">
+                                @csrf
+                                <button type="submit" class="btn-primary w-full">
+                                    <x-phosphor-check class="h-4 w-4" aria-hidden="true" />Approve application form
+                                </button>
+                            </form>
+                            @include('admin.applications.reject-form')
+                        </div>
+                    </section>
+                @elseif ($application->status === 'requirements_pending')
+                    <section class="card" aria-labelledby="review-title">
+                        <div class="border-b border-line px-6 py-4">
+                            <h2 id="review-title" class="card-title">Waiting for the requirements</h2>
+                        </div>
+                        <div class="p-6">
+                            <p class="text-sm text-muted">
+                                Form approved {{ $application->form_approved_at?->format('d M Y') }}{{ $application->formApprovedBy ? ' by '.$application->formApprovedBy->name : '' }}.
+                                The organization has been asked to upload:
+                            </p>
+                            <ul class="mt-2 list-disc pl-6 text-sm text-ink">
+                                @foreach (\App\Services\ApplicationSteps::uploads($application) as $type)
+                                    <li>{{ $type['label'] }}@if ($type['optional']) <span class="text-muted">(optional)</span>@endif</li>
+                                @endforeach
+                            </ul>
+                            @if ($application->requirements_note)
+                                <p class="mt-3 rounded-sm border border-warning/40 bg-warning-subtle px-3 py-2 text-sm text-ink">
+                                    <span class="font-semibold text-warning">Returned with:</span> {{ $application->requirements_note }}
+                                </p>
+                            @endif
+                            @include('admin.applications.reject-form')
+                        </div>
+                    </section>
+                @elseif (in_array($application->status, ['requirements_submitted', 'under_review'], true))
                     <section class="card" aria-labelledby="review-title">
                         <div class="border-b border-line px-6 py-4">
                             <h2 id="review-title" class="card-title">Advance the review</h2>
@@ -174,26 +242,72 @@
                             @endphp
                             <p class="field-label">Sangguniang Bayan stage</p>
                             <p class="text-sm text-ink">Now at <strong>{{ $stages[$application->sb_stage] ?? $application->sb_stage }}</strong>.</p>
-                            <div class="mt-3 flex flex-wrap items-center gap-2">
-                                @if ($nextStage)
-                                    <form method="POST" action="{{ route('admin.applications.stage', $application) }}">
-                                        @csrf
-                                        @method('PATCH')
-                                        <input type="hidden" name="sb_stage" value="{{ $nextStage }}">
-                                        <button type="submit" class="btn-secondary">
-                                            Record: {{ $stages[$nextStage] }} <x-phosphor-arrow-right class="h-4 w-4" aria-hidden="true" />
-                                        </button>
-                                    </form>
-                                @endif
-                                @if ($previousStage)
-                                    <form method="POST" action="{{ route('admin.applications.stage', $application) }}">
-                                        @csrf
-                                        @method('PATCH')
-                                        <input type="hidden" name="sb_stage" value="{{ $previousStage }}">
-                                        <button type="submit" class="btn-ghost btn-sm">Back to {{ strtolower($stages[$previousStage]) }}</button>
-                                    </form>
-                                @endif
-                            </div>
+
+                            {{--
+                                Each reading is recorded with the session date, its outcome and remarks; the
+                                organization receives them by email and in their notifications (pre-final
+                                defense panel). Deferred or returned keeps the stage where it is.
+                            --}}
+                            @if ($nextStage)
+                                @php $endorsement = $nextStage === 'endorsed'; @endphp
+                                <form method="POST" action="{{ route('admin.applications.stage', $application) }}" class="mt-4 space-y-4 rounded-md border border-line bg-canvas p-4">
+                                    @csrf
+                                    @method('PATCH')
+                                    <input type="hidden" name="sb_stage" value="{{ $nextStage }}">
+                                    <p class="text-sm font-semibold text-ink">Record the {{ $endorsement ? 'endorsement' : strtolower($stages[$nextStage]) }}</p>
+
+                                    <div>
+                                        <label for="held_on" class="field-label">Date of the SB session</label>
+                                        <input type="date" id="held_on" name="held_on" required max="{{ now()->toDateString() }}"
+                                               value="{{ old('held_on', now()->toDateString()) }}"
+                                               @error('held_on') aria-invalid="true" aria-describedby="held_on-error" @enderror
+                                               class="field-input @error('held_on') field-input-error @enderror">
+                                        @error('held_on')<p id="held_on-error" class="field-error">{{ $message }}</p>@enderror
+                                    </div>
+
+                                    @unless ($endorsement)
+                                        <fieldset>
+                                            <legend class="field-label">Outcome</legend>
+                                            <div class="space-y-2">
+                                                @foreach (\App\Models\ApplicationReading::OUTCOMES as $value => [$label, $meaning])
+                                                    <label class="flex items-start gap-2 text-sm">
+                                                        <input type="radio" name="outcome" value="{{ $value }}" @checked(old('outcome', 'passed') === $value) required
+                                                               class="mt-hair h-4 w-4 shrink-0 border-line-strong text-primary">
+                                                        <span><span class="font-semibold text-ink">{{ $label }}</span> <span class="text-muted">{{ $meaning }}</span></span>
+                                                    </label>
+                                                @endforeach
+                                            </div>
+                                            @error('outcome')<p class="field-error">{{ $message }}</p>@enderror
+                                        </fieldset>
+                                    @endunless
+
+                                    <div>
+                                        <label for="remarks" class="field-label">
+                                            Remarks for the organization @if ($endorsement)<span class="font-normal text-muted">(optional)</span>@endif
+                                        </label>
+                                        <textarea id="remarks" name="remarks" rows="3" maxlength="2000" @required(! $endorsement)
+                                                  placeholder="What the SB discussed, questions raised, and anything the organization should do"
+                                                  @error('remarks') aria-invalid="true" aria-describedby="remarks-error" @enderror
+                                                  class="field-input @error('remarks') field-input-error @enderror">{{ old('remarks') }}</textarea>
+                                        <p class="field-hint">Sent to the organization by email and in their notifications.</p>
+                                        @error('remarks')<p id="remarks-error" class="field-error">{{ $message }}</p>@enderror
+                                    </div>
+
+                                    <button type="submit" class="btn-secondary w-full">
+                                        <x-phosphor-paper-plane-tilt class="h-4 w-4" aria-hidden="true" />
+                                        Record {{ $endorsement ? 'endorsement' : strtolower($stages[$nextStage]) }} and notify
+                                    </button>
+                                </form>
+                            @endif
+                            @if ($previousStage)
+                                <form method="POST" action="{{ route('admin.applications.stage', $application) }}" class="mt-3">
+                                    @csrf
+                                    @method('PATCH')
+                                    <input type="hidden" name="sb_stage" value="{{ $previousStage }}">
+                                    <button type="submit" class="btn-ghost btn-sm">Undo: back to {{ strtolower($stages[$previousStage]) }}</button>
+                                    <p class="field-hint">For a mistake. Removes the last record; the organization is not notified.</p>
+                                </form>
+                            @endif
                             @error('sb_stage')<p class="field-error">{{ $message }}</p>@enderror
 
                             @php $endorsed = $application->sb_stage === 'endorsed'; @endphp
@@ -216,18 +330,21 @@
                                 </p>
                             </form>
 
-                            <form method="POST" action="{{ route('admin.applications.reject', $application) }}" class="mt-6 border-t border-line pt-6">
-                                @csrf
-                                <label for="rejection_reason" class="field-label">Reason for rejection</label>
-                                <textarea id="rejection_reason" name="rejection_reason" rows="2"
-                                          class="field-input @error('rejection_reason') field-input-error @enderror"
-                                          @error('rejection_reason') aria-invalid="true" aria-describedby="rejection_reason-error" @enderror
-                                          placeholder="What the organization needs to correct">{{ old('rejection_reason') }}</textarea>
-                                @error('rejection_reason')
-                                    <p id="rejection_reason-error" class="field-error">{{ $message }}</p>
-                                @enderror
-                                <button type="submit" class="btn-danger mt-3 w-full">Reject application</button>
-                            </form>
+                            @if ($application->status === 'requirements_submitted')
+                                {{-- Before the readings begin, the requirements can go back for a fix. --}}
+                                <form method="POST" action="{{ route('admin.applications.return-requirements', $application) }}" class="mt-6 border-t border-line pt-6">
+                                    @csrf
+                                    <label for="requirements_note" class="field-label">Return the requirements</label>
+                                    <textarea id="requirements_note" name="requirements_note" rows="2"
+                                              class="field-input @error('requirements_note') field-input-error @enderror"
+                                              @error('requirements_note') aria-invalid="true" aria-describedby="requirements_note-error" @enderror
+                                              placeholder="e.g. The receipt is unreadable; upload a clearer scan">{{ old('requirements_note') }}</textarea>
+                                    @error('requirements_note')<p id="requirements_note-error" class="field-error">{{ $message }}</p>@enderror
+                                    <button type="submit" class="btn-secondary mt-3 w-full">Send back for correction</button>
+                                </form>
+                            @endif
+
+                            @include('admin.applications.reject-form')
                         </div>
                     </section>
                 @else
