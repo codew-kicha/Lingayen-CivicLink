@@ -1,6 +1,7 @@
 {{--
     Activity fields shared by the CSO log and edit forms and PESO's assisted encoding.
     Needs $partnerOptions (id => name); $activity (optional) fills in an existing activity.
+    The venue and up to three photos feed the automated checks (requirement 6).
 --}}
 @php $activity ??= null; @endphp
 <div>
@@ -18,6 +19,15 @@
            class="field-input @error('activity_date') field-input-error @enderror"
            @error('activity_date') aria-invalid="true" aria-describedby="activity_date-error" @enderror required>
     @error('activity_date')<p id="activity_date-error" class="field-error">{{ $message }}</p>@enderror
+</div>
+
+<div>
+    <label for="venue" class="field-label">Venue <span class="font-normal text-muted">(optional)</span></label>
+    <input type="text" id="venue" name="venue" maxlength="150" value="{{ old('venue', $activity?->venue) }}"
+           placeholder="e.g. Barangay Hall, Libsong East"
+           class="field-input @error('venue') field-input-error @enderror"
+           @error('venue') aria-invalid="true" aria-describedby="venue-error" @enderror>
+    @error('venue')<p id="venue-error" class="field-error">{{ $message }}</p>@enderror
 </div>
 
 <div>
@@ -65,6 +75,46 @@
     </div>
     <p id="evidence-hint" class="field-hint">A photo or scan of the attendance sheet (PDF, JPG or PNG, up to 5 MB). PESO checks it before verifying.@if ($activity?->evidence_path) Choosing a file replaces the current one.@endif</p>
     @error('evidence')<p id="evidence-error" class="field-error">{{ $message }}</p>@enderror
+</div>
+
+{{-- Up to three photos taken at the activity. Original photos from the phone carry the date and place
+     they were taken, which the checks compare with the activity. --}}
+@php
+    $photos = $activity?->photos ?? collect();
+    $removing = array_map('intval', old('remove_photos', []));
+@endphp
+<div x-data="{ kept: {{ $photos->count() - count(array_intersect($removing, $photos->pluck('id')->all())) }}, chosen: 0 }">
+    <label for="photos" class="field-label">Activity photos <span class="font-normal text-muted">(optional, up to {{ \App\Models\ActivityPhoto::MAX }})</span></label>
+    @if ($photos->isNotEmpty())
+        <ul class="mb-2 grid gap-2 sm:grid-cols-3">
+            @foreach ($photos as $photo)
+                <li class="overflow-hidden rounded-sm border border-line bg-canvas text-sm" x-data="{ remove: @js(in_array($photo->id, $removing, true)) }">
+                    <img src="{{ route('activities.photo', [$activity, $photo]) }}" alt="Photo {{ $loop->iteration }} of this activity"
+                         class="h-24 w-full object-cover" :class="remove && 'opacity-40'" loading="lazy">
+                    <label class="flex min-h-11 items-center gap-2 px-3 text-muted">
+                        <input type="checkbox" name="remove_photos[]" value="{{ $photo->id }}" x-model="remove"
+                               @change="kept += remove ? -1 : 1" class="rounded-sm border-line-strong text-primary">
+                        Remove
+                    </label>
+                </li>
+            @endforeach
+        </ul>
+    @endif
+    <x-file-field>
+        <input type="file" id="photos" name="photos[]" accept=".jpg,.jpeg,.png,.webp" multiple
+               @change="chosen = $event.target.files.length"
+               aria-describedby="photos-hint{{ $errors->has('photos') || $errors->has('photos.*') ? ' photos-error' : '' }}"
+               class="field-file @if ($errors->has('photos') || $errors->has('photos.*')) field-input-error @endif">
+    </x-file-field>
+    <p id="photos-hint" class="field-hint">
+        JPG, PNG or WebP, up to 5 MB each. Upload the original photos from the phone, not ones sent through chat apps,
+        so the date and place they were taken can be checked.
+    </p>
+    <p class="field-error" x-cloak x-show="kept + chosen > {{ \App\Models\ActivityPhoto::MAX }}" aria-live="polite">
+        That makes <span x-text="kept + chosen"></span> photos; attach at most {{ \App\Models\ActivityPhoto::MAX }}.
+    </p>
+    @error('photos')<p id="photos-error" class="field-error">{{ $message }}</p>@enderror
+    @error('photos.*')<p class="field-error">{{ $message }}</p>@enderror
 </div>
 
 <fieldset>

@@ -18,8 +18,23 @@
         text-wrap: balance;
     }
 
-    p {
+    p, li, blockquote, figcaption, dd {
         text-wrap: pretty;
+    }
+
+    /* The parts of the page the browser draws, in the palette too. */
+    ::selection {
+        background: rgb(var(--color-accent-200));
+        color: rgb(var(--color-brand-900));
+    }
+
+    input, textarea {
+        caret-color: rgb(var(--color-primary));
+    }
+
+    /* In-page links (About's contents) glide to their section unless the reader asks for less motion. */
+    @media (prefers-reduced-motion: no-preference) {
+        html { scroll-behavior: smooth; }
     }
 
     :focus-visible {
@@ -568,13 +583,52 @@
         height: 2px;
         background: rgb(var(--color-accent));
         transform: scaleX(0);
-        transition: transform 180ms cubic-bezier(0.23, 1, 0.32, 1);
+        transform-origin: right;
+        transition: transform 220ms cubic-bezier(0.23, 1, 0.32, 1);
     }
 
+    /* The line draws in from the left on hover and slides out to the right when the pointer leaves. */
     .nav-link:hover::after,
     .nav-link:focus-visible::after,
     .nav-link[aria-current="page"]::after {
         transform: scaleX(1);
+        transform-origin: left;
+    }
+
+    /* Dropdown items: compact rows, the label turns orange and a 1px line draws under it from the left. */
+    .nav-sub-link {
+        @apply flex items-center px-4 py-2 text-sm font-medium text-paper transition-colors duration-fast ease-out-strong
+               hover:text-accent-400 focus-visible:text-accent-400 focus-visible:outline-none;
+    }
+
+    .nav-sub-link > span {
+        position: relative;
+    }
+
+    .nav-sub-link > span::after {
+        content: '';
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: -3px;
+        height: 1px;
+        background: rgb(var(--color-accent));
+        transform: scaleX(0);
+        transform-origin: right;
+        transition: transform 220ms cubic-bezier(0.23, 1, 0.32, 1);
+    }
+
+    .nav-sub-link:hover > span::after,
+    .nav-sub-link:focus-visible > span::after {
+        transform: scaleX(1);
+        transform-origin: left;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .nav-link::after,
+        .nav-sub-link > span::after {
+            transition: none;
+        }
     }
 
     /* Logo: the seal turns slightly and the name darkens. */
@@ -667,14 +721,12 @@
         mix-blend-mode: multiply;
     }
 
-    /* Directory cards reveal as they scroll in (§4). .motion-ok is set only by the public layout. */
-    .motion-ok .reveal {
-        @apply translate-y-2 opacity-0 transition duration-slow ease-out-strong;
-    }
-
-    .motion-ok .reveal.is-revealed {
-        @apply translate-y-0 opacity-100;
-    }
+    /*
+     * Content no longer fades in as it scrolls (public refinement, Nov 2026): a fade on every block is
+     * the template tell, and it hides the record from anyone who scrolls fast. Each page keeps one
+     * authored moment: the banner entrance, and the record's figures counting up. The .reveal,
+     * .reveal-photo and .reveal-line hooks stay in the markup and do nothing.
+     */
 
     /*
      * Public-page motion (MOTION_INTENSITY 5, only with .motion-ok, so reduced-motion and no-JS
@@ -693,23 +745,17 @@
         animation: banner-settle 1400ms cubic-bezier(0.23, 1, 0.32, 1) both;
     }
 
-    /* Timelines: the connecting line draws as the list scrolls in. */
-    .motion-ok .reveal-line {
-        @apply transition-transform duration-[900ms] ease-out-strong;
+    /* A linked photo answers the pointer: it zooms slightly inside its frame. */
+    .photo-zoom img {
+        @apply transition-transform duration-slow ease-out-strong;
     }
 
-    .motion-ok .reveal-line-x { transform: scaleX(0); transform-origin: left; }
-    .motion-ok .reveal-line-y { transform: scaleY(0); transform-origin: top; }
-
-    .motion-ok .reveal-line.is-revealed { transform: none; }
-
-    /* A photo that eases up and un-zooms as it enters. */
-    .motion-ok .reveal-photo {
-        @apply translate-y-4 scale-[1.02] opacity-0 transition duration-[700ms] ease-out-strong;
+    .photo-zoom:hover img {
+        @apply scale-[1.03];
     }
 
-    .motion-ok .reveal-photo.is-revealed {
-        @apply translate-y-0 scale-100 opacity-100;
+    @media (prefers-reduced-motion: reduce) {
+        .photo-zoom:hover img { transform: none; }
     }
 
     /*

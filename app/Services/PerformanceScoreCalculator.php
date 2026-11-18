@@ -130,7 +130,9 @@ class PerformanceScoreCalculator
 
     private function documentCurrency(Organization $organization): float
     {
-        $required = Document::requiredTypes();
+        // No receipt is expected when the organization's latest application was filed free.
+        $required = array_values(array_diff(Document::requiredTypes(), $organization->applications()
+            ->where('status', '!=', 'draft')->latest('submitted_at')->value('fee_waived') ? ['fee_receipt'] : []));
 
         $current = $organization->documents()
             ->whereIn('document_type', $required)

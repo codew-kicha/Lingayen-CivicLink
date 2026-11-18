@@ -16,127 +16,182 @@
 <x-layouts.public title="Accreditation">
     <x-page-banner title="Accreditation" photo="events/cso4.jpg"
                    alt="Organization representatives signing registration forms at a CSO assembly in Lingayen"
-                   lede="Why it matters, who can apply, what to submit, and how the review runs from filing to Sangguniang Bayan endorsement." />
+                   lede="Why it matters, who can apply, what to submit, and how it runs: application, validation, committee hearing, and approval." />
 
     <div class="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 lg:py-section">
-        <section aria-labelledby="why-title">
-            <h2 id="why-title" class="section-title reveal">Why get accredited</h2>
-            <p class="reveal mt-4 max-w-[68ch] leading-relaxed text-muted">
-                Accreditation by the Sangguniang Bayan is how a CSO earns a formal place in Lingayen's local governance.
-            </p>
-            <ul class="mt-8 grid gap-x-12 gap-y-8 md:grid-cols-2">
-                @foreach ($benefits as $index => [$icon, $title, $detail])
-                    <li class="reveal flex gap-4">
-                        <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-brand-50 text-brand-700">
-                            <x-dynamic-component :component="$icon" class="h-6 w-6" aria-hidden="true" />
-                        </span>
-                        <span>
-                            <span class="block font-semibold text-ink">{{ $title }}</span>
-                            <span class="mt-1 block text-sm leading-relaxed text-muted">{{ $detail }}</span>
-                        </span>
-                    </li>
-                @endforeach
-            </ul>
-            <p class="reveal mt-8 max-w-[72ch] rounded-md bg-band px-4 py-3 text-sm leading-relaxed text-muted">
-                Good to know: CSOs can join the Local Development Council's sectoral and functional committees even without
-                accreditation, and help from the municipality for projects is decided case by case by the Mayor with the
-                Sangguniang Bayan's concurrence. Accreditation is not a promise of funding.
-            </p>
-        </section>
-
-        <section class="mt-section grid gap-12 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]" aria-labelledby="who-title">
-            <div class="reveal">
-                <h2 id="who-title" class="section-title">Who can apply</h2>
-                <p class="mt-4 max-w-[68ch] leading-relaxed text-muted">
-                    Any non-government, non-profit organization working in Lingayen: people's organizations, cooperatives,
-                    neighborhood associations, civic clubs, and non-government organizations. The Sangguniang Bayan looks for:
-                </p>
-                <ul class="mt-4 space-y-2 text-sm text-ink">
-                    @foreach ([
-                        'Registration with the SEC, CDA, DOLE or DHSUD, or accreditation by a national government agency',
-                        'Purposes aimed at community development',
-                        'At least one year of projects or activities in Lingayen',
-                        'Annual meetings held and annual reports kept',
-                    ] as $criterion)
-                        <li class="flex gap-3">
-                            <x-phosphor-check class="mt-1 h-4 w-4 shrink-0 text-accent-600" aria-hidden="true" />
-                            {{ $criterion }}
-                        </li>
-                    @endforeach
-                </ul>
-                <p class="mt-4 max-w-[68ch] text-sm leading-relaxed text-muted">
-                    Not registered yet? An organization that meets everything except registration can receive a Certificate
-                    of Recognition. It can help fill seats on a Local Special Body but cannot vote.
+        {{-- Why: five benefits and the honest caveat, closing the grid as its sixth tile. --}}
+        <section id="why" class="scroll-mt-28" aria-labelledby="why-title">
+            <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)] lg:items-end lg:gap-12">
+                <h2 id="why-title" class="section-title">Why get accredited</h2>
+                <p class="max-w-[58ch] leading-relaxed text-muted">
+                    Accreditation by the Sangguniang Bayan is how a CSO earns a formal place in Lingayen's local governance.
                 </p>
             </div>
-            <figure class="reveal-photo overflow-hidden rounded-lg self-start">
+            <ul class="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                @foreach ($benefits as [$icon, $title, $detail])
+                    <li class="group flex gap-4 rounded-lg border border-line bg-paper p-6 transition duration-base ease-out-strong hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-panel">
+                        <x-dynamic-component :component="$icon" class="mt-hair h-6 w-6 shrink-0 text-brand-600 transition-colors duration-base group-hover:text-accent-600" aria-hidden="true" />
+                        <div>
+                            <h3 class="font-semibold text-ink">{{ $title }}</h3>
+                            <p class="mt-1 text-sm leading-relaxed text-muted">{{ $detail }}</p>
+                        </div>
+                    </li>
+                @endforeach
+                <li class="flex gap-4 rounded-lg bg-brand-900 p-6 text-brand-100">
+                    <x-phosphor-info class="mt-hair h-6 w-6 shrink-0 text-accent-400" aria-hidden="true" />
+                    <div>
+                        <h3 class="font-semibold text-paper">Good to know</h3>
+                        <p class="mt-1 text-sm leading-relaxed">
+                            CSOs can join the Local Development Council's committees even without accreditation. Help for projects is
+                            decided case by case by the Mayor with the Sangguniang Bayan. Accreditation is not a promise of funding.
+                        </p>
+                    </div>
+                </li>
+            </ul>
+        </section>
+
+        {{-- Who can apply, as a check the visitor ticks: the answer says which application fits. --}}
+        <section id="who" class="mt-section grid scroll-mt-28 gap-8 lg:grid-cols-2 lg:gap-12" aria-labelledby="who-title">
+            <div x-data="eligibilityCheck">
+                <h2 id="who-title" class="section-title">Who can apply</h2>
+                <p class="mt-4 max-w-[58ch] leading-relaxed text-muted">
+                    Any non-government, non-profit organization working in Lingayen: people's organizations, cooperatives,
+                    neighborhood associations, civic clubs, and NGOs. Tick what is true of your organization.
+                </p>
+                <fieldset class="mt-6">
+                    <legend class="sr-only">What the Sangguniang Bayan looks for</legend>
+                    <div class="divide-y divide-line rounded-lg border border-line bg-paper">
+                        @foreach ([
+                            'Registered with the SEC, CDA, DOLE or DHSUD, or accredited by a national government agency',
+                            'Its purposes are aimed at community development',
+                            'At least one year of projects or activities in Lingayen',
+                            'Holds annual meetings and keeps annual reports',
+                        ] as $index => $criterion)
+                            <label class="flex min-h-11 cursor-pointer items-start gap-3 px-4 py-3 transition-colors duration-fast hover:bg-brand-50">
+                                <input type="checkbox" x-model="met[{{ $index }}]" class="mt-hair h-5 w-5 shrink-0 rounded-sm border-line-strong text-primary">
+                                <span class="text-ink">{{ $criterion }}</span>
+                            </label>
+                        @endforeach
+                    </div>
+                </fieldset>
+                <div class="mt-4 min-h-20 rounded-lg px-4 py-3 text-sm transition-colors duration-base" aria-live="polite"
+                     :class="{
+                        'bg-canvas text-muted': verdict === 'none',
+                        'bg-success-subtle text-success': verdict === 'accreditation',
+                        'bg-accent-100 text-brand-900': verdict === 'recognition' || verdict === 'not-yet',
+                     }">
+                    <p x-show="verdict === 'none'">
+                        The Sangguniang Bayan looks for all four. Not registered yet? An organization that meets the other three
+                        can receive a Certificate of Recognition: it can help fill seats on a Local Special Body but cannot vote.
+                    </p>
+                    <div x-show="verdict === 'accreditation'" x-cloak class="flex flex-wrap items-center gap-3">
+                        <p class="flex-1 font-semibold"><x-phosphor-seal-check class="mr-1 inline h-5 w-5 align-text-bottom" aria-hidden="true" />Your organization can apply for accreditation.</p>
+                        <a href="{{ route('register') }}" class="btn-primary">Start an application</a>
+                    </div>
+                    <p x-show="verdict === 'recognition'" x-cloak>
+                        <span class="font-semibold">Apply for a Certificate of Recognition.</span> It is for organizations that meet
+                        everything except registration; it can help fill seats on a Local Special Body but cannot vote.
+                    </p>
+                    <p x-show="verdict === 'not-yet'" x-cloak>
+                        <span class="font-semibold">Not yet: <span x-text="count"></span> of 4.</span>
+                        The Sangguniang Bayan looks for all four.
+                        <a href="{{ route('contact') }}" class="font-semibold underline underline-offset-4">Ask the Desk Office</a> what your organization still needs.
+                    </p>
+                </div>
+            </div>
+            <figure class="relative min-h-80 overflow-hidden rounded-lg">
                 <img src="{{ asset('images/events/cso1.jpg') }}" alt="CSO members seated at an assembly in the Lingayen municipal covered court"
-                     loading="lazy" width="500" height="333" class="aspect-[3/2] h-full w-full object-cover">
+                     loading="lazy" width="1200" height="800" class="absolute inset-0 h-full w-full object-cover">
             </figure>
         </section>
 
-        <section class="mt-section" aria-labelledby="how-title">
-            <h2 id="how-title" class="section-title reveal">How the review works</h2>
-            <ol class="relative mt-8 grid gap-8 lg:grid-cols-5 lg:gap-6">
-                    @foreach ($process as $step)
-                    <li class="reveal relative grid grid-cols-[2.5rem_minmax(0,1fr)] gap-x-4 lg:block">
-                        @unless ($loop->last)
-                            <span class="reveal-line reveal-line-y absolute bottom-[-2rem] left-5 top-10 w-px bg-line-strong lg:hidden" aria-hidden="true"></span>
-                            <span class="reveal-line reveal-line-x absolute left-10 top-5 hidden h-px w-[calc(100%-1rem)] bg-line-strong lg:block" aria-hidden="true"></span>
-                        @endunless
-                        <span class="relative z-10 flex h-10 w-10 items-center justify-center rounded-full bg-brand-800 text-sm font-semibold tabular-nums text-paper ring-4 ring-paper">{{ $loop->iteration }}</span>
-                        <div class="lg:mt-4">
-                            <h3 class="font-semibold text-ink">{{ $step['title'] }}</h3>
-                            <p class="mt-1 max-w-[34ch] text-sm leading-relaxed text-muted">{{ $step['detail'] }}</p>
-                        </div>
+        {{-- How the review works: pick a step and read it in full. --}}
+        <section id="how" class="mt-section scroll-mt-28" aria-labelledby="how-title">
+            <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)] lg:items-end lg:gap-12">
+                <h2 id="how-title" class="section-title">How the review works</h2>
+                <p class="max-w-[58ch] leading-relaxed text-muted">
+                    Choose a phase to see what happens, who acts, and what you receive. You follow every phase from your CivicLink
+                    account, and the office's remarks after the committee hearing reach you by email.
+                </p>
+            </div>
+            <x-fee-period-note class="mt-6" />
+            <x-process-explorer :steps="$process" class="mt-8" />
+            <ul class="mt-12 grid gap-4 border-y border-line py-6 text-sm text-muted sm:grid-cols-2 xl:grid-cols-4">
+                @foreach ([
+                    ['phosphor-calendar-check', 'Applications are accepted at any time of year.'],
+                    ['phosphor-users-three', 'An organization sits on one Local Special Body only.'],
+                    ['phosphor-hourglass', 'Filed within a free filing period: free, and valid for three years. Outside it: the fee applies, and it is renewed yearly.'],
+                    ['phosphor-prohibit', 'Partisan political activity is a ground for losing accreditation.'],
+                ] as [$icon, $rule])
+                    <li class="flex gap-3">
+                        <x-dynamic-component :component="$icon" class="h-5 w-5 shrink-0 text-brand-600" aria-hidden="true" />{{ $rule }}
                     </li>
                 @endforeach
-            </ol>
-            <ul class="reveal mt-12 grid max-w-4xl gap-x-8 gap-y-2 text-sm text-muted sm:grid-cols-2">
-                <li>Applications are accepted at any time of year.</li>
-                <li>An organization sits on one Local Special Body only.</li>
-                <li>How long accreditation lasts is set by the Sangguniang Bayan. The office currently issues it for three years.</li>
-                <li>Partisan political activity is a ground for losing accreditation.</li>
             </ul>
         </section>
 
-        <section class="mt-section grid gap-12 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]" aria-labelledby="submit-title">
-            <div class="reveal">
+        {{-- What to submit: a checklist per application type, remembered on this device. --}}
+        @php
+            $formKeys = array_keys($paperForms);
+            $counts = collect($paperForms)->map(fn ($form) => count($form['items']))->all();
+            $madeOnline = fn (string $item) => str_contains($item, 'Accreditation Form') || str_contains($item, 'list of officers');
+        @endphp
+        <section id="submit" class="mt-section grid scroll-mt-28 gap-8 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)] lg:gap-12" aria-labelledby="submit-title"
+                 x-data="requirementsChecklist(@js($counts))">
+            <div>
                 <h2 id="submit-title" class="section-title">What you need to submit</h2>
-                <p class="mt-2 max-w-[62ch] text-sm text-muted">
-                    As listed on the Sangguniang Bayan's accreditation forms. Online, the accreditation form and the list of
-                    officers and members are filled in on the website; the rest are uploaded as scans or clear photographs
-                    (PDF, JPG, or PNG, up to 5 MB per file).
+                <p class="mt-4 max-w-[58ch] leading-relaxed text-muted">
+                    As listed on the Sangguniang Bayan's forms. The form and member list are filled in on the website; the rest are
+                    uploaded after the Desk Office approves your form. Tick each one as you gather it.
                 </p>
-                <div class="mt-6 grid gap-8 sm:grid-cols-2">
-                    @foreach ($paperForms as $form)
-                        <div>
-                            <h3 class="font-semibold text-ink">{{ $form['title'] }}</h3>
-                            @if ($form['note'])
-                                <p class="mt-1 text-sm text-muted">{{ $form['note'] }}</p>
-                            @endif
-                            <ol class="mt-3 divide-y divide-line border-y border-line text-sm">
-                                @foreach ($form['items'] as $item)
-                                    <li class="flex gap-3 py-3">
-                                        <span class="w-5 shrink-0 font-semibold tabular-nums text-brand-700">{{ chr(96 + $loop->iteration) }})</span>
-                                        <span class="text-ink">{{ $item }}</span>
-                                    </li>
-                                @endforeach
-                            </ol>
-                        </div>
+                <div class="mt-6 inline-flex rounded-md border border-line bg-canvas p-1" role="tablist" aria-label="Application type">
+                    @foreach ($paperForms as $key => $form)
+                        <button type="button" role="tab" id="tab-{{ $key }}" aria-controls="panel-{{ $key }}"
+                                :aria-selected="(tab === '{{ $key }}').toString()" @click="tab = '{{ $key }}'"
+                                class="inline-flex min-h-11 items-center gap-2 rounded-sm px-4 text-sm font-semibold transition-colors duration-fast"
+                                :class="tab === '{{ $key }}' ? 'bg-paper text-brand-900 shadow-panel' : 'text-muted hover:text-ink'">
+                            {{ $form['title'] }}
+                            <span class="tabular-nums text-xs text-muted"><span x-text="ready('{{ $key }}')">0</span>/{{ count($form['items']) }}</span>
+                        </button>
                     @endforeach
                 </div>
+                @foreach ($paperForms as $key => $form)
+                    <div id="panel-{{ $key }}" role="tabpanel" aria-labelledby="tab-{{ $key }}" x-show="tab === '{{ $key }}'" @if (! $loop->first) x-cloak @endif class="mt-4">
+                        <div class="h-1 overflow-hidden rounded-full bg-brand-50" aria-hidden="true">
+                            <div class="h-1 rounded-full bg-brand-600 transition-[width] duration-slow ease-out-strong"
+                                 :style="`width: ${ready('{{ $key }}') / total('{{ $key }}') * 100}%`"></div>
+                        </div>
+                        <ul class="mt-3 divide-y divide-line rounded-lg border border-line bg-paper">
+                            @foreach ($form['items'] as $item)
+                                @php $id = $key.'.'.$loop->index; @endphp
+                                <li>
+                                    <label class="flex min-h-11 cursor-pointer items-start gap-3 px-4 py-3 transition-colors duration-fast hover:bg-brand-50">
+                                        <input type="checkbox" :checked="ticked['{{ $id }}']" @change="toggle('{{ $id }}')"
+                                               class="mt-hair h-5 w-5 shrink-0 rounded-sm border-line-strong text-primary">
+                                        <span class="min-w-0 flex-1 text-ink" :class="ticked['{{ $id }}'] && 'text-muted line-through decoration-brand-300'">{{ $item }}</span>
+                                        <span @class(['shrink-0 rounded-sm px-2 py-hair text-xs font-semibold',
+                                                     'bg-success-subtle text-success' => $madeOnline($item),
+                                                     'bg-canvas text-muted' => ! $madeOnline($item)])>{{ $madeOnline($item) ? 'Filled in online' : 'Upload' }}</span>
+                                    </label>
+                                </li>
+                            @endforeach
+                        </ul>
+                        @if ($form['note'])
+                            <p class="mt-3 text-sm text-muted">Filing on paper at the office? {{ $form['note'] }}</p>
+                        @endif
+                    </div>
+                @endforeach
             </div>
 
-            <aside id="paper-forms" class="reveal panel h-fit scroll-mt-24 p-6 lg:sticky lg:top-24">
-                <h2 class="card-title">Ready to apply?</h2>
-                <p class="mt-2 text-sm text-muted">
-                    Register your organization, then follow the steps: list your members, fill in the accreditation form on the
-                    website, and upload the other requirements. Your progress is saved, so you can finish later. Without internet
-                    access? Bring the requirements to the Civil Society Desk Office and staff will file them for you.
+            <aside id="paper-forms" class="h-fit scroll-mt-24 rounded-lg bg-brand-900 p-6 text-brand-100 lg:sticky lg:top-24">
+                <h2 class="font-serif text-2xl font-bold text-paper">Ready to apply?</h2>
+                <p class="mt-3 text-sm leading-relaxed">
+                    Register your organization, list your members, and fill in the accreditation form on the website. Your progress
+                    is saved, so you can finish later. Without internet access? Bring the requirements to the Civil Society Desk
+                    Office and staff will file them for you.
                 </p>
-                <a href="{{ route('register') }}" class="btn-primary mt-4 w-full">Register and apply online</a>
-                <a href="{{ route('contact') }}" class="btn-ghost mt-2 w-full">Ask the CSO Desk Office</a>
+                <a href="{{ route('register') }}" class="btn-accent mt-6 w-full">Register and apply online</a>
+                <a href="{{ route('contact') }}" class="btn mt-2 w-full border border-brand-500 text-paper hover:bg-brand-800">Ask the CSO Desk Office</a>
             </aside>
         </section>
     </div>

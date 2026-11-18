@@ -65,12 +65,11 @@
                     @switch($key)
                         @case('review')
                             <div>
-                                <p class="mb-2 text-sm font-semibold text-ink">Where they stand at the Sangguniang Bayan</p>
-                                <x-bar-chart :data="$details['review']['stages']" label="Applications waiting, by SB stage" />
+                                <p class="mb-2 text-sm font-semibold text-ink">Where they stand: validation and the committee hearing</p>
+                                <x-bar-chart :data="$details['review']['stages']" label="Applications waiting, by where they stand" />
                             </div>
                             <dl class="grid grid-cols-2 gap-4 self-start text-sm">
                                 <x-dashboard-fact label="Waiting longest" :value="$details['review']['oldest'] !== null ? $details['review']['oldest'].' days' : '—'" />
-                                <x-dashboard-fact label="Ready to approve" :value="$details['review']['stages']['Endorsed'] ?? 0" :alert="($details['review']['stages']['Endorsed'] ?? 0) > 0" />
                                 <x-dashboard-fact label="Documents to check" :value="$details['review']['flagged']" :alert="$details['review']['flagged'] > 0" />
                                 <x-dashboard-fact label="Renewals" :value="$details['review']['renewals']" />
                                 <x-dashboard-fact label="Filed at the office" :value="$details['review']['assisted']" />

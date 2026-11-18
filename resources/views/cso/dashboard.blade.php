@@ -90,7 +90,7 @@
                         {{ $awaitingRequirements->requirements_note ? 'Your requirements were returned for correction' : 'Your application form was approved' }}
                     </h2>
                     <p class="mt-1 text-sm text-ink">
-                        {{ $awaitingRequirements->requirements_note ?: 'Upload the official receipt and the other requirements. Your application goes to the Sangguniang Bayan once they are in.' }}
+                        {{ $awaitingRequirements->requirements_note ?: ($awaitingRequirements->fee_waived ? 'Upload the other requirements; there is no fee for your application.' : 'Upload the official receipt and the other requirements.').' Once they are validated, your application goes to the committee hearing.' }}
                     </p>
                 </div>
                 <a href="{{ route('cso.application.requirements.show') }}" class="btn-primary">Upload requirements <x-phosphor-arrow-right class="h-4 w-4" aria-hidden="true" /></a>
@@ -146,6 +146,7 @@
                                 File a renewal to return to the public directory and log activities again.
                                 Your profile, officers and activity history carry over.
                             </p>
+                            <x-fee-period-note class="mt-3" />
                             <a href="{{ route('cso.application') }}" class="btn-primary mt-4">File a renewal</a>
                         @elseif ($latestApplication)
                             <div class="flex flex-wrap items-center gap-3">
@@ -153,8 +154,10 @@
                                 <a href="{{ route('cso.applications.show', $latestApplication) }}"
                                    class="text-sm font-semibold text-primary hover:underline">View application</a>
                             </div>
-                            <p class="mt-6 text-sm font-semibold text-ink">Sangguniang Bayan reading stage</p>
-                            <div class="mt-2"><x-sb-stepper :stage="$latestApplication->sb_stage" /></div>
+                            @if ($latestApplication->status !== 'rejected')
+                                <p class="mt-6 text-sm font-semibold text-ink">Where it stands</p>
+                                <x-phase-stepper :application="$latestApplication" class="mt-2" />
+                            @endif
                         @else
                             <p class="text-sm text-muted">Your organization is not yet accredited and has no application on file.</p>
                             <a href="{{ route('cso.application') }}" class="btn-primary mt-4">Apply for accreditation</a>

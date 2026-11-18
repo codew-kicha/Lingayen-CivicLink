@@ -173,7 +173,8 @@ To add a page: add a route, add an item under the right group in `config/navigat
 | `<x-info-tip metric>` | Beside a figure or column (Analytics) | ⓘ with the metric's definition and formula from `config/metrics.php`; hover/focus shows, click pins; opens in the top layer so tables don't clip it |
 | `<x-insight>` | Under a chart heading (Analytics) | One computed sentence from `ReportData::insights()`, with a lightbulb |
 | `<x-source-split :independent :lgu :unknown>` | Self-initiated vs LGU-organized | 100% bar, each colour labelled with its own percentage; clicking a colour or its legend entry states that part ("LGU-organized: 41 of 94 = 44%") |
-| `<x-reading-history :readings>` | Application pages (admin and CSO) | Each SB reading with its date, outcome badge, the office's remarks and what happens next |
+| `<x-phase-stepper :application note>` | Application pages and the CSO dashboard | The four phases (Application, Validation, Committee hearing, Approval) as done / now / next, with the current phase's note |
+| `<x-hearing-history :hearings>` | Application pages (admin and CSO) | Each committee hearing with its date, committee, outcome badge (Favorable, Deferred, Returned), the remarks and what happens next |
 
 All eight states apply to interactive parts: default, hover, focus (visible ring, never removed),
 active, disabled, loading, error, success.

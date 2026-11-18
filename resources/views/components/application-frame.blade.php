@@ -4,7 +4,7 @@
     Frame for the application steps (App\Services\ApplicationSteps): the seven steps across the top,
     then the page's content. Steps 1-2 were done at sign-up; 3-5 are the draft's pages; 6, the other
     requirements, stays locked until the Desk Office approves the application form (pre-final
-    defense panel); 7 is the Sangguniang Bayan's readings, followed on the application page.
+    defense panel); 7 is the Sangguniang Bayan committee hearing, followed on the application page.
     Finished steps and the current one are links; locked ones say why.
 --}}
 @php
@@ -22,13 +22,13 @@
         // Review is "ready", not done, until the application is sent.
         'review' => ! $isDraft,
         'requirements' => in_array($draft->status, ['requirements_submitted', 'under_review', 'approved'], true),
-        'readings' => $draft->status === 'approved',
+        'hearing' => $draft->status === 'approved',
     ]);
     $reach = $isDraft ? array_search(ApplicationSteps::current($draft), ApplicationSteps::PAGES, true) : -1;
     $total = count(ApplicationSteps::STEPS);
     $locked = [
         'requirements' => $draft->status === 'requirements_pending' ? null : 'Opens once the Desk Office approves your form',
-        'readings' => 'After the requirements are checked',
+        'hearing' => 'After the requirements are validated',
     ];
 @endphp
 

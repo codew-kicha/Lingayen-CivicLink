@@ -77,8 +77,12 @@ class DashboardController extends Controller
 
         return [
             'review' => [
-                'stages' => collect(ApplicationModel::SB_STAGES)
-                    ->mapWithKeys(fn ($label, $key) => [$label => $waiting()->where('sb_stage', $key)->count()]),
+                'stages' => [
+                    'Form to validate' => $waiting()->where('status', 'submitted')->count(),
+                    'Requirements to validate' => $waiting()->where('status', 'requirements_submitted')->count(),
+                    'For committee hearing' => $waiting()->where('status', 'under_review')->where(fn ($q) => $q->whereNull('hearing_outcome')->orWhere('hearing_outcome', '!=', 'favorable'))->count(),
+                    'Ready to approve' => $waiting()->where('status', 'under_review')->where('hearing_outcome', 'favorable')->count(),
+                ],
                 'oldest' => $days($waiting()->min('submitted_at')),
                 'renewals' => $waiting()->where('type', 'renewal')->count(),
                 'assisted' => $waiting()->where('submission_channel', 'assisted')->count(),

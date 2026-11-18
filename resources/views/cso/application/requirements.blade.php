@@ -25,6 +25,19 @@
         </div>
     @endif
 
+    {{-- The fee: none within a free period (or when the office waived it); else the amount and where to pay. --}}
+    <p class="mb-6 flex items-start gap-3 rounded-md border border-line bg-paper px-4 py-3 text-sm text-ink">
+        @if ($draft->fee_waived)
+            <x-phosphor-seal-check class="mt-hair h-5 w-5 shrink-0 text-success" aria-hidden="true" />
+            <span><span class="font-semibold">No accreditation fee</span> ({{ $draft->feeWaiverReason() }}), so no official receipt is needed.
+                Once approved, your accreditation runs for {{ $draft->validityYears() }} years.</span>
+        @else
+            <x-phosphor-receipt class="mt-hair h-5 w-5 shrink-0 text-brand-600" aria-hidden="true" />
+            <span><span class="font-semibold">Pay the {{ $draft->feeLabel() }} at the Municipal Treasury</span> and upload the official receipt below.
+                Filed outside a free period, accreditation runs for one year and is renewed yearly.</span>
+        @endif
+    </p>
+
     <form method="POST" action="{{ route('cso.application.requirements') }}" enctype="multipart/form-data" class="card">
         @csrf
         <input type="hidden" name="step" value="requirements">
@@ -67,7 +80,7 @@
                                    @error("documents.{$key}") aria-invalid="true" @enderror>
                         </x-file-field>
                         <input type="hidden" name="ocr_text[{{ $key }}]" :value="text">
-                        <p id="doc-{{ $key }}-hint" class="field-hint">{{ config("office.requirement_notes.{$key}") }}</p>
+                        <p id="doc-{{ $key }}-hint" class="field-hint">{{ $key === 'fee_receipt' ? 'From the Municipal Treasury: the '.$draft->feeLabel().'.' : config("office.requirement_notes.{$key}") }}</p>
 
                         <p id="doc-{{ $key }}-check" aria-live="polite" x-cloak x-show="state !== 'idle'" class="mt-2 text-sm"
                            :class="{ 'text-muted': state === 'reading' || state === 'failed', 'text-success': state === 'matched', 'text-warning': state === 'mismatch' || state === 'unreadable' }">

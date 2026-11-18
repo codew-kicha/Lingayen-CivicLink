@@ -32,6 +32,7 @@ class AssistedEncodingController extends Controller
             $request->user(),
             'assisted',
             $request->input('ocr_text', []),
+            $request->boolean('fee_waived'),
         );
 
         AuditLog::record('application.assisted', $organization, ['application_id' => $application->id]);

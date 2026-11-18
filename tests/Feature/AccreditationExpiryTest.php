@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\ApplicationModel;
+use App\Models\AuditLog;
 use App\Models\Organization;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -13,25 +14,29 @@ class AccreditationExpiryTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_approval_uses_the_chosen_expiry_date_or_three_years(): void
+    public function test_approval_uses_the_chosen_expiry_date_or_three_years_free_and_one_year_paid(): void
     {
         $admin = User::factory()->admin()->create();
-        $chosen = ApplicationModel::factory()->create(['status' => 'under_review', 'sb_stage' => 'endorsed']);
-        $default = ApplicationModel::factory()->create(['status' => 'under_review', 'sb_stage' => 'endorsed']);
+        $chosen = ApplicationModel::factory()->create(['status' => 'under_review', 'hearing_outcome' => 'favorable']);
+        $paid = ApplicationModel::factory()->create(['status' => 'under_review', 'hearing_outcome' => 'favorable']);
+        $free = ApplicationModel::factory()->feeWaived()->create(['status' => 'under_review', 'hearing_outcome' => 'favorable']);
 
         $this->actingAs($admin)->get(route('admin.applications.show', $chosen))->assertSee('Accreditation valid until');
 
         $this->actingAs($admin)->post(route('admin.applications.approve', $chosen), ['expires_at' => now()->addYears(2)->toDateString()])->assertSessionHasNoErrors();
         $this->assertSame(now()->addYears(2)->toDateString(), $chosen->fresh()->accreditation->expires_at->toDateString());
 
-        $this->actingAs($admin)->post(route('admin.applications.approve', $default))->assertSessionHasNoErrors();
-        $this->assertSame(now()->addYears(3)->toDateString(), $default->fresh()->accreditation->expires_at->toDateString());
+        // Without a date: one year when the fee applied (renewed yearly), three years when filed free.
+        $this->actingAs($admin)->post(route('admin.applications.approve', $paid))->assertSessionHasNoErrors();
+        $this->assertSame(now()->addYear()->toDateString(), $paid->fresh()->accreditation->expires_at->toDateString());
+        $this->actingAs($admin)->post(route('admin.applications.approve', $free))->assertSessionHasNoErrors();
+        $this->assertSame(now()->addYears(3)->toDateString(), $free->fresh()->accreditation->expires_at->toDateString());
     }
 
     public function test_approval_refuses_a_past_or_far_future_date(): void
     {
         $admin = User::factory()->admin()->create();
-        $application = ApplicationModel::factory()->create(['status' => 'under_review', 'sb_stage' => 'endorsed']);
+        $application = ApplicationModel::factory()->create(['status' => 'under_review', 'hearing_outcome' => 'favorable']);
 
         $this->actingAs($admin)->post(route('admin.applications.approve', $application), ['expires_at' => now()->subDay()->toDateString()])
             ->assertSessionHasErrors('expires_at');
@@ -53,7 +58,7 @@ class AccreditationExpiryTest extends TestCase
             ->assertSessionHas('status');
         $this->assertSame($new, $organization->accreditations()->first()->expires_at->toDateString());
         $this->assertDatabaseHas('audit_logs', ['action' => 'accreditation.expiry_changed', 'subject_id' => $organization->id]);
-        $this->assertStringContainsString('2026-41', \App\Models\AuditLog::where('action', 'accreditation.expiry_changed')->first()->meta['reason']);
+        $this->assertStringContainsString('2026-41', AuditLog::where('action', 'accreditation.expiry_changed')->first()->meta['reason']);
         $this->assertNotSame($old, $new);
     }
 

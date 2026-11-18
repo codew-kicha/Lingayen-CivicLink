@@ -84,11 +84,15 @@ class Organization extends Model
         $this->unsetRelation('members');
     }
 
-    public function submitApplication(string $type, array $files, array $expiries, User $submittedBy, string $channel, array $ocrTexts = []): ApplicationModel
+    public function submitApplication(string $type, array $files, array $expiries, User $submittedBy, string $channel, array $ocrTexts = [], ?bool $feeWaived = null): ApplicationModel
     {
-        return DB::transaction(function () use ($type, $files, $expiries, $submittedBy, $channel, $ocrTexts) {
+        // No fee within a free period, unless the office says otherwise when filing it.
+        $feeWaived ??= FeeFreePeriod::open() !== null;
+
+        return DB::transaction(function () use ($type, $files, $expiries, $submittedBy, $channel, $ocrTexts, $feeWaived) {
             $application = $this->applications()->create([
                 'type' => $type,
+                'fee_waived' => $feeWaived,
                 'status' => 'submitted',
                 'submission_channel' => $channel,
                 'submitted_by' => $submittedBy->id,
@@ -97,6 +101,9 @@ class Organization extends Model
 
             foreach (array_keys(config('document_types')) as $documentType) {
                 if (! $file = $files[$documentType] ?? null) {
+                    continue;
+                }
+                if ($documentType === 'fee_receipt' && $feeWaived) {
                     continue;
                 }
 
@@ -123,15 +130,12 @@ class Organization extends Model
     {
         $activity = DB::transaction(function () use ($data, $loggedBy) {
             $evidence = $data['evidence'] ?? null;
-            $activity = $this->activities()->create(Arr::except($data, ['partners', 'evidence', 'evidence_text']) + [
+            $activity = $this->activities()->create(Arr::except($data, ['partners', 'evidence', 'evidence_text', 'photos', 'remove_evidence', 'remove_photos']) + [
                 'logged_by' => $loggedBy->id,
                 'status' => 'pending',
-                'evidence_path' => $evidence?->store("activity-evidence/{$this->id}"),
-                'evidence_filename' => $evidence?->getClientOriginalName(),
-                'evidence_mime' => $evidence?->getMimeType(),
-                'evidence_hash' => $evidence ? hash_file('sha256', $evidence->getRealPath()) : null,
-            ]);
+            ] + ($evidence ? Activity::evidenceAttributes($evidence, $this->id) : []));
             $activity->partnerOrganizations()->sync($data['partners'] ?? []);
+            $activity->syncPhotos($data['photos'] ?? []);
 
             return $activity;
         });

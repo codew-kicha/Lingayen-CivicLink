@@ -62,12 +62,18 @@ abstract class TestCase extends BaseTestCase
         return $application->fresh();
     }
 
-    /** The Desk Office records a Sangguniang Bayan reading: session date, outcome, remarks for the CSO. */
-    protected function recordReading(ApplicationModel $application, string $stage, string $outcome = 'passed', ?User $admin = null, string $remarks = 'Discussed and found in order.'): TestResponse
+    /** The Desk Office records the committee hearing: date, outcome, remarks for the CSO. */
+    protected function recordHearing(ApplicationModel $application, string $outcome = 'favorable', ?User $admin = null, string $remarks = 'The committee found the application in order.'): TestResponse
     {
-        return $this->actingAs($admin ?? User::factory()->admin()->create())->patch(route('admin.applications.stage', $application), [
-            'sb_stage' => $stage, 'outcome' => $outcome, 'remarks' => $remarks, 'held_on' => now()->toDateString(),
+        return $this->actingAs($admin ?? User::factory()->admin()->create())->post(route('admin.applications.hearing', $application), [
+            'held_on' => now()->toDateString(), 'outcome' => $outcome, 'remarks' => $remarks, 'committee' => 'Committee on Social Services',
         ]);
+    }
+
+    /** Validation done: the Desk Office forwards the application to the committee for its hearing. */
+    protected function forwardToCommittee(ApplicationModel $application, ?User $admin = null): TestResponse
+    {
+        return $this->actingAs($admin ?? User::factory()->admin()->create())->post(route('admin.applications.forward', $application));
     }
 
     /** Step 6: post uploads (and anything else, such as ocr_text) once the form is approved; submits unless action=later. */
@@ -78,7 +84,7 @@ abstract class TestCase extends BaseTestCase
 
     /**
      * The whole online application: form submitted, approved by the Desk Office, requirements
-     * submitted (requirements_submitted, ready for the SB readings). With $optional the DOLE/SEC
+     * submitted (requirements_submitted, ready to be forwarded to the committee). With $optional the DOLE/SEC
      * certificate too.
      */
     protected function applyOnline(User $rep, string $type = 'new', bool $optional = false): ApplicationModel

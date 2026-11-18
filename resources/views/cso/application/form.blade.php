@@ -48,6 +48,8 @@
                     @endforeach
                 </div>
                 <p class="field-hint" x-show="type === 'new'">A new application also asks for your Constitution and By-Laws in the next step.</p>
+                {{-- Free while a DILG free period is open; otherwise the fee applies after the form is approved. --}}
+                <x-fee-period-note always class="mt-3" />
             </fieldset>
 
             <div class="grid gap-6 sm:grid-cols-2">

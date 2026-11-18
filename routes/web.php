@@ -8,6 +8,7 @@ use App\Http\Controllers\Cso;
 use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PublicController;
+use App\Services\ApplicationSteps;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [PublicController::class, 'home'])->name('home');
@@ -45,6 +46,8 @@ Route::middleware('auth')->group(function () {
         ->name('documents.download');
     Route::get('/activities/{activity}/evidence', [DocumentController::class, 'evidence'])
         ->name('activities.evidence');
+    Route::get('/activities/{activity}/photos/{photo}', [DocumentController::class, 'photo'])
+        ->scopeBindings()->name('activities.photo');
 });
 
 Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->name('admin.')->group(function () {
@@ -62,11 +65,20 @@ Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->name('ad
     Route::get('/applications', [Admin\ApplicationReviewController::class, 'index'])->name('applications.index');
     Route::get('/applications/export', [Admin\ApplicationReviewController::class, 'export'])->name('applications.export');
     Route::get('/applications/{application}', [Admin\ApplicationReviewController::class, 'show'])->name('applications.show');
-    Route::patch('/applications/{application}/stage', [Admin\ApplicationReviewController::class, 'updateStage'])->name('applications.stage');
+    Route::post('/applications/{application}/forward', [Admin\ApplicationReviewController::class, 'forwardToCommittee'])->name('applications.forward');
+    Route::post('/applications/{application}/hearings', [Admin\ApplicationReviewController::class, 'recordHearing'])->name('applications.hearing');
+    Route::delete('/applications/{application}/hearings/latest', [Admin\ApplicationReviewController::class, 'undoHearing'])->name('applications.hearing.undo');
     Route::post('/applications/{application}/approve-form', [Admin\ApplicationReviewController::class, 'approveForm'])->name('applications.approve-form');
+    Route::patch('/applications/{application}/fee', [Admin\ApplicationReviewController::class, 'updateFee'])->name('applications.fee');
     Route::post('/applications/{application}/return-requirements', [Admin\ApplicationReviewController::class, 'returnRequirements'])->name('applications.return-requirements');
     Route::post('/applications/{application}/approve', [Admin\ApplicationReviewController::class, 'approve'])->name('applications.approve');
     Route::post('/applications/{application}/reject', [Admin\ApplicationReviewController::class, 'reject'])->name('applications.reject');
+
+    // Free filing periods: no fee, and three-year accreditation, for applications submitted inside one.
+    Route::get('/fee-periods', [Admin\FeeFreePeriodController::class, 'index'])->name('fee-periods.index');
+    Route::post('/fee-periods', [Admin\FeeFreePeriodController::class, 'store'])->name('fee-periods.store');
+    Route::put('/fee-periods/{period}', [Admin\FeeFreePeriodController::class, 'update'])->name('fee-periods.update');
+    Route::delete('/fee-periods/{period}', [Admin\FeeFreePeriodController::class, 'destroy'])->name('fee-periods.destroy');
 
     Route::get('/activities', [Admin\ActivityVerificationController::class, 'index'])->name('activities.index');
     Route::post('/activities/{activity}/verify', [Admin\ActivityVerificationController::class, 'verify'])->name('activities.verify');
@@ -82,7 +94,7 @@ Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->name('ad
     Route::get('/organizations/{organization}/edit', [Admin\OrganizationModerationController::class, 'edit'])->name('organizations.edit');
     Route::patch('/organizations/{organization}', [Admin\OrganizationModerationController::class, 'update'])->name('organizations.update');
     Route::get('/organizations/{organization}/members.pdf', [Admin\OrganizationModerationController::class, 'members'])->name('organizations.members');
-    Route::post('/organizations/{organization}/account',[Admin\OrganizationModerationController::class, 'attachAccount'])->name('organizations.account');
+    Route::post('/organizations/{organization}/account', [Admin\OrganizationModerationController::class, 'attachAccount'])->name('organizations.account');
     Route::patch('/organizations/{organization}/visibility', [Admin\OrganizationModerationController::class, 'toggleVisibility'])->name('organizations.visibility');
     Route::post('/organizations/{organization}/remind', [Admin\OrganizationModerationController::class, 'remind'])->name('organizations.remind');
     Route::patch('/organizations/{organization}/accreditation-expiry', [Admin\OrganizationModerationController::class, 'updateExpiry'])->name('organizations.expiry');
@@ -147,7 +159,7 @@ Route::middleware(['auth', 'verified', 'role:cso_rep'])->prefix('cso')->name('cs
     Route::get('/application/preview', [Cso\ApplicationWizardController::class, 'preview'])->name('application.preview');
     Route::get('/application/requirements', [Cso\ApplicationWizardController::class, 'requirements'])->name('application.requirements.show');
     Route::get('/application/{step}', [Cso\ApplicationWizardController::class, 'show'])
-        ->whereIn('step', \App\Services\ApplicationSteps::PAGES)->name('application.step');
+        ->whereIn('step', ApplicationSteps::PAGES)->name('application.step');
     Route::post('/application/members', [Cso\ApplicationWizardController::class, 'saveMembers'])->name('application.members');
     Route::post('/application/form', [Cso\ApplicationWizardController::class, 'saveForm'])->name('application.form');
     // Uploads up to 5 MB each: limited so one account can't fill the disk.

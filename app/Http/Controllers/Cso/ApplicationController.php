@@ -38,7 +38,7 @@ class ApplicationController extends Controller
         $this->authorize('view', $application);
 
         return view('cso.applications.show', [
-            'application' => $application->load(['documents', 'accreditation', 'reviewedBy']),
+            'application' => $application->load(['documents', 'accreditation', 'reviewedBy', 'hearings']),
         ]);
     }
 }

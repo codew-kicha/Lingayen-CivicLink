@@ -43,7 +43,8 @@ zip, xml, curl and bcmath; MySQL 8 or MariaDB 10.4+; HTTPS; Apache with mod_rewr
 3. Walk through the main flow in a browser on a fresh copy (`php artisan migrate:fresh --seed`):
    - CSO: register, file an application with documents, log an activity with a sign-in sheet,
      edit it, withdraw one.
-   - Admin: move the application through the SB readings and approve it; verify one activity,
+   - Admin: approve the form, validate the requirements and forward them to the committee, record
+     a Deferred then a Favorable hearing, and approve it; verify one activity,
      reject one (and try Undo); write and publish a post; register an organization with a login;
      reset a representative's password; download both Excel files; merge and delete a test
      organization.
@@ -176,6 +177,10 @@ Upload `public/build` from your computer (or install Node on the server and run 
 - **Firewall:** allow only SSH, 80 and 443. MySQL must listen on 127.0.0.1 only.
 - After every code update: `git pull`, `composer install --no-dev -o`, `php artisan migrate --force`,
   then the three cache commands again.
+- After the update that adds activity photos and the confidence score (migration
+  `2026_11_18_150000`): run `php artisan activities:recheck` once, so activities already waiting get
+  a score. It needs PHP's `gd` and `exif` extensions (both on by default on Hostinger); without
+  them the photo checks are skipped and the rest still run.
 
 ---
 

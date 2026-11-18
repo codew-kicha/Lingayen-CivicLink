@@ -8,6 +8,7 @@ use App\Models\ApplicationModel;
 use App\Models\Organization;
 use App\Models\User;
 use App\Notifications\AccreditationExpiring;
+use App\Support\Mailer;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Notification;
@@ -157,11 +158,11 @@ class CsoScreensAndRemindersTest extends TestCase
         config(['mail.default' => 'smtp', 'mail.mailers.smtp.host' => '127.0.0.1', 'mail.mailers.smtp.port' => 1, 'mail.mailers.smtp.timeout' => 1]);
         $admin = User::factory()->admin()->create();
         $rep = $this->rep();
-        $application = ApplicationModel::factory()->for($rep->organization)->create(['status' => 'under_review', 'sb_stage' => 'endorsed']);
+        $application = ApplicationModel::factory()->for($rep->organization)->create(['status' => 'under_review', 'hearing_outcome' => 'favorable']);
 
         $this->actingAs($admin)->post(route('admin.applications.approve', $application))
             ->assertRedirect(route('admin.applications.show', $application))
-            ->assertSessionHas('status')->assertSessionHas('error', \App\Support\Mailer::FAILED);
+            ->assertSessionHas('status')->assertSessionHas('error', Mailer::FAILED);
 
         $this->assertSame('approved', $application->fresh()->status);
         $this->assertSame(1, $rep->organization->accreditations()->where('status', 'active')->count());

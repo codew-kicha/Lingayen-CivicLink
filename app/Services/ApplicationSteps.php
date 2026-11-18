@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\ApplicationModel;
 use App\Models\AuditLog;
 use App\Models\Document;
+use App\Models\FeeFreePeriod;
 use App\Models\Organization;
 use App\Models\OrganizationMember;
 use App\Models\User;
@@ -23,7 +24,7 @@ use Illuminate\Support\Str;
  *
  * The other requirements (official receipt, constitution, DOLE/SEC) come after: the panel asked
  * that nothing be paid or uploaded before the Desk Office approves the application form. Step 6
- * opens only then (status requirements_pending), and step 7 is the Sangguniang Bayan's readings.
+ * opens only then (status requirements_pending), and step 7 is the Sangguniang Bayan committee hearing.
  */
 class ApplicationSteps
 {
@@ -35,7 +36,7 @@ class ApplicationSteps
         'form' => 'Accreditation form',
         'review' => 'Review and submit',
         'requirements' => 'Requirements',
-        'readings' => 'SB readings',
+        'hearing' => 'Committee hearing',
     ];
 
     /** The draft's pages, before the application is sent. */
@@ -104,12 +105,23 @@ class ApplicationSteps
         return preg_match('/^\+63(9\d{2})(\d{3})(\d{4})$/', (string) $phone, $m) ? "0{$m[1]} {$m[2]} {$m[3]}" : (string) $phone;
     }
 
-    /** The requirements the applicant uploads for this application's type (key => type config). */
+    /**
+     * The requirements the applicant uploads for this application's type (key => type config). No
+     * official receipt when the fee is waived (filed within a free period, or waived by the office).
+     */
     public static function uploads(ApplicationModel $application): array
     {
-        return collect(config('document_types'))
+        return collect(self::requirements($application))
             ->reject(fn (array $type) => ! empty($type['made_online']))
+            ->all();
+    }
+
+    /** Every requirement for this application, the ones made online included. */
+    public static function requirements(ApplicationModel $application): array
+    {
+        return collect(config('document_types'))
             ->reject(fn (array $type) => ! empty($type['new_only']) && $application->type !== 'new')
+            ->reject(fn (array $type, string $key) => $key === 'fee_receipt' && $application->fee_waived)
             ->all();
     }
 
@@ -148,8 +160,7 @@ class ApplicationSteps
     /** The form as the Sangguniang Bayan's layout, from the answers given; a preview until $final. */
     public static function formPdf(ApplicationModel $application, bool $final = false): \Barryvdh\DomPDF\PDF
     {
-        $requirements = collect(config('document_types'))
-            ->reject(fn (array $type) => ! empty($type['new_only']) && $application->type !== 'new');
+        $requirements = collect(self::requirements($application));
 
         return Pdf::loadView('pdf.accreditation-form', [
             'application' => $application,
@@ -160,7 +171,7 @@ class ApplicationSteps
     }
 
     /**
-     * The requirements are in: back to the Desk Office for checking, then the SB readings. A note
+     * The requirements are in: back to the Desk Office for validation, then the committee hearing. A note
      * from an earlier return is cleared.
      */
     public static function submitRequirements(ApplicationModel $application): void
@@ -178,6 +189,9 @@ class ApplicationSteps
     public static function submit(ApplicationModel $application, User $user): void
     {
         $organization = $application->organization;
+
+        // Submitted within a free period: no fee, and the generated form leaves out the receipt.
+        $application->fee_waived = FeeFreePeriod::open() !== null;
 
         DB::transaction(function () use ($application, $organization, $user) {
             // A failed earlier attempt may have left generated copies behind.
@@ -211,6 +225,7 @@ class ApplicationSteps
 
             $application->update([
                 'status' => 'submitted',
+                'fee_waived' => $application->fee_waived,
                 'submitted_by' => $user->id,
                 'submitted_at' => now(),
             ]);

@@ -1,7 +1,12 @@
 {{-- Application type and requirement uploads, shared by the CSO form and the admin "File an application"
      dialog. No card of its own, so it sits in either. Documents marked new_only (constitution and
-     by-laws) appear only for a new application. --}}
-<div x-data="{ type: @js(old('type', $hasBeenAccredited ? 'renewal' : 'new')) }">
+     by-laws) appear only for a new application. The official receipt is hidden when the fee is waived
+     (ticked by default while a free filing period is open). --}}
+@php
+    $openPeriod = \App\Models\FeeFreePeriod::open();
+    $fees = config('office.fees');
+@endphp
+<div x-data="{ type: @js(old('type', $hasBeenAccredited ? 'renewal' : 'new')), waived: @js((bool) old('fee_waived', $openPeriod !== null)) }">
     <fieldset>
         <legend class="field-label">Application type</legend>
         <div class="grid gap-3 sm:grid-cols-2">
@@ -24,13 +29,33 @@
         @error('type')<p class="field-error">{{ $message }}</p>@enderror
     </fieldset>
 
+    <div class="mt-6">
+        <p class="field-label">Accreditation fee</p>
+        <label class="flex items-start gap-3 text-sm">
+            <input type="hidden" name="fee_waived" value="0">
+            <input type="checkbox" name="fee_waived" value="1" x-model="waived" class="mt-hair h-4 w-4 shrink-0 rounded-sm border-line-strong text-primary">
+            <span>
+                <span class="font-semibold text-ink">No fee: filed within a free period</span>
+                <span class="block text-muted">
+                    @if ($openPeriod)
+                        Open now under {{ $openPeriod->memorandum }}, until {{ $openPeriod->ends_on->format('j F Y') }}. Accredited for {{ config('office.validity_years.free') }} years.
+                    @else
+                        No free period is open. Untick unless the office waives the fee; the receipt
+                        (PHP {{ number_format($fees['new']) }} new, PHP {{ number_format($fees['renewal']) }} renewal) is then required.
+                    @endif
+                </span>
+            </span>
+        </label>
+    </div>
+
     <h3 class="mt-6 text-sm font-semibold text-ink">Requirements</h3>
     <p class="mt-1 text-sm text-muted">PDF, JPG or PNG, up to 5 MB each. Add an expiry date if the document shows one.</p>
 
     <div class="mt-2 divide-y divide-line border-t border-line">
         @foreach ($documentTypes as $key => $type)
             <div class="grid gap-3 py-4 sm:grid-cols-[minmax(0,1fr)_11rem]"
-                 @if (! empty($type['new_only'])) x-show="type === 'new'" @endif>
+                 @if (! empty($type['new_only'])) x-show="type === 'new'" @endif
+                 @if ($key === 'fee_receipt') x-show="! waived" @endif>
                 @php
                     // "DOLE or SEC Certification" reads as "the DOLE or SEC certification": lowercase all but acronyms.
                     $lowerLabel = preg_replace_callback('/\b[A-Za-z][a-z]+\b/', fn ($m) => strtolower($m[0]), $type['label']);
@@ -49,6 +74,7 @@
                                class="field-file @error("documents.{$key}") field-input-error @enderror"
                                @error("documents.{$key}") aria-invalid="true" @enderror
                                @if (! empty($type['new_only'])) :disabled="type !== 'new'" @endif
+                               @if ($key === 'fee_receipt') :disabled="waived" @endif
                                @required(! $type['optional'])>
                     </x-file-field>
                     <input type="hidden" name="ocr_text[{{ $key }}]" :value="text">

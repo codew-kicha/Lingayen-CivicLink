@@ -15,7 +15,7 @@ use Tests\TestCase;
 /**
  * Pre-final defense panel: the application form is submitted on its own; the official receipt and
  * the other requirements come only after the Desk Office approves it. Flow: submitted ->
- * requirements_pending -> requirements_submitted -> under_review (SB readings) -> approved.
+ * requirements_pending -> requirements_submitted (Validation) -> under_review (Committee hearing) -> approved.
  */
 class RequirementsAfterApprovalTest extends TestCase
 {
@@ -91,21 +91,24 @@ class RequirementsAfterApprovalTest extends TestCase
         $this->uploadRequirements($rep, $this->requirementFiles(['fee_receipt']))->assertForbidden();   // closed again
     }
 
-    public function test_the_sb_readings_wait_for_the_requirements(): void
+    public function test_the_committee_hearing_waits_for_the_requirements(): void
     {
         $rep = $this->rep();
         $admin = User::factory()->admin()->create();
         $application = $this->submitForm($rep);
 
-        $this->actingAs($admin)->patch(route('admin.applications.stage', $application), ['sb_stage' => 'first_reading'])->assertStatus(422);
+        $this->recordHearing($application, admin: $admin)->assertStatus(422);
+        $this->forwardToCommittee($application, $admin)->assertStatus(422);
         $this->approveForm($application, $admin);
-        $this->actingAs($admin)->patch(route('admin.applications.stage', $application), ['sb_stage' => 'first_reading'])->assertStatus(422);
+        $this->recordHearing($application, admin: $admin)->assertStatus(422);
+        $this->forwardToCommittee($application, $admin)->assertStatus(422);
         $this->actingAs($admin)->post(route('admin.applications.approve', $application))->assertStatus(422);
-        $this->assertSame('not_endorsed', $application->fresh()->sb_stage);
+        $this->assertNull($application->fresh()->hearing_outcome);
 
         $this->uploadRequirements($rep, $this->requirementFiles(['fee_receipt', 'constitution_bylaws']));
-        $this->recordReading($application, 'first_reading', admin: $admin)->assertSessionHasNoErrors();
-        $this->assertSame(['under_review', 'first_reading'], [$application->fresh()->status, $application->fresh()->sb_stage]);
+        $this->forwardToCommittee($application, $admin)->assertSessionHasNoErrors();
+        $this->recordHearing($application, admin: $admin)->assertSessionHasNoErrors();
+        $this->assertSame(['under_review', 'favorable'], [$application->fresh()->status, $application->fresh()->hearing_outcome]);
     }
 
     public function test_the_office_can_send_the_requirements_back_with_a_note(): void
@@ -130,10 +133,10 @@ class RequirementsAfterApprovalTest extends TestCase
         $this->assertSame(['requirements_submitted', null], [$application->fresh()->status, $application->fresh()->requirements_note]);
     }
 
-    public function test_a_paper_application_with_everything_attached_goes_straight_to_the_readings_queue(): void
+    public function test_a_paper_application_with_everything_attached_goes_straight_to_requirement_validation(): void
     {
         $organization = Organization::factory()->create();
-        $application = ApplicationModel::factory()->for($organization)->create(['status' => 'submitted', 'type' => 'renewal']);
+        $application = ApplicationModel::factory()->for($organization)->create(['status' => 'submitted', 'type' => 'renewal', 'submission_channel' => 'assisted']);
         $organization->documents()->create([
             'application_id' => $application->id, 'document_type' => 'fee_receipt', 'file_path' => 'documents/x.pdf',
             'original_filename' => 'receipt.pdf', 'mime_type' => 'application/pdf',

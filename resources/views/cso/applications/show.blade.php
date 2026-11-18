@@ -7,30 +7,9 @@
                 <span class="ml-auto"><x-status-badge :status="$application->status" /></span>
             </div>
 
-            {{-- Where it stands in the flow: form first, requirements after approval, then the SB. --}}
+            {{-- Where it stands: Application, Validation, Committee hearing, Approval (client's process). --}}
             @if ($application->status !== 'rejected')
-                @php
-                    $flow = \App\Models\ApplicationModel::FLOW;
-                    $at = array_search($application->status, array_keys($flow), true);
-                @endphp
-                <ol class="mt-4 grid gap-2 sm:grid-cols-5" aria-label="Application progress">
-                    @foreach ($flow as $status => $label)
-                        @php $i = $loop->index; @endphp
-                        <li @class(['flex items-start gap-2 rounded-md border px-3 py-2 text-xs',
-                                    'border-primary bg-primary-subtle' => $i === $at,
-                                    'border-line bg-paper' => $i !== $at])
-                            @if ($i === $at) aria-current="step" @endif>
-                            @if ($at !== false && ($i < $at || $application->status === 'approved'))
-                                <x-phosphor-check-circle-fill class="h-4 w-4 shrink-0 text-success" aria-hidden="true" /><span class="sr-only">Done:</span>
-                            @elseif ($i === $at)
-                                <x-phosphor-circle-notch class="h-4 w-4 shrink-0 text-primary" aria-hidden="true" /><span class="sr-only">Now:</span>
-                            @else
-                                <x-phosphor-circle class="h-4 w-4 shrink-0 text-muted" aria-hidden="true" />
-                            @endif
-                            <span class="font-semibold text-ink">{{ $label }}</span>
-                        </li>
-                    @endforeach
-                </ol>
+                <x-phase-stepper :application="$application" class="mt-4" />
             @endif
 
             @if ($application->status === 'requirements_pending')
@@ -40,7 +19,7 @@
                             {{ $application->requirements_note ? 'The Desk Office returned your requirements' : 'Your application form was approved. Upload your requirements' }}
                         </p>
                         <p class="mt-1 text-ink">
-                            {{ $application->requirements_note ?: 'The official receipt and the other requirements can now be submitted. The Sangguniang Bayan takes up your application once they are in.' }}
+                            {{ $application->requirements_note ?: ($application->fee_waived ? 'Your requirements can now be submitted; there is no fee for your application.' : 'The official receipt and the other requirements can now be submitted.').' Once they are validated, your application goes to the Sangguniang Bayan committee for its hearing.' }}
                         </p>
                     </div>
                     <a href="{{ route('cso.application.requirements.show') }}" class="btn-primary">Upload requirements</a>
@@ -48,16 +27,28 @@
             @elseif ($application->status === 'submitted')
                 <p class="mt-4 flex items-start gap-2 rounded-md border border-line bg-canvas px-4 py-3 text-sm text-muted">
                     <x-phosphor-lock-simple class="mt-hair h-4 w-4 shrink-0" aria-hidden="true" />
-                    The Desk Office is reviewing your application form and member list. The other requirements, such as the official
-                    receipt, open once it is approved; you will be notified.
+                    The Desk Office is reviewing your application form and member list. The other requirements{{ $application->fee_waived ? '' : ', such as the official receipt,' }}
+                    open once it is approved; you will be notified.
                 </p>
             @endif
 
-            <div class="mt-4">
-                <p class="text-sm font-semibold text-muted">Sangguniang Bayan reading stage</p>
-                <div class="mt-2"><x-sb-stepper :stage="$application->sb_stage" /></div>
-                <x-reading-history :readings="$application->readings" class="mt-4" />
-            </div>
+            @if ($application->status !== 'draft')
+                <p class="mt-4 flex items-center gap-2 text-sm text-muted">
+                    <x-phosphor-receipt class="h-4 w-4 shrink-0" aria-hidden="true" />
+                    <span>Accreditation fee: <span class="text-ink">{{ $application->feeNote() }}</span></span>
+                </p>
+            @endif
+
+            @if ($application->hearings->isNotEmpty())
+                <div class="mt-4">
+                    <p class="text-sm font-semibold text-muted">Committee hearings</p>
+                    <x-hearing-history :hearings="$application->hearings" class="mt-2" />
+                </div>
+            @elseif ($application->status === 'under_review')
+                <p class="mt-4 rounded-md border border-line bg-canvas px-4 py-3 text-sm text-muted">
+                    Your application was validated and forwarded to the Sangguniang Bayan committee. You will be told the outcome of its hearing.
+                </p>
+            @endif
 
             @if ($application->status === 'rejected' && $application->rejection_reason)
                 <div class="mt-4 rounded-sm border border-danger bg-danger-subtle px-4 py-3">

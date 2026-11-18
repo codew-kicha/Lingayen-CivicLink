@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Models\Activity;
+use App\Models\ActivityPhoto;
 use App\Models\Organization;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -38,6 +39,7 @@ class StoreActivityRequest extends FormRequest
         return [
             'title' => ['required', 'string', 'max:255'],
             'description' => ['required', 'string', 'max:2000'],
+            'venue' => ['nullable', 'string', 'max:150'],
             'activity_date' => ['required', 'date', 'before_or_equal:today'],
             'participants_estimate' => ['nullable', 'integer', 'min:0', 'max:1000000'],
             'activity_source' => ['required', Rule::in(array_keys(Activity::SOURCES))],
@@ -45,6 +47,11 @@ class StoreActivityRequest extends FormRequest
             'remove_evidence' => ['boolean'],
             // What the browser read from the sign-in sheet, for the checks only; never stored.
             'evidence_text' => ['nullable', 'string', 'max:20000'],
+            // Up to three photos of the activity, counting the ones already attached and kept.
+            'photos' => ['nullable', 'array', 'max:'.ActivityPhoto::MAX],
+            'photos.*' => ['file', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+            'remove_photos' => ['nullable', 'array'],
+            'remove_photos.*' => ['integer'],
             'partners' => ['nullable', 'array', 'max:10'],
             'partners.*' => [
                 'integer', 'distinct',
@@ -54,14 +61,32 @@ class StoreActivityRequest extends FormRequest
         ];
     }
 
+    /** With the photos already attached (less the ones being removed), no more than three. */
+    public function after(): array
+    {
+        return [function ($validator) {
+            $activity = $this->route('activity');
+            $kept = $activity instanceof Activity
+                ? $activity->photos()->whereKeyNot(array_map('intval', (array) $this->input('remove_photos', [])))->count()
+                : 0;
+            if ($kept + count((array) $this->file('photos', [])) > ActivityPhoto::MAX) {
+                $validator->errors()->add('photos', 'Attach at most '.ActivityPhoto::MAX.' photos'.($kept ? " ({$kept} already attached)." : '.'));
+            }
+        }];
+    }
+
     public function messages(): array
     {
         return [
+            'photos.max' => 'Attach at most '.ActivityPhoto::MAX.' photos.',
+            'photos.*.mimes' => 'Photos must be JPG, PNG or WebP images.',
+            'photos.*.max' => 'Each photo must be 5 MB or smaller.',
+            'venue.max' => 'Keep the venue under 150 characters.',
             'activity_date.before_or_equal' => 'Log activities after they have taken place, not before.',
             'activity_source.required' => 'Say who organized the activity.',
             'evidence.mimes' => 'The sign-in sheet must be a PDF, JPG, or PNG file.',
             'evidence.max' => 'The sign-in sheet must be 5 MB or smaller.',
-            'partners.max' =>'Tag at most 10 partner organizations.',
+            'partners.max' => 'Tag at most 10 partner organizations.',
             'partners.*.not_in' => 'An organization cannot be its own partner.',
             'partners.*.exists' => 'Only accredited organizations can be tagged as partners.',
         ];

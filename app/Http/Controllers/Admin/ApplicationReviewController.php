@@ -4,13 +4,14 @@ namespace App\Http\Controllers\Admin;
 
 use App\Exports\ReportSheet;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\RecordHearingRequest;
 use App\Http\Requests\RejectApplicationRequest;
-use App\Http\Requests\UpdateSbStageRequest;
 use App\Models\Accreditation;
 use App\Models\ApplicationModel;
 use App\Models\AuditLog;
+use App\Notifications\AccreditationFeeChanged;
 use App\Notifications\ApplicationStatusChanged;
-use App\Notifications\SbReadingRecorded;
+use App\Notifications\CommitteeHearingRecorded;
 use App\Services\ApplicationSteps;
 use App\Support\ListPagination;
 use App\Support\Mailer;
@@ -29,6 +30,7 @@ class ApplicationReviewController extends Controller
     public const FILTERS = [
         'review' => ApplicationModel::WITH_OFFICE,
         'requirements' => ['requirements_pending'],
+        'hearing' => ['under_review'],
         'approved' => ['approved'],
         'rejected' => ['rejected'],
     ];
@@ -55,7 +57,9 @@ class ApplicationReviewController extends Controller
             $application->type === 'renewal' ? 'Renewal' : 'New',
             Str::headline($application->submission_channel),
             Str::headline($application->status),
-            $application->sb_stage === 'not_endorsed' ? 'Not endorsed yet' : Str::headline($application->sb_stage),
+            ApplicationModel::PHASES[$application->phase()] ?? 'Closed',
+            $application->hearing_outcome ? Str::headline($application->hearing_outcome) : '',
+            $application->fee_waived ? 'Waived' : 'PHP '.number_format($application->fee()),
             $application->submitted_at?->toDateString(),
             $application->reviewed_at?->toDateString(),
             $application->reviewedBy?->name,
@@ -64,7 +68,7 @@ class ApplicationReviewController extends Controller
         ]);
 
         return Excel::download(new ReportSheet('Applications', [
-            'Organization', 'Barangay', 'Sector', 'Type', 'Channel', 'Status', 'SB stage',
+            'Organization', 'Barangay', 'Sector', 'Type', 'Channel', 'Status', 'Phase', 'Hearing outcome', 'Fee',
             'Filed', 'Reviewed', 'Reviewed by', 'Documents to check', 'Rejection reason',
         ], $rows->all()), 'applications-'.now()->format('Y-m-d').'.xlsx');
     }
@@ -98,7 +102,7 @@ class ApplicationReviewController extends Controller
         abort_if($application->status === 'draft', 404);
 
         return view('admin.applications.show', [
-            'application' => $application->load(['organization.members', 'documents', 'submittedBy', 'reviewedBy', 'formApprovedBy']),
+            'application' => $application->load(['organization.members', 'documents', 'submittedBy', 'reviewedBy', 'formApprovedBy', 'hearings']),
         ]);
     }
 
@@ -112,7 +116,9 @@ class ApplicationReviewController extends Controller
         $this->authorize('review', $application);
         abort_unless($application->status === 'submitted', 422);
 
-        $complete = ApplicationSteps::missingUploads($application)->isEmpty();
+        // A paper filing arrives with its requirements attached; an online one always gets the upload
+        // step, even when nothing required is left (a free renewal), so optional ones can be added.
+        $complete = $application->submission_channel === 'assisted' && ApplicationSteps::missingUploads($application)->isEmpty();
         $application->update([
             'status' => $complete ? 'requirements_submitted' : 'requirements_pending',
             'form_approved_at' => now(),
@@ -124,9 +130,46 @@ class ApplicationReviewController extends Controller
         $sent = Mailer::send($application->organization->user, new ApplicationStatusChanged($application));
 
         return back()->with('status', $complete
-            ? 'Application form approved. Its requirements are already attached; record the readings when the SB takes it up.'
+            ? 'Application form approved. Its requirements are already attached; validate them, then forward it to the committee.'
             : 'Application form approved. The organization has been asked to upload its requirements.')
             ->with($sent ? [] : ['error' => Mailer::FAILED]);
+    }
+
+    /**
+     * The office waives the fee on one application, or decides it applies after all (client, Nov
+     * 2026). Open until the application goes to the committee. Requiring it once the requirements are
+     * in without a receipt reopens them so the organization can add one.
+     */
+    public function updateFee(Request $request, ApplicationModel $application): RedirectResponse
+    {
+        $this->authorize('review', $application);
+        abort_unless(in_array($application->status, ApplicationModel::FEE_OPEN, true), 422);
+        $waived = $request->validate(['fee_waived' => ['required', 'boolean']])['fee_waived'];
+        $waived = filter_var($waived, FILTER_VALIDATE_BOOLEAN);
+
+        if ($waived === $application->fee_waived) {
+            return back();
+        }
+
+        $reopen = ! $waived && $application->status === 'requirements_submitted'
+            && ! $application->documents()->where('document_type', 'fee_receipt')->exists();
+
+        $application->update(['fee_waived' => $waived] + ($reopen ? [
+            'status' => 'requirements_pending',
+            'requirements_submitted_at' => null,
+            'requirements_note' => 'The accreditation fee applies to this application. Upload the official receipt of the '.$application->feeLabel().' from the Municipal Treasury.',
+        ] : []));
+        AuditLog::record($waived ? 'application.fee_waived' : 'application.fee_required', $application->organization, ['application_id' => $application->id]);
+
+        // Before the form is approved the organization is not uploading anything yet; the approval tells it what to bring.
+        $sent = $application->status === 'submitted'
+            || Mailer::send($application->organization->user, new AccreditationFeeChanged($application, $reopen));
+
+        return back()->with('status', match (true) {
+            $waived => 'Fee waived. The official receipt is no longer asked for, and the accreditation will default to '.$application->validityYears().' years.',
+            $reopen => 'The fee applies. The requirements were reopened so the organization can upload the receipt; it has been told.',
+            default => 'The fee applies. The official receipt is required again.',
+        })->with($sent ? [] : ['error' => Mailer::FAILED]);
     }
 
     /** The requirements need fixing (a wrong receipt, an unreadable scan): back to the CSO with a note. */
@@ -148,49 +191,64 @@ class ApplicationReviewController extends Controller
     }
 
     /**
-     * Records a Sangguniang Bayan reading and tells the CSO what happened (pre-final defense panel):
-     * the reading, the session date, the outcome and the office's remarks. A passed reading moves the
-     * application to that stage; deferred or returned leaves it where it was. Going back one stage
-     * corrects a mistake: the last recorded reading is removed and the CSO is not notified again.
+     * Validation done (client's process, Nov 2026): the form was approved and the requirements check
+     * out, so the application goes to the Sangguniang Bayan committee for its hearing.
      */
-    public function updateStage(UpdateSbStageRequest $request, ApplicationModel $application): RedirectResponse
+    public function forwardToCommittee(Request $request, ApplicationModel $application): RedirectResponse
     {
-        $stage = $request->validated('sb_stage');
+        $this->authorize('review', $application);
+        abort_unless($application->status === 'requirements_submitted', 422);
 
-        if (! $request->forward()) {
-            DB::transaction(function () use ($application, $stage) {
-                $application->readings()->where('stage', $application->sb_stage)->where('outcome', 'passed')->reorder()->latest('id')->first()?->delete();
-                $application->update(['sb_stage' => $stage]);
-            });
-            AuditLog::record('application.reading_undone', $application->organization, ['application_id' => $application->id, 'back_to' => $stage]);
+        $application->update(['status' => 'under_review', 'hearing_outcome' => null]);
+        AuditLog::record('application.forwarded_to_committee', $application->organization, ['application_id' => $application->id]);
 
-            return back()->with('status', 'Moved back to '.strtolower(ApplicationModel::SB_STAGES[$stage]).'. The organization was not notified of the correction.');
-        }
+        $sent = Mailer::send($application->organization->user, new ApplicationStatusChanged($application));
 
-        $outcome = $stage === 'endorsed' ? 'passed' : $request->validated('outcome');
-        $reading = DB::transaction(function () use ($application, $request, $stage, $outcome) {
-            $reading = $application->readings()->create([
-                'stage' => $stage,
-                'outcome' => $outcome,
-                'remarks' => $request->validated('remarks') ?: null,
-                'held_on' => $request->validated('held_on'),
+        return back()->with('status', 'Validated and forwarded to the committee. The organization has been told.')
+            ->with($sent ? [] : ['error' => Mailer::FAILED]);
+    }
+
+    /**
+     * Records the committee hearing after it took place and tells the organization what happened:
+     * the date, the outcome and the office's remarks. The latest outcome is kept on the application;
+     * a favorable one opens Approve.
+     */
+    public function recordHearing(RecordHearingRequest $request, ApplicationModel $application): RedirectResponse
+    {
+        $hearing = DB::transaction(function () use ($application, $request) {
+            $hearing = $application->hearings()->create([
+                ...$request->safe()->only(['held_on', 'outcome']),
+                'committee' => $request->validated('committee') ?: null,
+                'remarks' => $request->validated('remarks'),
                 'recorded_by' => $request->user()->id,
             ]);
-            $application->update([
-                'sb_stage' => $outcome === 'passed' ? $stage : $application->sb_stage,
-                'status' => 'under_review',
-            ]);
+            $application->update(['hearing_outcome' => $hearing->outcome]);
 
-            return $reading;
+            return $hearing;
         });
-        AuditLog::record('application.reading_recorded', $application->organization, [
-            'application_id' => $application->id, 'stage' => $stage, 'outcome' => $outcome,
+        AuditLog::record('application.hearing_recorded', $application->organization, [
+            'application_id' => $application->id, 'outcome' => $hearing->outcome,
         ]);
 
-        $sent = Mailer::send($application->organization->user, new SbReadingRecorded($application, $reading));
+        $sent = Mailer::send($application->organization->user, new CommitteeHearingRecorded($application, $hearing));
 
-        return back()->with('status', $reading->stageLabel().' recorded ('.strtolower($reading->outcomeLabel()).'). The organization has been sent your remarks.')
+        return back()->with('status', 'Hearing recorded ('.strtolower($hearing->outcomeLabel()).'). The organization has been sent your remarks.')
             ->with($sent ? [] : ['error' => Mailer::FAILED]);
+    }
+
+    /** A hearing recorded by mistake: removed, the outcome goes back to the one before, nobody is notified. */
+    public function undoHearing(ApplicationModel $application): RedirectResponse
+    {
+        $this->authorize('review', $application);
+        abort_unless($application->status === 'under_review', 422);
+
+        DB::transaction(function () use ($application) {
+            $application->hearings()->reorder()->latest('id')->first()?->delete();
+            $application->update(['hearing_outcome' => $application->hearings()->reorder()->latest('id')->value('outcome')]);
+        });
+        AuditLog::record('application.hearing_undone', $application->organization, ['application_id' => $application->id]);
+
+        return back()->with('status', 'The last hearing record was removed. The organization was not notified of the correction.');
     }
 
     /**
@@ -202,19 +260,19 @@ class ApplicationReviewController extends Controller
     {
         $this->authorize('review', $application);
 
-        // The Desk Officer sets how long the accreditation runs; three years unless the SB decided otherwise.
+        // The Desk Officer sets how long the accreditation runs: three years when filed free (within a
+        // free period), one year when the fee applied; the date can be changed on the form.
         $expiresAt = $request->validate([
             'expires_at' => ['nullable', 'date', 'after:today', 'before:'.now()->addYears(10)->toDateString()],
         ], ['expires_at.after' => 'The expiry date must be after today.', 'expires_at.before' => 'Choose an expiry date within ten years.'])['expires_at']
-            ?? now()->addYears(3)->toDateString();
+            ?? now()->addYears($application->validityYears())->toDateString();
 
-        // Only once the requirements are in; the endorsement check below explains what is still missing.
+        // Only once the requirements are in; the hearing check below explains what is still missing.
         abort_unless(in_array($application->status, ['requirements_submitted', 'under_review'], true), 422);
 
-        // The Sangguniang Bayan decides; the office issues the accreditation only after its endorsement.
-        if ($application->sb_stage !== 'endorsed') {
-            return back()->with('error', 'Approve once the Sangguniang Bayan has endorsed the application. Record each reading first; it is now at '
-                .strtolower(ApplicationModel::SB_STAGES[$application->sb_stage] ?? $application->sb_stage).'.');
+        // The committee hears it first; the office approves only after a favorable hearing.
+        if (! $application->readyToApprove()) {
+            return back()->with('error', 'Approve once the committee hearing is favorable. It is now: '.Str::lower($application->phaseNote()).'.');
         }
 
         DB::transaction(function () use ($application, $expiresAt) {
@@ -233,7 +291,6 @@ class ApplicationReviewController extends Controller
 
             $application->update([
                 'status' => 'approved',
-                'sb_stage' => 'endorsed',
                 'reviewed_by' => request()->user()->id,
                 'reviewed_at' => now(),
             ]);

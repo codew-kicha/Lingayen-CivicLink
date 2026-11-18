@@ -100,7 +100,7 @@
                 <h2 class="card-title">Send to the Desk Office</h2>
                 <p class="text-sm text-muted">
                     The Desk Office reviews your form and member list first. Once it is approved you upload the other requirements,
-                    then it goes through the Sangguniang Bayan's readings. You are notified of every change. You can't edit it once it is sent.
+                    the office validates them, and the Sangguniang Bayan committee hears the application. You are notified of every change. You can't edit it once it is sent.
                 </p>
                 <button type="submit" class="btn-primary w-full">
                     <x-phosphor-paper-plane-tilt class="h-4 w-4" aria-hidden="true" />Submit application

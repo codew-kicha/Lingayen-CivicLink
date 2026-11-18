@@ -85,58 +85,82 @@
         </section>
     @endif
 
-    {{-- The real process, in order: the numbers carry meaning. A row on desktop, a timeline on phones. --}}
-    <section class="mx-auto max-w-7xl px-4 py-section sm:px-6 lg:px-8">
-        <h2 class="section-title">How accreditation works</h2>
-        <p class="mt-3 max-w-[60ch] text-muted">From filing to a seat on Lingayen's Local Special Bodies, every step is tracked here.</p>
-
-        <ol class="relative mt-12 grid gap-8 lg:grid-cols-5 lg:gap-6">
-            @foreach ($process as $index => $step)
-                <li class="reveal relative grid grid-cols-[2.5rem_minmax(0,1fr)] gap-x-4 lg:block">
-                    @unless ($loop->last)
-                        <span class="reveal-line reveal-line-y absolute bottom-[-2rem] left-5 top-10 w-px bg-line-strong lg:hidden" aria-hidden="true"></span>
-                            <span class="reveal-line reveal-line-x absolute left-10 top-5 hidden h-px w-[calc(100%-1rem)] bg-line-strong lg:block" aria-hidden="true"></span>
-                    @endunless
-                    <span class="relative z-10 flex h-10 w-10 items-center justify-center rounded-full bg-brand-800 text-sm font-semibold tabular-nums text-paper ring-4 ring-paper">{{ $index + 1 }}</span>
-                    <div class="lg:mt-4">
-                        <h3 class="font-semibold text-brand-900">{{ $step['title'] }}</h3>
-                        <p class="mt-1 max-w-[34ch] text-sm leading-relaxed text-muted">{{ $step['detail'] }}</p>
-                    </div>
-                </li>
-            @endforeach
-        </ol>
-
-        <p class="mt-12">
-            <a href="{{ route('accreditation') }}" class="btn-primary px-6">Requirements and why to get accredited</a>
-        </p>
-    </section>
-
-    {{-- What is a CSO: text beside a photo from one of the office's CSO assemblies. --}}
-    <section class="bg-band">
-        <div class="mx-auto grid max-w-7xl items-center gap-12 px-4 py-section sm:px-6 lg:grid-cols-2 lg:px-8">
-            <div>
-                <h2 class="section-title">What counts as a CSO</h2>
-                <p class="mt-4 max-w-[62ch] leading-relaxed text-muted">
-                    A civil society organization is a non-government, non-profit group organized around a shared community
-                    interest: people's organizations, cooperatives, neighborhood associations, and non-government
-                    organizations among them. Under the Local Government Code, these groups are the LGU's partners in local
-                    governance, and accredited CSOs may sit on Local Special Bodies such as the Local Development Council and
-                    the Local School Board.
+    {{--
+        The path to accreditation (public refinement, Nov 2026): the steps as a timeline beside what a
+        CSO needs to know before starting (the fee comes after the form is approved), instead of five
+        equal circles in a row.
+    --}}
+    <section aria-labelledby="process-title" class="mx-auto max-w-7xl px-4 py-section sm:px-6 lg:px-8">
+        <div class="grid gap-12 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:gap-12">
+            <div class="lg:sticky lg:top-24 lg:self-start">
+                <h2 id="process-title" class="section-title">How accreditation works</h2>
+                <p class="mt-4 max-w-[48ch] text-lg leading-relaxed text-muted">
+                    Four phases, from the online form to the committee hearing and approval. Each one is tracked on this
+                    site, and the organization is notified as it moves.
                 </p>
+                <dl class="mt-8 grid grid-cols-2 border-y border-line">
+                    <div class="py-4 pr-4">
+                        <dt class="text-sm text-muted">New application fee</dt>
+                        <dd class="mt-1 font-serif text-2xl font-bold tabular-nums text-brand-800">PHP 1,000</dd>
+                    </div>
+                    <div class="border-l border-line py-4 pl-4">
+                        <dt class="text-sm text-muted">Renewal fee</dt>
+                        <dd class="mt-1 font-serif text-2xl font-bold tabular-nums text-brand-800">PHP 500</dd>
+                    </div>
+                </dl>
+                <p class="mt-3 text-sm text-muted">
+                    Free within a free filing period, which a DILG memorandum opens after each new administration; accreditation then lasts
+                    three years. Otherwise paid at the Municipal Treasury after the Desk Office approves your form, and renewed yearly.
+                </p>
+                <x-fee-period-note class="mt-3" />
                 <div class="mt-8 flex flex-wrap gap-3">
-                    <a href="{{ route('about') }}" class="btn-primary px-6">About the program</a>
-                    <a href="{{ route('accreditation') }}#paper-forms" class="btn-secondary px-6">Get the paper forms</a>
+                    <a href="{{ route('register') }}" class="btn-primary px-6">Start an application</a>
+                    <a href="{{ route('accreditation') }}" class="btn-secondary px-6">Requirements in full</a>
                 </div>
             </div>
-            <figure class="reveal-photo overflow-hidden rounded-lg">
-                <img src="{{ asset('images/events/cso2.jpg') }}" loading="lazy" width="1200" height="800"
-                     alt="The Civil Society Desk Office addressing a CSO assembly at the Lingayen municipal covered court"
-                     class="aspect-[3/2] h-full w-full object-cover">
-            </figure>
+            <x-process-timeline :steps="$process" />
         </div>
     </section>
 
-    {{-- The record, told as a sentence with real counts, then where the work happens. --}}
+    {{-- What a CSO is, beside a photo from one of the office's CSO assemblies, and where accredited CSOs take part. --}}
+    <section aria-labelledby="cso-title" class="bg-band">
+        <div class="mx-auto grid max-w-7xl items-center gap-12 px-4 py-section sm:px-6 lg:grid-cols-2 lg:gap-12 lg:px-8">
+            <figure class="overflow-hidden rounded-lg lg:order-first">
+                <img src="{{ asset('images/events/cso2.jpg') }}" loading="lazy" width="1200" height="800"
+                     alt="The Civil Society Desk Office addressing a CSO assembly at the Lingayen municipal covered court"
+                     class="aspect-[4/3] h-full w-full object-cover">
+            </figure>
+            <div>
+                <h2 id="cso-title" class="section-title">What counts as a CSO</h2>
+                <p class="mt-4 max-w-[58ch] leading-relaxed text-muted">
+                    A non-government, non-profit group organized around a shared community interest: people's organizations,
+                    cooperatives, neighborhood and sectoral associations, and NGOs. Under the Local Government Code they are the
+                    municipality's partners in local governance.
+                </p>
+                <h3 class="mt-8 font-semibold text-ink">Where accredited CSOs take part</h3>
+                <ul class="mt-3 divide-y divide-line border-y border-line">
+                    @foreach ([
+                        ['Local Development Council', 'At least one fourth of its members'],
+                        ['Local Health Board', 'One seat for a health organization'],
+                        ['Local School Board', 'Community and parents-teachers representatives'],
+                        ['Local Peace and Order Council', 'Three accredited CSOs'],
+                    ] as [$body, $seat])
+                        <li class="grid gap-1 py-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] sm:gap-6">
+                            <span class="font-semibold text-brand-900">{{ $body }}</span>
+                            <span class="text-sm text-muted sm:pt-hair">{{ $seat }}</span>
+                        </li>
+                    @endforeach
+                </ul>
+                <div class="mt-8 flex flex-wrap gap-3">
+                    <a href="{{ route('about') }}" class="btn-primary px-6">About the program</a>
+                    <a href="{{ route('accreditation') }}#paper-forms" class="btn-secondary px-6">See the requirements</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    {{-- The record, told as a sentence with real counts, then where the work happens and who joined last. --}}
+    @php $sectorMax = max(collect($sectors)->max('count') ?: 0, 1); @endphp
     <section aria-labelledby="record-title" class="mx-auto max-w-7xl px-4 py-section sm:px-6 lg:px-8">
         <h2 id="record-title" class="section-title">What the record shows</h2>
         <p class="mt-6 max-w-[40ch] font-serif text-[clamp(1.35rem,2.4vw,1.85rem)] leading-snug text-ink">
@@ -147,21 +171,25 @@
             <span class="font-bold tabular-nums text-brand-800"><span aria-hidden="true" data-count-to="{{ $reached }}">{{ number_format($reached) }}</span><span class="sr-only">{{ number_format($reached) }}</span></span>
             residents in
             <span class="font-bold tabular-nums text-brand-800">{{ number_format($barangays) }}</span>
-            {{ Str::plural('barangay', $barangays) }}.
+            of Lingayen's 32 {{ Str::plural('barangay', 32) }}.
         </p>
-        <p class="mt-3 text-sm text-muted">Counted live from organizations' activity logs, after the Civil Society Desk Office verifies each one.</p>
+        <p class="mt-3 text-sm text-muted">Counted live from organizations' activity logs, after the Civil Society Desk Office verifies each one against its sign-in sheet.</p>
 
-        <div class="mt-12 grid gap-12 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
+        <div class="mt-12 grid gap-12 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] lg:gap-12">
             <div>
-                <h3 class="font-semibold text-ink">Where CSOs are working</h3>
+                <h3 class="font-semibold text-ink">Accredited organizations by sector</h3>
                 <ul class="mt-3 grid sm:grid-cols-2 sm:gap-x-8">
                     @foreach ($sectors as $sector)
                         <li class="border-b border-line">
                             <a href="{{ route('directory', ['sector' => $sector['name']]) }}"
-                               class="group flex min-h-11 items-center gap-3 py-2 hover:text-brand-700">
-                                <x-sector-icon :sector="$sector['name']" class="h-5 w-5 shrink-0 text-brand-600" />
-                                <span class="text-sm text-ink group-hover:underline">{{ $sector['name'] }}</span>
-                                <span class="ml-auto text-sm tabular-nums text-muted">{{ $sector['count'] }}</span>
+                               class="group grid min-h-11 grid-cols-[1.25rem_minmax(0,1fr)_4rem_1.5rem] items-center gap-x-3 py-2">
+                                <x-sector-icon :sector="$sector['name']" class="h-5 w-5 text-brand-600" />
+                                <span class="truncate text-sm text-ink underline-offset-4 group-hover:text-brand-700 group-hover:underline">{{ $sector['name'] }}</span>
+                                <span class="h-2 rounded-sm bg-brand-50" aria-hidden="true">
+                                    <span class="block h-2 rounded-sm bg-brand-600 transition-colors duration-fast group-hover:bg-accent-500"
+                                          style="width: {{ round($sector['count'] / $sectorMax * 100) }}%"></span>
+                                </span>
+                                <span class="text-right text-sm font-semibold tabular-nums text-brand-800">{{ $sector['count'] }}</span>
                             </a>
                         </li>
                     @endforeach
@@ -173,54 +201,45 @@
                     <ul class="mt-3">
                         @foreach ($featured as $org)
                             <li class="border-b border-line">
-                                <a href="{{ $org['url'] }}" class="group flex min-h-11 items-center gap-3 py-2">
-                                    <x-sector-icon :sector="$org['sector']" class="h-5 w-5 shrink-0 text-accent-600" />
+                                <a href="{{ $org['url'] }}" class="group grid min-h-11 grid-cols-[1.25rem_minmax(0,1fr)_auto] items-center gap-x-3 py-3">
+                                    <x-sector-icon :sector="$org['sector']" class="h-5 w-5 text-accent-600" />
                                     <span class="min-w-0">
-                                        <span class="block text-sm font-semibold text-ink group-hover:text-brand-700 group-hover:underline">{{ $org['name'] }}</span>
+                                        <span class="block truncate text-sm font-semibold text-ink underline-offset-4 group-hover:text-brand-700 group-hover:underline">{{ $org['name'] }}</span>
                                         <span class="block text-xs text-muted">Brgy. {{ $org['barangay'] }}</span>
                                     </span>
+                                    @if ($org['accredited_on'])
+                                        <span class="text-xs tabular-nums text-muted">{{ \Illuminate\Support\Carbon::parse($org['accredited_on'])->format('M Y') }}</span>
+                                    @endif
                                 </a>
                             </li>
                         @endforeach
                     </ul>
-                    <a href="{{ route('directory') }}" class="mt-4 inline-flex items-center gap-tight text-sm font-semibold text-brand-700 hover:underline">
-                        View the full directory <x-phosphor-arrow-right class="h-4 w-4" aria-hidden="true" />
+                    <a href="{{ route('directory') }}" class="mt-4 inline-flex min-h-11 items-center gap-tight text-sm font-semibold text-brand-700 underline-offset-4 hover:underline">
+                        View all {{ number_format($accredited) }} accredited organizations <x-phosphor-arrow-right class="h-4 w-4" aria-hidden="true" />
                     </a>
                 </div>
             @endif
         </div>
     </section>
 
-    {{-- The legal mandate, quoted from the Local Government Code. --}}
-    <section class="bg-band">
-        <figure class="mx-auto max-w-3xl px-4 py-12 sm:px-6 sm:text-center lg:px-8 lg:py-section">
-            <blockquote class="font-serif text-lg leading-relaxed text-brand-900 sm:text-xl lg:text-2xl">
-                “Local government units shall promote the establishment and operation of people's and non-governmental
-                organizations to become active partners in the pursuit of local autonomy.”
-            </blockquote>
-            <figcaption class="mt-4 text-sm font-semibold text-muted">
-                Local Government Code of 1991 (RA 7160), Section 34
-            </figcaption>
-        </figure>
-    </section>
-
     {{-- Latest updates: the newest post leads, the rest follow as a list. --}}
     @if ($news->isNotEmpty())
         @php $lead = $news->first(); @endphp
-        <section class="mx-auto max-w-7xl px-4 py-section sm:px-6 lg:px-8">
+        <section class="bg-band">
+        <div class="mx-auto max-w-7xl px-4 py-section sm:px-6 lg:px-8">
             <h2 class="section-title">Latest updates</h2>
             <div class="mt-8 grid gap-12 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
-                <a href="{{ route('resources') }}" class="group block rounded-lg border border-line bg-paper p-6 hover:border-brand-300 sm:p-8">
+                <a href="{{ route('resources') }}" class="group block border-t-4 border-brand-800 pt-6">
                     <p class="text-sm tabular-nums text-muted">{{ $lead['date'] }}</p>
-                    <h3 class="mt-2 font-serif text-xl font-bold leading-snug text-brand-900 group-hover:underline sm:text-2xl">{{ $lead['title'] }}</h3>
+                    <h3 class="mt-2 font-serif text-2xl font-bold leading-snug text-brand-900 underline-offset-4 group-hover:underline sm:text-3xl">{{ $lead['title'] }}</h3>
                     <p class="mt-4 leading-relaxed text-muted">{{ $lead['excerpt'] }}</p>
                     <span class="mt-6 inline-flex items-center gap-tight text-sm font-semibold text-brand-700">
                         Read on the Resources page <x-phosphor-arrow-right class="h-4 w-4" aria-hidden="true" />
                     </span>
                 </a>
-                <ul class="divide-y divide-line">
+                <ul class="divide-y divide-line border-t border-line">
                     @foreach ($news->skip(1) as $post)
-                        <li class="py-6 first:pt-0">
+                        <li class="py-6">
                             <a href="{{ route('resources') }}" class="group block">
                                 <p class="text-sm tabular-nums text-muted">{{ $post['date'] }}</p>
                                 <h3 class="mt-1 font-semibold text-brand-900 group-hover:underline">{{ $post['title'] }}</h3>
@@ -233,6 +252,7 @@
                     </li>
                 </ul>
             </div>
+        </div>
         </section>
     @endif
 </x-layouts.public>

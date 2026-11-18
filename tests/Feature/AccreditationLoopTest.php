@@ -10,7 +10,7 @@ use App\Models\Organization;
 use App\Models\User;
 use App\Notifications\ActivityVerified;
 use App\Notifications\ApplicationStatusChanged;
-use App\Notifications\SbReadingRecorded;
+use App\Notifications\CommitteeHearingRecorded;
 use App\Services\ApplicationSteps;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
@@ -51,30 +51,29 @@ class AccreditationLoopTest extends TestCase
         $this->assertCount(count(config('document_types')), $application->documents);
         $this->assertSame(2, $application->documents->where('ocr_status', 'generated')->count());
 
-        // Review: record each Sangguniang Bayan stage in turn. Skipping ahead is refused.
-        $this->actingAs($admin)
-            ->patch(route('admin.applications.stage', $application), ['sb_stage' => 'second_reading'])
-            ->assertSessionHasErrors('sb_stage');
+        // Validation, then the committee hearing. A hearing can't be recorded, nor the application
+        // approved, before it is forwarded to the committee.
+        $this->recordHearing($application, admin: $admin)->assertStatus(422);
         $this->actingAs($admin)
             ->post(route('admin.applications.approve', $application))
             ->assertSessionHas('error');
         $this->assertSame('requirements_submitted', $application->refresh()->status);
 
-        foreach (['first_reading', 'second_reading', 'third_reading', 'endorsed'] as $stage) {
-            $this->recordReading($application, $stage, admin: $admin)->assertSessionHasNoErrors();
-            $this->assertSame($stage, $application->refresh()->sb_stage);
-        }
-        $this->assertSame('under_review', $application->status);
-        Notification::assertSentToTimes($rep, SbReadingRecorded::class, 4);
+        $this->forwardToCommittee($application, $admin)->assertSessionHasNoErrors();
+        $this->assertSame(['under_review', null], [$application->refresh()->status, $application->hearing_outcome]);
+        $this->recordHearing($application, 'deferred', $admin)->assertSessionHasNoErrors();
+        $this->recordHearing($application, 'favorable', $admin)->assertSessionHasNoErrors();
+        $this->assertSame('favorable', $application->refresh()->hearing_outcome);
+        Notification::assertSentToTimes($rep, CommitteeHearingRecorded::class, 2);
 
-        // Approve (now that the SB has endorsed it): issues the accreditation in the same transaction.
+        // Approve (now that the hearing was favorable): issues the accreditation in the same transaction.
         $this->actingAs($admin)
             ->post(route('admin.applications.approve', $application))
             ->assertRedirect();
 
         $application->refresh();
         $this->assertSame('approved', $application->status);
-        $this->assertSame('endorsed', $application->sb_stage);
+        $this->assertSame('approval', $application->phase());
         $this->assertSame($admin->id, $application->reviewed_by);
 
         $accreditation = Accreditation::firstOrFail();
@@ -138,7 +137,7 @@ class AccreditationLoopTest extends TestCase
         $admin = User::factory()->admin()->create();
 
         foreach (range(1, 2) as $ignored) {
-            $application = ApplicationModel::factory()->for($organization)->create(['status' => 'under_review', 'sb_stage' => 'endorsed']);
+            $application = ApplicationModel::factory()->for($organization)->heard('favorable')->create();
             $this->actingAs($admin)->post(route('admin.applications.approve', $application))->assertRedirect();
         }
 

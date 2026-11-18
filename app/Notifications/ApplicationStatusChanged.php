@@ -52,7 +52,7 @@ class ApplicationStatusChanged extends Notification
         return [
             'application_id' => $this->application->id,
             'status' => $this->application->status,
-            'sb_stage' => $this->application->sb_stage,
+            'phase' => $this->application->phase(),
             'headline' => $this->headline(),
             'body' => $this->body(),
             'url' => $this->url(),
@@ -73,7 +73,8 @@ class ApplicationStatusChanged extends Notification
             'rejected' => 'Not approved',
             'requirements_pending' => $this->application->requirements_note ? 'Requirements returned for correction' : 'Application form approved: upload your requirements',
             'requirements_submitted' => 'Application form approved',
-            default => Str::headline($this->application->sb_stage),
+            'under_review' => 'Forwarded to the committee for hearing',
+            default => Str::headline($this->application->status),
         };
     }
 
@@ -88,10 +89,13 @@ class ApplicationStatusChanged extends Notification
                 ? 'The Desk Office returned your requirements: '.$this->application->requirements_note.' Upload the corrected files and submit them again.'
                 : 'The Desk Office approved your application form. You can now upload the other requirements: '
                     .collect(ApplicationSteps::uploads($this->application))->map(fn (array $type) => $type['label'].($type['optional'] ? ' (optional)' : ''))->join('; ')
-                    .'. Your application goes to the Sangguniang Bayan once they are in.',
-            'requirements_submitted' => 'The Desk Office approved your application form. Its requirements are on file, so it now waits for the Sangguniang Bayan\'s readings.',
-            default => 'Your application is now at the '.Str::lower(Str::headline($this->application->sb_stage))
-                .' stage with the Sangguniang Bayan.',
+                    .'. '.($this->application->fee_waived
+                        ? 'There is no accreditation fee: '.$this->application->feeWaiverReason().'.'
+                        : 'Pay the '.$this->application->feeLabel().' at the Municipal Treasury and upload its official receipt.')
+                    .' Once they are validated, your application goes to the Sangguniang Bayan committee for its hearing.',
+            'requirements_submitted' => 'The Desk Office approved your application form. Its requirements are on file and are being validated.',
+            'under_review' => 'The Desk Office validated your application and forwarded it to the Sangguniang Bayan committee for its hearing. You will be told the outcome.',
+            default => 'Your application is now: '.Str::lower($this->application->phaseNote()).'.',
         };
     }
 }

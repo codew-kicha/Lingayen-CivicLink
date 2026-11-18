@@ -23,9 +23,18 @@
         'decided' => $activity->verified_at?->format('d M Y'),
         'decidedBy' => $activity->verifiedBy?->name,
         'reason' => $activity->rejection_reason,
+        'venue' => $activity->venue,
         'findings' => $activity->checkFindings(),
+        'confirmations' => $activity->checkConfirmations(),
         'check' => $activity->check_status,
+        'checkLabel' => $activity->checkLabel(),
+        'score' => $activity->check_score,
         'aiNames' => $activity->ai_names_count,
+        'photos' => $activity->photos->values()->map(fn ($photo, $i) => [
+            'url' => route('activities.photo', [$activity, $photo]),
+            'label' => 'Photo '.($i + 1),
+            'summary' => $photo->summary(),
+        ])->all(),
         'verifyUrl' => route('admin.activities.verify', $activity),
         'rejectUrl' => route('admin.activities.reject', $activity),
     ]);
@@ -63,7 +72,7 @@
     </form>
 
     @if ($pending && $pendingCount)
-        {{-- What the checks found (free checks, and the AI reading when switched on), with the bulk action. --}}
+        {{-- The automated result (free checks, and the AI reading when switched on), with the bulk action. --}}
         <section class="card mb-4 flex flex-wrap items-center gap-3 p-4" aria-label="Checks">
             <x-phosphor-sparkle class="h-5 w-5 shrink-0 text-primary" aria-hidden="true" />
             <div class="flex flex-wrap gap-2 text-sm">
@@ -85,18 +94,24 @@
                 @endif
                 @if ($checkCounts['consistent'])
                     <form method="POST" action="{{ route('admin.activities.verify-consistent') }}"
-                          x-data @submit="if (! confirm(@js('Verify all '.$checkCounts['consistent'].' consistent activities? Flagged ones stay for you to review.'))) $event.preventDefault()">
+                          x-data @submit="if (! confirm(@js('Verify all '.$checkCounts['consistent'].' activities marked Verified by the checks? Needs review and Flagged ones stay for you to open.'))) $event.preventDefault()">
                         @csrf
                         <button type="submit" class="btn-primary btn-sm">
-                            <x-phosphor-checks class="h-4 w-4" aria-hidden="true" />Verify all {{ $checkCounts['consistent'] }} consistent
+                            <x-phosphor-checks class="h-4 w-4" aria-hidden="true" />Verify all {{ $checkCounts['consistent'] }} marked Verified
                         </button>
                     </form>
                 @endif
             </div>
-            <p class="w-full text-xs text-muted">
-                Consistent: a sign-in sheet is attached, not used before, and{{ $aiEnabled ? ' its names and date agree with what was logged' : ' logged soon after the activity' }}.
-                {{ $aiEnabled ? 'Sheets are read by AI (Claude) to count names and read the date.' : 'AI reading of sheets is off.' }} The checks advise; you decide.
-            </p>
+            <div class="w-full space-y-1 text-xs text-muted">
+                <p>
+                    <span class="font-semibold text-ink">Decision support, not a final verdict.</span>
+                    Each activity's sheet, photos and venue are checked automatically for reused or re-saved pictures, editing apps,
+                    and photo dates and places that don't match, giving a confidence score from 0 to 100:
+                    Verified ({{ \App\Services\SheetChecks::VERIFIED_FROM }} and up), Needs review, or Flagged (below {{ \App\Services\SheetChecks::FLAGGED_BELOW }}, or a reused file).
+                    Open the ones that are not Verified; you decide each one.
+                </p>
+                <p>{{ $aiEnabled ? 'Sheets and photos are also read by AI (Claude) to count names, read the date and venue, and describe the photos.' : 'AI reading of sheets and photos is off.' }}</p>
+            </div>
         </section>
     @endif
 
@@ -125,7 +140,7 @@
                                 <th scope="col" class="table-head">Activity</th>
                                 <th scope="col" class="table-head w-32">Date</th>
                                 <th scope="col" class="table-head w-36 text-right">Residents reached</th>
-                                <th scope="col" class="table-head w-56">Checks</th>
+                                <th scope="col" class="table-head w-56">Automated check</th>
                                 <th scope="col" class="table-head w-32">{{ $pending ? 'Waiting' : ($currentStatus === 'verified' ? 'Verified' : 'Rejected') }}</th>
                                 <th scope="col" class="table-head w-12"><span class="sr-only">Review</span></th>
                             </tr>
@@ -141,13 +156,22 @@
                                     </td>
                                     <td class="table-date" data-label="Held">{{ $activity->activity_date->format('d M Y') }}</td>
                                     <td class="table-num" data-label="Residents reached">{{ $activity->participants_estimate !== null ? number_format($activity->participants_estimate) : '--' }}</td>
-                                    <td class="table-cell text-sm" data-label="Checks">
+                                    <td class="table-cell text-sm" data-label="Automated check">
                                         @php $findings = $activity->checkFindings(); @endphp
-                                        @if ($activity->check_status === 'consistent')
-                                            <span class="badge-success">Consistent</span>
-                                        @elseif ($activity->check_status === 'flagged')
-                                            <span class="badge-warning">Flagged</span>
-                                            <span class="mt-1 block text-xs text-muted">{{ $findings[0] ?? '' }}@if (count($findings) > 1) (+{{ count($findings) - 1 }} more)@endif</span>
+                                        @if ($activity->checkLabel())
+                                            <span class="inline-flex flex-wrap items-center gap-2">
+                                                <span @class([
+                                                    'badge-success' => $activity->check_status === 'consistent',
+                                                    'badge-warning' => $activity->check_status === 'review',
+                                                    'badge-danger' => $activity->check_status === 'flagged',
+                                                ])>{{ $activity->checkLabel() }}</span>
+                                                @if ($activity->check_score !== null)
+                                                    <span class="tabular-nums text-muted" title="Confidence score">{{ $activity->check_score }}/100</span>
+                                                @endif
+                                            </span>
+                                            @if ($activity->check_status !== 'consistent' && $findings)
+                                                <span class="mt-1 block text-xs text-muted">{{ $findings[0] }}@if (count($findings) > 1) (+{{ count($findings) - 1 }} more)@endif</span>
+                                            @endif
                                         @else
                                             <span class="badge-neutral">Not checked</span>
                                         @endif
@@ -213,6 +237,8 @@
                             <dl class="grid grid-cols-[minmax(0,10rem)_minmax(0,1fr)] gap-x-6 gap-y-2 border-y border-line py-4 text-sm">
                                 <dt class="text-muted">Residents reached</dt>
                                 <dd class="tabular-nums text-ink" x-text="current.residents"></dd>
+                                <dt class="text-muted">Venue</dt>
+                                <dd class="text-ink" x-text="current.venue || 'Not given'"></dd>
                                 <dt class="text-muted">Logged by</dt>
                                 <dd class="text-ink" x-text="current.loggedBy"></dd>
                                 <dt class="text-muted" x-text="current.status === 'pending' ? 'Claimed source' : 'Source'"></dt>
@@ -225,14 +251,36 @@
                                 </template>
                             </dl>
 
-                            <section aria-label="Checks" class="rounded-md border px-4 py-3 text-sm"
-                                     :class="current.check === 'flagged' ? 'border-warning/40 bg-warning-subtle' : (current.check === 'consistent' ? 'border-success/40 bg-success-subtle' : 'border-line bg-canvas')">
-                                <p class="font-semibold" :class="current.check === 'flagged' ? 'text-warning' : (current.check === 'consistent' ? 'text-success' : 'text-muted')"
-                                   x-text="current.check === 'flagged' ? 'The checks found something to look at' : (current.check === 'consistent' ? 'The checks found nothing unusual' : 'Not checked')"></p>
-                                <ul class="mt-1 list-disc pl-6 text-ink" x-show="current.findings.length">
-                                    <template x-for="finding in current.findings" :key="finding"><li x-text="finding"></li></template>
-                                </ul>
-                                <p class="mt-1 text-xs text-muted" x-show="current.aiNames !== null" x-text="'AI counted ' + current.aiNames + ' names on the sheet.'"></p>
+                            {{-- The automated result: decision support, with the reasons both ways. --}}
+                            <section aria-label="Automated check" class="rounded-md border px-4 py-3 text-sm"
+                                     :class="{
+                                         'border-danger/40 bg-danger-subtle': current.check === 'flagged',
+                                         'border-warning/40 bg-warning-subtle': current.check === 'review',
+                                         'border-success/40 bg-success-subtle': current.check === 'consistent',
+                                         'border-line bg-canvas': ! current.check,
+                                     }">
+                                <p class="flex flex-wrap items-baseline gap-x-2 font-semibold"
+                                   :class="{ 'text-danger': current.check === 'flagged', 'text-warning': current.check === 'review', 'text-success': current.check === 'consistent', 'text-muted': ! current.check }">
+                                    <span x-text="current.checkLabel ? 'Automated check: ' + current.checkLabel : 'Not checked'"></span>
+                                    <span class="tabular-nums" x-show="current.score !== null" x-text="'· confidence ' + current.score + '/100'"></span>
+                                </p>
+                                <template x-if="current.findings.length">
+                                    <div class="mt-2">
+                                        <p class="text-xs font-semibold uppercase tracking-wide text-muted">To look at</p>
+                                        <ul class="mt-1 list-disc pl-6 text-ink">
+                                            <template x-for="finding in current.findings" :key="finding"><li x-text="finding"></li></template>
+                                        </ul>
+                                    </div>
+                                </template>
+                                <template x-if="current.confirmations.length">
+                                    <div class="mt-2">
+                                        <p class="text-xs font-semibold uppercase tracking-wide text-muted">What checks out</p>
+                                        <ul class="mt-1 list-disc pl-6 text-ink">
+                                            <template x-for="item in current.confirmations" :key="item"><li x-text="item"></li></template>
+                                        </ul>
+                                    </div>
+                                </template>
+                                <p class="mt-2 text-xs text-muted">Decision support only: the checks can be wrong. You make the decision.</p>
                             </section>
 
                             <section aria-labelledby="review-evidence">
@@ -260,6 +308,26 @@
                                 <p x-show="! current.evidence" class="mt-2 rounded-md border border-dashed border-line-strong px-4 py-6 text-center text-sm text-muted">
                                     No sign-in sheet was attached. Ask the organization for one before verifying.
                                 </p>
+                            </section>
+
+                            <section aria-labelledby="review-photos">
+                                <h3 id="review-photos" class="text-sm font-semibold text-ink">
+                                    Activity photos <span class="font-normal text-muted" x-text="'(' + current.photos.length + ')'"></span>
+                                </h3>
+                                <ul class="mt-2 grid gap-3 sm:grid-cols-3" x-show="current.photos.length">
+                                    <template x-for="photo in current.photos" :key="photo.url">
+                                        <li class="overflow-hidden rounded-md border border-line">
+                                            <a :href="photo.url" target="_blank" rel="noopener" class="block bg-canvas">
+                                                <img :src="photo.url" :alt="photo.label + ' of ' + current.title" class="h-28 w-full object-cover" loading="lazy">
+                                                <span class="sr-only">(opens in a new tab)</span>
+                                            </a>
+                                            <p class="px-3 py-2 text-xs text-muted">
+                                                <span class="font-semibold text-ink" x-text="photo.label"></span>: <span x-text="photo.summary"></span>
+                                            </p>
+                                        </li>
+                                    </template>
+                                </ul>
+                                <p x-show="! current.photos.length" class="mt-2 text-sm text-muted">No photos were attached.</p>
                             </section>
 
                             <div x-show="current.status === 'pending'">

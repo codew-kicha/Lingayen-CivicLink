@@ -49,8 +49,10 @@ class ActivityChecksTest extends TestCase
         Storage::fake('local');
         $activity = $this->log($this->rep());
 
-        $this->assertSame('consistent', $activity->check_status);
-        $this->assertSame([], $activity->checkFindings());
+        // Verified, with one small point off: no photos (they are optional).
+        $this->assertSame(['consistent', 90], [$activity->check_status, $activity->check_score]);
+        $this->assertSame(['No activity photos are attached.'], $activity->checkFindings());
+        $this->assertContains('The sign-in sheet is not attached to any other activity.', $activity->checkConfirmations());
         $this->assertNotNull($activity->evidence_hash);
     }
 
@@ -139,11 +141,12 @@ class ActivityChecksTest extends TestCase
         $flagged = $this->log($rep, ['evidence' => null]);
 
         $this->actingAs($admin)->get(route('admin.activities.index'))->assertOk()
-            ->assertSee('Verify all 2 consistent')->assertSee('No sign-in sheet is attached.');
+            ->assertSee('Verify all 2 marked Verified')->assertSee('No sign-in sheet is attached.')
+            ->assertSee('Decision support, not a final verdict.');
         $this->actingAs($admin)->get(route('admin.activities.index', ['check' => 'flagged']))->assertSee($flagged->title)->assertDontSee('Tree planting');
 
         $this->actingAs($admin)->post(route('admin.activities.verify-consistent'))
-            ->assertSessionHas('status', '2 consistent activities verified and scores recalculated.');
+            ->assertSessionHas('status', '2 activities marked Verified by the checks were verified, and scores recalculated.');
 
         foreach ($good as $activity) {
             $this->assertSame('verified', $activity->fresh()->status);

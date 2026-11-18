@@ -8,6 +8,7 @@ use App\Models\AnnualReport;
 use App\Models\ApplicationModel;
 use App\Models\AuditLog;
 use App\Models\Document;
+use App\Models\FeeFreePeriod;
 use App\Models\NewsPost;
 use App\Models\OfficeNotice;
 use App\Models\Organization;
@@ -16,9 +17,11 @@ use App\Models\User;
 use App\Notifications\OfficeNoticeSent;
 use App\Services\ApplicationSteps;
 use App\Services\DocumentPrecheck;
+use App\Services\ImageForensics;
 use App\Services\PerformanceScoreCalculator;
 use App\Services\SheetChecks;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Database\Seeders\Support\DemoPhoto;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Hash;
@@ -30,7 +33,7 @@ use Illuminate\Support\Str;
  * Rebuilds a realistic demo dataset in one command:
  *   php artisan migrate:fresh --seed
  *
- * Covers organizations in every accreditation state, applications at every SB reading stage,
+ * Covers organizations in every accreditation state, applications at every phase (validation, committee hearing),
  * and a mix of verified, pending, and rejected activities (PRD §8, demo reliability).
  */
 class DatabaseSeeder extends Seeder
@@ -45,7 +48,7 @@ class DatabaseSeeder extends Seeder
         ['Coastal clean-up covers four barangays', 'Fisherfolk and farmers\' associations joined the quarterly shoreline clean-up, collecting waste across four coastal barangays and recording the volumes for the environment office.'],
         ['Reminder on document expiry', 'Accredited organizations are reminded to replace expiring DOLE or SEC certifications and updated officer lists before they lapse. The Desk Office emails a reminder ahead of each accreditation\'s expiry date.'],
         ['Senior citizens\' wellness day draws 300 residents', 'Senior citizens\' groups from Domalandan and Talogtog held a joint wellness day with free blood pressure checks, light exercise, and a talk on managing maintenance medicines. Barangay health workers assisted throughout the morning.'],
-        ['Online filing now available for CSO accreditation', 'Organizations can now register, upload their requirements, and follow their application through each Sangguniang Bayan reading on the CSO Desk Office website. Paper filing at the office remains available for groups without internet access.'],
+        ['Online filing now available for CSO accreditation', 'Organizations can now register, upload their requirements, and follow their application from validation to the committee hearing and approval on the CSO Desk Office website. Paper filing at the office remains available for groups without internet access.'],
         ['Orientation on the accreditation requirements', 'The Desk Office will hold an orientation on the five accreditation requirements for new and renewing organizations. Officers are encouraged to bring their draft documents so staff can check them on the spot.'],
         ['Mangrove planting along the Pangapisan coast', 'Fisherfolk and youth volunteers planted 1,200 mangrove propagules along the Pangapisan shoreline. The planting site will be monitored monthly, and survival counts will be shared with the municipal environment office.'],
         ['Women\'s organizations lead anti-VAWC forum', 'KALIPI chapters and the Capandanan Kababaihan Association held a forum on preventing violence against women and children, with resource speakers from the municipal social welfare office and the women and children protection desk.'],
@@ -109,6 +112,7 @@ class DatabaseSeeder extends Seeder
             'password' => $this->passwordHash,
         ]);
 
+        $this->freeFilingPeriod($admin);
         $this->accreditedOrganizations($admin);
         $this->organizationsInReview();
         $this->rejectedApplicant();
@@ -119,7 +123,30 @@ class DatabaseSeeder extends Seeder
         $this->newsAndReports($admin);
         $this->notices($admin);
         $this->sheetsForWaitingActivities();
+        $this->photosForWaitingActivities();
+        $this->markFreeFilings();
         $this->computeScores();
+    }
+
+    /**
+     * The free filing period after the 2025 elections (client, Nov 2026): DILG MC No. 2025-060 gave
+     * organizations about three months from the new administration to apply or renew for free.
+     * Placeholder dates; the Desk Office corrects them on the Free filing periods page.
+     */
+    private function freeFilingPeriod(User $admin): void
+    {
+        FeeFreePeriod::create([
+            'memorandum' => 'DILG MC No. 2025-060', 'starts_on' => '2025-07-01', 'ends_on' => '2025-09-30', 'created_by' => $admin->id,
+        ]);
+    }
+
+    /** Applications submitted inside a free period paid nothing (the seeders above create them as paid). */
+    private function markFreeFilings(): void
+    {
+        foreach (FeeFreePeriod::all() as $period) {
+            ApplicationModel::whereDate('submitted_at', '>=', $period->starts_on)->whereDate('submitted_at', '<=', $period->ends_on)
+                ->update(['fee_waived' => true]);
+        }
     }
 
     /**
@@ -304,27 +331,29 @@ class DatabaseSeeder extends Seeder
     }
 
     /**
-     * Applications at each point of the review (pre-final defense panel's order): a form waiting for
-     * approval, one waiting for its requirements, one with requirements in, and one at each reading.
+     * Applications at each point of the client's process (Nov 2026): in Validation (a form to
+     * validate, requirements awaited, requirements to validate) and at the Committee hearing (waiting
+     * for it, deferred once, favorable and ready for approval).
      */
     private function organizationsInReview(): void
     {
+        // [status, hearing outcome, name, sector, barangay, advocacy]
         $stages = [
-            ['submitted', 'Tonton Neighborhood Association', 'Independent Organizations', 'Tonton',
+            ['submitted', null, 'Tonton Neighborhood Association', 'Independent Organizations', 'Tonton',
                 'Keeps Tonton\'s streets clean and lit, and organizes the barangay\'s neighborhood watch.'],
-            ['first_reading', 'Estanza Fisherfolk Alliance', 'Farmers and Fisherfolks', 'Estanza',
+            ['under_review', null, 'Estanza Fisherfolk Alliance', 'Farmers and Fisherfolks', 'Estanza',
                 'Unites small-scale fishers in Estanza to protect fishing grounds and sell their catch at fair prices.'],
-            ['second_reading', 'Libsong Health Advocates', 'Health', 'Libsong East',
+            ['under_review', 'deferred', 'Libsong Health Advocates', 'Health', 'Libsong East',
                 'Volunteers who run health education sessions and help residents reach the rural health unit.'],
-            ['third_reading', 'Maniboc TODA', 'TODA', 'Maniboc',
+            ['under_review', 'favorable', 'Maniboc TODA', 'TODA', 'Maniboc',
                 'Represents tricycle operators and drivers serving Maniboc and the routes to the town proper.'],
-            ['requirements_pending', 'Namolan Women\'s Livelihood Group', 'KALIPI (Women\'s)', 'Namolan',
+            ['requirements_pending', null, 'Namolan Women\'s Livelihood Group', 'KALIPI (Women\'s)', 'Namolan',
                 'Trains Namolan women in food processing and handicrafts and helps them sell at the town market.'],
-            ['requirements_submitted', 'Quibaol Senior Citizens Association', 'Senior Citizen', 'Quibaol',
+            ['requirements_submitted', null, 'Quibaol Senior Citizens Association', 'Senior Citizen', 'Quibaol',
                 'Looks after Quibaol\'s elderly: monthly check-ups, social pension follow-ups, and home visits.'],
         ];
 
-        foreach ($stages as $index => [$stage, $name, $sector, $barangay, $advocacy]) {
+        foreach ($stages as $index => [$status, $outcome, $name, $sector, $barangay, $advocacy]) {
             $user = User::factory()->create([
                 ...self::person(),
                 'email' => 'applicant'.($index + 1).'@example.ph',
@@ -340,62 +369,47 @@ class DatabaseSeeder extends Seeder
 
             self::seedMembers($organization, $user, 5);
 
-            $reading = array_key_exists($stage, ApplicationModel::SB_STAGES);
             $submittedAt = now()->subDays(($index + 1) * 9);
             $application = ApplicationModel::factory()
                 ->for($organization)
-                ->atStage($reading ? $stage : 'not_endorsed')
                 ->create([
-                    'status' => $reading ? 'under_review' : $stage,
+                    'status' => $status,
+                    'hearing_outcome' => $outcome,
                     'submitted_by' => $user->id,
                     'submitted_at' => $submittedAt,
-                    'form_approved_at' => $stage === 'submitted' ? null : $submittedAt->copy()->addDays(3),
-                    'requirements_submitted_at' => in_array($stage, ['submitted', 'requirements_pending'], true) ? null : $submittedAt->copy()->addDays(5),
+                    'form_approved_at' => $status === 'submitted' ? null : $submittedAt->copy()->addDays(3),
+                    'requirements_submitted_at' => in_array($status, ['submitted', 'requirements_pending'], true) ? null : $submittedAt->copy()->addDays(5),
                 ]);
 
-            // The readings held so far, each with the feedback the CSO received (pre-final defense panel).
-            if ($reading) {
-                $this->readings($application, $stage, $submittedAt->copy()->addDays(7));
+            // The hearings held so far, each with the feedback the organization received.
+            if ($outcome) {
+                $this->hearings($application, $outcome, $submittedAt->copy()->addDays(10));
             }
 
             // Before the form is approved only the two documents made online exist; the rest come after.
-            // The second-reading applicant attached its receipt in the by-laws slot; the pre-check flags it.
-            $this->documents($organization, $application, ocr: $stage === 'second_reading' ? [
+            // The deferred applicant attached its receipt in the by-laws slot; the pre-check flags it.
+            $this->documents($organization, $application, ocr: $outcome === 'deferred' ? [
                 'constitution_bylaws' => 'Official Receipt. Office of the Municipal Treasurer. Amount: PHP 1,000.00.',
-            ] : [], only: in_array($stage, ['submitted', 'requirements_pending'], true) ? ['accreditation_form', 'officers_members_list'] : null);
+            ] : [], only: in_array($status, ['submitted', 'requirements_pending'], true) ? ['accreditation_form', 'officers_members_list'] : null);
         }
     }
 
-    /** Every reading up to $stage, a week apart; the second reading was deferred once before passing. */
-    private function readings(ApplicationModel $application, string $stage, Carbon $from): void
+    /** The committee hearings up to $outcome: a favorable one was deferred once before it. */
+    private function hearings(ApplicationModel $application, string $outcome, Carbon $from): void
     {
-        $remarks = [
-            'first_reading' => 'Taken up in the first reading. The council noted the organization\'s officers and asked that the member list be kept current. No changes needed.',
-            'second_reading' => 'Second reading completed. The committee on social services confirmed the documents and recommended the application to the council.',
-            'third_reading' => 'Approved on third reading. The Sangguniang Bayan will issue its endorsement at the next session.',
-        ];
         $admin = User::where('role', 'admin')->first();
-        $held = $from->copy();
+        $committee = 'Committee on Social Services';
 
-        foreach (array_keys(ApplicationModel::SB_STAGES) as $key) {
-            if ($key === 'not_endorsed') {
-                continue;
-            }
-            if ($key === 'second_reading') {
-                $application->readings()->create([
-                    'stage' => $key, 'outcome' => 'deferred', 'held_on' => $held->toDateString(), 'recorded_by' => $admin?->id,
-                    'remarks' => 'Not reached on the agenda because of the budget hearing. To be taken up at the next regular session.',
-                ]);
-                $held->addWeek();
-            }
-            $application->readings()->create([
-                'stage' => $key, 'outcome' => 'passed', 'held_on' => $held->toDateString(), 'recorded_by' => $admin?->id,
-                'remarks' => $remarks[$key] ?? null,
+        $application->hearings()->create([
+            'held_on' => $from->toDateString(), 'committee' => $committee, 'outcome' => 'deferred', 'recorded_by' => $admin?->id,
+            'remarks' => 'Not reached on the agenda because of the budget hearing. To be heard at the next regular sitting.',
+        ]);
+
+        if ($outcome === 'favorable') {
+            $application->hearings()->create([
+                'held_on' => $from->copy()->addWeek()->toDateString(), 'committee' => $committee, 'outcome' => 'favorable', 'recorded_by' => $admin?->id,
+                'remarks' => 'The committee reviewed the documents and the organization\'s activities and recommends the application for approval. No changes needed.',
             ]);
-            if ($key === $stage) {
-                break;
-            }
-            $held->addWeek();
         }
     }
 
@@ -567,6 +581,54 @@ class DatabaseSeeder extends Seeder
                 'evidence_hash' => hash('sha256', $pdf),
             ]);
             SheetChecks::run($activity, $text);
+        }
+    }
+
+    /**
+     * Photos on three waiting activities, so Verify activities shows each automated result: original
+     * phone photos taken on the day in Lingayen (Verified), one edited in Canva and taken weeks before
+     * (Needs review), and a re-saved copy of another activity's photo (Flagged).
+     */
+    private function photosForWaitingActivities(): void
+    {
+        // Activities whose sheet is their own (the seeded duplicate sheet is already flagged).
+        $waiting = Activity::with('organization')->where('status', 'pending')->whereNotNull('evidence_path')
+            ->where('evidence_mime', 'application/pdf')->orderBy('id')->get()
+            ->filter(fn (Activity $a) => Activity::where('evidence_hash', $a->evidence_hash)->count() === 1)->values();
+        if ($waiting->count() < 3) {
+            return;
+        }
+        $event = fn (int $n) => public_path("images/events/cso{$n}.jpg");
+        $phone = fn (Activity $a, string $time, array $at) => ['taken_at' => $a->activity_date->format('Y-m-d')." {$time}", 'make' => 'samsung', 'model' => 'SM-A155F', 'lat' => $at[0], 'lng' => $at[1]];
+
+        $plans = [
+            [$waiting[0], [
+                DemoPhoto::jpeg($event(1), $phone($waiting[0], '09:12:40', [16.0301, 120.2254])),
+                DemoPhoto::jpeg($event(2), $phone($waiting[0], '10:05:12', [16.0298, 120.2261])),
+            ], 'Barangay Hall'],
+            [$waiting[1], [
+                DemoPhoto::jpeg($event(3), ['software' => 'Canva', 'taken_at' => $waiting[1]->activity_date->copy()->subDays(24)->format('Y-m-d').' 15:20:00']),
+            ], 'Covered court'],
+            [$waiting[2], [
+                DemoPhoto::jpeg($event(1), [], width: 480, quality: 60),   // the first activity's photo, re-saved
+            ], 'Multi-purpose hall'],
+        ];
+
+        foreach ($plans as [$activity, $photos, $venue]) {
+            $activity->update(['venue' => "{$venue}, Brgy. {$activity->organization->barangay}"]);
+            foreach ($photos as $i => $bytes) {
+                $path = "activity-photos/{$activity->organization_id}/sample-{$activity->id}-{$i}.jpg";
+                Storage::disk('local')->put($path, $bytes);
+                $real = Storage::disk('local')->path($path);
+                $activity->photos()->create([
+                    'path' => $path, 'filename' => 'IMG_2026'.str_pad((string) ($activity->id * 10 + $i), 4, '0', STR_PAD_LEFT).'.jpg', 'mime' => 'image/jpeg',
+                    'hash' => hash('sha256', $bytes),
+                    'phash' => ImageForensics::fingerprint($real),
+                    'metadata' => ImageForensics::metadata($real) ?: null,
+                ]);
+            }
+            $text = "ATTENDANCE / SIGN-IN SHEET. {$activity->organization->name}. Activity: {$activity->title}. Date: {$activity->activity_date->format('F j, Y')}. Venue: {$activity->venue}.";
+            SheetChecks::run($activity->fresh(), $text);
         }
     }
 

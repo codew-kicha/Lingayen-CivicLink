@@ -14,6 +14,7 @@ return [
         'Review' => [
             ['route' => 'admin.applications.index', 'active' => ['admin.applications.*'], 'label' => 'Applications', 'icon' => 'file-text', 'count' => 'pendingApplications'],
             ['route' => 'admin.activities.index', 'active' => ['admin.activities.*'], 'label' => 'Verify activities', 'icon' => 'check-square', 'count' => 'pendingActivities'],
+            ['route' => 'admin.fee-periods.index', 'active' => ['admin.fee-periods.*'], 'label' => 'Free filing periods', 'icon' => 'calendar-check'],
         ],
         'Directory' => [
             ['route' => 'admin.organizations.index', 'active' => ['admin.organizations.*'], 'label' => 'Organizations', 'icon' => 'buildings'],

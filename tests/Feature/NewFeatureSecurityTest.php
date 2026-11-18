@@ -6,7 +6,6 @@ use App\Models\Activity;
 use App\Models\OfficeNotice;
 use App\Models\Organization;
 use App\Models\User;
-use App\Services\ApplicationSteps;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -79,7 +78,8 @@ class NewFeatureSecurityTest extends TestCase
         $admin = User::factory()->admin()->create();
 
         $this->actingAs($admin)->get(route('admin.applications.show', $draft))->assertNotFound();
-        $this->actingAs($admin)->patch(route('admin.applications.stage', $draft), ['sb_stage' => 'first_reading'])->assertStatus(422);
+        $this->actingAs($admin)->post(route('admin.applications.hearing', $draft), ['held_on' => now()->toDateString(), 'outcome' => 'favorable', 'remarks' => 'x'])->assertStatus(422);
+        $this->actingAs($admin)->post(route('admin.applications.forward', $draft))->assertStatus(422);
         $this->actingAs($admin)->post(route('admin.applications.approve', $draft))->assertStatus(422);
         $this->assertSame('draft', $draft->fresh()->status);
         $this->assertSame(0, $rep->organization->accreditations()->count());

@@ -15,15 +15,15 @@ class ApplicationModel extends Model
     protected $table = 'applications';
 
     /**
-     * Pre-final defense panel: the application form goes first and the other requirements follow
-     * once the Desk Office approves it. In order, with what each status means to the CSO.
+     * The client's process (Nov 2026), in order: the organization files, the Desk Office validates
+     * the form and then the requirements (the panel's order: nothing paid before the form is
+     * approved), the Sangguniang Bayan committee hears it, and the office approves it.
      */
-    public const FLOW = [
-        'submitted' => 'Application form submitted',
-        'requirements_pending' => 'Form approved, requirements pending',
-        'requirements_submitted' => 'Requirements submitted',
-        'under_review' => 'Sangguniang Bayan readings',
-        'approved' => 'Accredited',
+    public const PHASES = [
+        'application' => 'Application',
+        'validation' => 'Validation',
+        'hearing' => 'Committee hearing',
+        'approval' => 'Approval',
     ];
 
     /** Not decided yet: an organization files no second application while one of these is open. */
@@ -32,29 +32,92 @@ class ApplicationModel extends Model
     /** Waiting on the Desk Office (the queue, the dashboard and the sidebar count). */
     public const WITH_OFFICE = ['submitted', 'requirements_submitted', 'under_review'];
 
-    /**
-     * The Sangguniang Bayan stages, in order. The office records them one at a time; an application
-     * can be approved (accreditation issued) only once it has reached 'endorsed'.
-     */
-    public const SB_STAGES = [
-        'not_endorsed' => 'Not endorsed',
-        'first_reading' => 'First reading',
-        'second_reading' => 'Second reading',
-        'third_reading' => 'Third reading',
-        'endorsed' => 'Endorsed',
-    ];
-
-    /** The stage before and after the current one (null at either end). */
-    public function neighbouringStages(): array
+    /** Which of the four phases the application is in (a rejected one stays where it stopped: null). */
+    public function phase(): ?string
     {
-        $keys = array_keys(self::SB_STAGES);
-        $i = array_search($this->sb_stage, $keys, true);
+        return match ($this->status) {
+            'draft' => 'application',
+            'submitted', 'requirements_pending', 'requirements_submitted' => 'validation',
+            'under_review' => 'hearing',
+            'approved' => 'approval',
+            default => null,
+        };
+    }
 
-        return [$i > 0 ? $keys[$i - 1] : null, $i !== false && $i < count($keys) - 1 ? $keys[$i + 1] : null];
+    /** Where it stands inside its phase, in a few words. */
+    public function phaseNote(): string
+    {
+        return match ($this->status) {
+            'draft' => 'Being filled in by the organization',
+            'submitted' => 'Application form being validated',
+            'requirements_pending' => $this->requirements_note ? 'Requirements returned for correction' : 'Form approved; requirements to upload',
+            'requirements_submitted' => 'Requirements being validated',
+            'under_review' => match ($this->hearing_outcome) {
+                'favorable' => 'Favorable hearing; ready for approval',
+                'deferred' => 'Hearing deferred; to be heard again',
+                'returned' => 'Returned by the committee; compliance needed',
+                default => 'Waiting for the committee hearing',
+            },
+            'approved' => 'Approved; accreditation issued',
+            'rejected' => 'Not approved',
+            default => '',
+        };
+    }
+
+    /** Ready for the office's approval: heard, and the committee was favorable. */
+    public function readyToApprove(): bool
+    {
+        return $this->status === 'under_review' && $this->hearing_outcome === 'favorable';
+    }
+
+    /** While the Desk Office may still waive the fee or require it (before the committee hearing). */
+    public const FEE_OPEN = ['submitted', 'requirements_pending', 'requirements_submitted'];
+
+    /** The accreditation fee in pesos: nothing when waived, else PHP 1,000 new or PHP 500 renewal. */
+    public function fee(): int
+    {
+        return $this->fee_waived ? 0 : (int) config("office.fees.{$this->type}", 0);
+    }
+
+    /** "PHP 500 renewal fee". */
+    public function feeLabel(): string
+    {
+        return 'PHP '.number_format((int) config("office.fees.{$this->type}", 0)).' '.($this->type === 'renewal' ? 'renewal' : 'accreditation').' fee';
+    }
+
+    /** The free period it was submitted in, if any. */
+    public function freePeriod(): ?FeeFreePeriod
+    {
+        return $this->submitted_at ? FeeFreePeriod::covering($this->submitted_at) : null;
+    }
+
+    /** Why no fee is due ("filed within the free period under DILG MC No. 2025-060"); null when it is. */
+    public function feeWaiverReason(): ?string
+    {
+        if (! $this->fee_waived) {
+            return null;
+        }
+        $period = $this->freePeriod();
+
+        return $period ? "filed within the free period under {$period->memorandum}" : 'waived by the Desk Office';
+    }
+
+    /** What is due, or why nothing is: for the review page and the organization's pages. */
+    public function feeNote(): string
+    {
+        return $this->fee_waived
+            ? 'No fee: '.$this->feeWaiverReason()
+            : $this->feeLabel().', paid at the Municipal Treasury';
+    }
+
+    /** How long the accreditation runs by default: three years if free, one year if paid. */
+    public function validityYears(): int
+    {
+        return (int) config('office.validity_years.'.($this->fee_waived ? 'free' : 'paid'));
     }
 
     protected $fillable = [
-        'organization_id', 'type', 'status', 'submission_channel', 'sb_stage',
+        'organization_id', 'type', 'fee_waived', 'status', 'submission_channel', 'hearing_outcome',
         'submitted_by', 'reviewed_by', 'rejection_reason', 'submitted_at', 'reviewed_at', 'form_data',
         'form_approved_at', 'form_approved_by', 'requirements_submitted_at', 'requirements_note',
     ];
@@ -62,6 +125,7 @@ class ApplicationModel extends Model
     protected function casts(): array
     {
         return [
+            'fee_waived' => 'boolean',
             'submitted_at' => 'datetime',
             'reviewed_at' => 'datetime',
             'form_approved_at' => 'datetime',
@@ -95,10 +159,10 @@ class ApplicationModel extends Model
         return $this->belongsTo(User::class, 'reviewed_by');
     }
 
-    /** The Sangguniang Bayan readings the office recorded, oldest first. */
-    public function readings(): HasMany
+    /** The committee hearings the office recorded, oldest first. */
+    public function hearings(): HasMany
     {
-        return $this->hasMany(ApplicationReading::class, 'application_id')->orderBy('held_on')->orderBy('id');
+        return $this->hasMany(ApplicationHearing::class, 'application_id')->orderBy('held_on')->orderBy('id');
     }
 
     public function formApprovedBy(): BelongsTo

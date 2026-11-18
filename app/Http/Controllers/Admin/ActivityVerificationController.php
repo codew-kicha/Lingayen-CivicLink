@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Support\Mailer;
 use App\Http\Requests\RejectActivityRequest;
 use App\Models\Activity;
 use App\Models\AuditLog;
@@ -11,11 +10,12 @@ use App\Notifications\ActivityVerified;
 use App\Services\PerformanceScoreCalculator;
 use App\Services\SheetReader;
 use App\Support\ListPagination;
+use App\Support\Mailer;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Carbon;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -24,8 +24,8 @@ class ActivityVerificationController extends Controller
     /** Filter chips: the review queue first, then what was already decided. */
     public const FILTERS = ['pending' => 'Waiting', 'verified' => 'Verified', 'rejected' => 'Rejected'];
 
-    /** On the waiting list: what the checks found (App\Services\SheetChecks, SheetReader). */
-    public const CHECKS = ['consistent' => 'Consistent', 'flagged' => 'Flagged', 'unchecked' => 'Not checked'];
+    /** On the waiting list: the automated result (App\Services\SheetChecks, SheetReader). */
+    public const CHECKS = ['consistent' => 'Verified', 'review' => 'Needs review', 'flagged' => 'Flagged', 'unchecked' => 'Not checked'];
 
     /** Sheets read by the AI per click of "Read new sheets", so one request stays short. */
     public const READ_BATCH = 5;
@@ -53,7 +53,7 @@ class ActivityVerificationController extends Controller
         $waiting = fn () => Activity::where('status', 'pending');
 
         return view('admin.activities.index', [
-            'activities' => ListPagination::paginate(Activity::with(['organization', 'loggedBy', 'verifiedBy:id,name', 'partnerOrganizations:id,name'])
+            'activities' => ListPagination::paginate(Activity::with(['organization', 'loggedBy', 'verifiedBy:id,name', 'partnerOrganizations:id,name', 'photos'])
                 ->where('status', $status)
                 ->when($request->string('q')->trim()->value(), fn ($q, $term) => $q->where(fn ($q) => $q
                     ->where('title', 'like', "%{$term}%")
@@ -78,6 +78,7 @@ class ActivityVerificationController extends Controller
             'currentCheck' => $check,
             'checkCounts' => [
                 'consistent' => $waiting()->where('check_status', 'consistent')->count(),
+                'review' => $waiting()->where('check_status', 'review')->count(),
                 'flagged' => $waiting()->where('check_status', 'flagged')->count(),
                 'unchecked' => $waiting()->whereNull('check_status')->count(),
             ],
@@ -87,9 +88,10 @@ class ActivityVerificationController extends Controller
     }
 
     /**
-     * Verifies every waiting activity the checks found consistent, in one go (pre-final defense panel:
-     * many activities shouldn't mean many clicks). Flagged ones still need a look. Each organization is
-     * rescored once and told by email after the page has answered.
+     * Verifies every waiting activity the automated checks marked Verified, in one go (pre-final
+     * defense panel: the office should only need to open the flagged or low-confidence ones). Needs
+     * review and Flagged ones stay. Each organization is rescored once and told by email after the
+     * page has answered.
      */
     public function verifyConsistent(Request $request, PerformanceScoreCalculator $scores): RedirectResponse
     {
@@ -99,7 +101,7 @@ class ActivityVerificationController extends Controller
             ->where('status', 'pending')->where('check_status', 'consistent')->get()
             ->filter(fn (Activity $activity) => $request->user()->can('verify', $activity));
         if ($activities->isEmpty()) {
-            return back()->with('error', 'No waiting activity is marked consistent.');
+            return back()->with('error', 'No waiting activity is marked Verified by the checks.');
         }
 
         Activity::whereKey($activities->modelKeys())->update([
@@ -113,7 +115,7 @@ class ActivityVerificationController extends Controller
         AuditLog::record('activity.bulk_verified', null, ['count' => $activities->count(), 'ids' => $activities->modelKeys()]);
         \Illuminate\Support\defer(fn () => $activities->each(fn (Activity $a) => Mailer::send($a->organization->user, new ActivityVerified($a->fresh()))));
 
-        return back()->with('status', $activities->count().' consistent '.str('activity')->plural($activities->count()).' verified and scores recalculated.');
+        return back()->with('status', $activities->count().' '.str('activity')->plural($activities->count()).' marked Verified by the checks '.($activities->count() === 1 ? 'was' : 'were').' verified, and scores recalculated.');
     }
 
     /** Reads up to READ_BATCH waiting sheets with the AI (those it hasn't read yet). */

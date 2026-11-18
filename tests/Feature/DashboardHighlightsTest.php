@@ -3,9 +3,11 @@
 namespace Tests\Feature;
 
 use App\Models\Accreditation;
+use App\Models\ApplicationModel;
 use App\Models\Organization;
 use App\Models\PerformanceScore;
 use App\Models\User;
+use App\Services\ApplicationSteps;
 use Database\Seeders\ExpiredAccreditationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -53,18 +55,18 @@ class DashboardHighlightsTest extends TestCase
     public function test_the_counts_open_to_their_details(): void
     {
         $admin = User::factory()->admin()->create();
-        $endorsed = \App\Models\ApplicationModel::factory()->create(['status' => 'under_review', 'sb_stage' => 'endorsed', 'submitted_at' => now()->subDays(12)]);
+        $favorable = ApplicationModel::factory()->create(['status' => 'under_review', 'hearing_outcome' => 'favorable', 'submitted_at' => now()->subDays(12)]);
         $expiring = Organization::factory()->accredited()->create(['name' => 'Ending Soon Circle']);
         $expiring->accreditations()->update(['expires_at' => now()->addDays(20)->toDateString()]);
 
         $response = $this->actingAs($admin)->get(route('admin.dashboard'))->assertOk()
             ->assertSee('aria-controls="tile-review"', false)->assertSee('Show details')
-            ->assertSee('Where they stand at the Sangguniang Bayan')
+            ->assertSee('Where they stand: validation and the committee hearing')
             ->assertSee('Ending Soon Circle')->assertSee('20 days left')
             ->assertSee('x-data="countUp(', false);
 
         $details = $response->viewData('details');
-        $this->assertSame(1, $details['review']['stages']['Endorsed']);
+        $this->assertSame(1, $details['review']['stages']['Ready to approve']);
         $this->assertSame(12, $details['review']['oldest']);
         $this->assertCount(12, $details['accredited']['months']);
     }
@@ -112,7 +114,7 @@ class DashboardHighlightsTest extends TestCase
         // Applying starts a renewal for an organization that was accredited before; its member list is
         // already complete, so it opens on the form.
         $this->actingAs($rep)->get(route('cso.application'))->assertRedirect(route('cso.application.step', 'form'));
-        $this->assertSame('renewal', \App\Services\ApplicationSteps::draft($rep->organization)->type);
+        $this->assertSame('renewal', ApplicationSteps::draft($rep->organization)->type);
     }
 
     public function test_the_expired_account_seeder_runs_once(): void

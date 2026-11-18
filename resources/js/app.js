@@ -369,6 +369,156 @@ Alpine.data('countUp', (target) => ({
     },
 }));
 
+// Public nav dropdowns: open on hover (with a short grace period so moving the pointer down into the
+// panel doesn't close it) or when the link takes keyboard focus; Esc, leaving, or a click elsewhere
+// closes. On touch screens without hover, the first tap on the link opens the panel instead of
+// navigating; a second tap follows the link.
+Alpine.data('navMenu', () => ({
+    open: false,
+    timer: null,
+
+    show() {
+        clearTimeout(this.timer);
+        if (!this.open) this.$dispatch('nav-menu-open', this.$el);
+        this.open = true;
+    },
+
+    hide() {
+        clearTimeout(this.timer);
+        this.timer = setTimeout(() => { this.open = false; }, 120);
+    },
+
+    // Only one panel at a time: another menu opening closes this one at once, without its grace period.
+    closeIfOther(event) {
+        if (event.detail !== this.$el) {
+            clearTimeout(this.timer);
+            this.open = false;
+        }
+    },
+
+    leave(event) {
+        if (!this.$el.contains(event.relatedTarget)) this.open = false;
+    },
+
+    tap(event) {
+        if (window.matchMedia('(hover: none)').matches && !this.open) {
+            event.preventDefault();
+            this.show();
+        }
+    },
+}));
+
+// <x-process-explorer> (Accreditation page): the chosen step shows in full beside the list on wide
+// screens and opens in place on phones. `active` is what's open (null when a phone closes it);
+// `shown` is what the wide panel and the rail show. Arrow keys, Home and End move between steps.
+Alpine.data('processExplorer', (count) => ({
+    active: 0,
+    shown: 0,
+
+    choose(i) {
+        const wide = window.matchMedia('(min-width: 1024px)').matches;
+        this.active = !wide && this.active === i ? null : i;
+        this.shown = i;
+    },
+
+    keys(event, i) {
+        const to = { ArrowDown: i + 1, ArrowUp: i - 1, Home: 0, End: count - 1 }[event.key];
+        if (to === undefined || to < 0 || to >= count) return;
+        event.preventDefault();
+        this.choose(to);
+        document.getElementById(`step-${to}-button`)?.focus();
+    },
+}));
+
+// <x-process-timeline> (Home): steps light up as the reader scrolls past them, the rail filling
+// behind. Everything starts lit, so no-JS and reduced-motion readers see the finished timeline.
+Alpine.data('timelineProgress', (count) => ({
+    reached: count,
+
+    init() {
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+        const steps = [...this.$el.querySelectorAll(':scope > li')];
+        let frame = null;
+        const update = () => {
+            frame = null;
+            const line = window.innerHeight * 0.55;
+            this.reached = steps.filter((step) => step.getBoundingClientRect().top < line).length;
+        };
+        update();
+        window.addEventListener('scroll', () => { frame ??= requestAnimationFrame(update); }, { passive: true });
+    },
+}));
+
+// About page: the "On this page" list marks the section being read (the last one whose heading has
+// passed the upper third of the window).
+Alpine.data('scrollSpy', (ids) => ({
+    current: ids[0],
+
+    init() {
+        const sections = ids.map((id) => document.getElementById(id)).filter(Boolean);
+        let frame = null;
+        const update = () => {
+            frame = null;
+            const line = window.innerHeight * 0.33;
+            const passed = sections.filter((section) => section.getBoundingClientRect().top < line);
+            // At the bottom of the page the last section can't reach the line; it is the one being read.
+            const atBottom = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2;
+            this.current = (atBottom ? sections.at(-1) : passed.at(-1) ?? sections[0])?.id;
+        };
+        update();
+        window.addEventListener('scroll', () => { frame ??= requestAnimationFrame(update); }, { passive: true });
+    },
+}));
+
+// Accreditation page: "Do we qualify?" Four criteria ticked by the visitor; the answer below says
+// which application fits. Nothing is sent anywhere.
+Alpine.data('eligibilityCheck', () => ({
+    met: [false, false, false, false],
+
+    get count() {
+        return this.met.filter(Boolean).length;
+    },
+
+    get verdict() {
+        if (this.count === 0) return 'none';
+        if (this.count === 4) return 'accreditation';
+        if (!this.met[0] && this.met.slice(1).every(Boolean)) return 'recognition';
+        return 'not-yet';
+    },
+}));
+
+// Accreditation page: the requirements as a checklist, New application or Renewal. What a visitor
+// ticks is remembered on this device only (localStorage, wrapped: it may be unavailable).
+Alpine.data('requirementsChecklist', (counts) => ({
+    tab: 'new',
+    ticked: {},
+
+    init() {
+        try {
+            this.ticked = JSON.parse(localStorage.getItem('civiclink.requirements') || '{}');
+        } catch (e) {
+            this.ticked = {};
+        }
+    },
+
+    toggle(key) {
+        this.ticked[key] = !this.ticked[key];
+        try {
+            localStorage.setItem('civiclink.requirements', JSON.stringify(this.ticked));
+        } catch (e) {
+            // Private window or storage blocked: the ticks last for this visit only.
+        }
+    },
+
+    ready(form) {
+        return Object.keys(this.ticked).filter((key) => key.startsWith(`${form}.`) && this.ticked[key]).length;
+    },
+
+    total(form) {
+        return counts[form] ?? 0;
+    },
+}));
+
 // Analytics charts: one read-out that follows the pointer or keyboard focus, the mark that was clicked
 // (its details open under the chart), and the measure shown on the monthly chart. Each mark carries
 // its read-out as JSON in data-tip; it is shown with x-text, so names stay text. `bar` charts put

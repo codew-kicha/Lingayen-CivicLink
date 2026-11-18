@@ -7,10 +7,13 @@ use App\Models\Activity;
 use App\Models\AnnualReport;
 use App\Models\NewsPost;
 use App\Models\Organization;
+use App\Services\ReportData;
+use Carbon\CarbonInterface;
 use Illuminate\Http\Request;
-use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class PublicController extends Controller
 {
@@ -119,7 +122,16 @@ class PublicController extends Controller
             ->orderBy('barangay')
             ->orderBy('sector')
             ->orderBy('name')
+            ->with(['accreditations' => fn ($q) => $q->where('status', 'active')])
             ->paginate(12);
+
+        // Each row carries its record, counted like the organization's own page (lead and partner
+        // credit, verified only): twelve rows a page, two small queries each.
+        $organizations->getCollection()->each(function (Organization $organization) {
+            $verified = Activity::crediting($organization)->where('status', 'verified');
+            $organization->setAttribute('verified_count', (clone $verified)->count());
+            $organization->setAttribute('last_activity', (clone $verified)->max('activity_date'));
+        });
 
         return view('public.directory', [
             'organizations' => $organizations,
@@ -142,6 +154,8 @@ class PublicController extends Controller
         return view('public.organization', [
             'organization' => $organization,
             'accreditation' => $accreditation,
+            // The last 24 months, so a reader sees steady work or a long silence at a glance.
+            'timeline' => ReportData::timeline($organization),
             'ledger' => [
                 'count' => (clone $verified)->count(),
                 'reached' => (int) (clone $verified)->sum('participants_estimate'),
@@ -178,12 +192,12 @@ class PublicController extends Controller
      * Publicly listable organizations: visible in the directory and currently accredited.
      */
     // activity_date has no time component, so "8 hours ago" would be misleading.
-    private function heldAgo(\Illuminate\Support\Carbon $date): string
+    private function heldAgo(Carbon $date): string
     {
         return match (true) {
             $date->isToday() => 'today',
             $date->isYesterday() => 'yesterday',
-            default => $date->diffForHumans(now()->startOfDay(), ['syntax' => \Carbon\CarbonInterface::DIFF_RELATIVE_TO_NOW]),
+            default => $date->diffForHumans(now()->startOfDay(), ['syntax' => CarbonInterface::DIFF_RELATIVE_TO_NOW]),
         };
     }
 
