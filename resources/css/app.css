@@ -117,7 +117,8 @@
     }
 
     /* Focus is a soft maroon halo; an error is a red border on a faint red fill, so the two never look alike. */
-    .field-input-error {
+    .field-input-error,
+    input[data-name-invalid] {
         @apply border-danger bg-danger-subtle/40 focus:border-danger focus:ring-danger/15;
     }
 
@@ -816,6 +817,24 @@
 }
 
 [x-cloak] { display: none !important; }
+
+/* Chart segments (Analytics split bars): a segment's value shows whenever it fits inside it, at any
+   screen width. How much room a value needs depends on its length (chart-len-3, -4, -5 for "11%",
+   "100%" or "1234", "12345"), so a long one is hidden rather than clipped. A clicked colour widens
+   its narrow segments (data-[on=true]:min-w-12) so the value appears. */
+.chart-seg { container-type: inline-size; }
+@container (max-width: 1.5rem) {
+    .chart-seg-label { display: none; }
+}
+@container (max-width: 1.75rem) {
+    .chart-seg-label.chart-len-3 { display: none; }
+}
+@container (max-width: 2.25rem) {
+    .chart-seg-label.chart-len-4 { display: none; }
+}
+@container (max-width: 2.75rem) {
+    .chart-seg-label.chart-len-5 { display: none; }
+}
 
 /* Page-load progress bar (app layout): a segment sliding across. Reduced motion: a still bar. */
 @keyframes banner-rise {

@@ -56,37 +56,30 @@ class AdvocacyAnalyticsTest extends TestCase
 
     // Capturing the source
 
-    public function test_the_source_is_required_on_the_cso_form_and_in_assisted_encoding(): void
+    public function test_what_an_organization_logs_is_self_initiated_with_no_question_asked(): void
     {
         $rep = User::factory()->create();
         $organization = Organization::factory()->for($rep)->accredited()->create();
         $payload = ['title' => 'Clean-up', 'description' => 'Shoreline.', 'activity_date' => now()->subDay()->toDateString()];
 
-        $this->actingAs($rep)->post(route('cso.activities.store'), $payload)->assertSessionHasErrors('activity_source');
-        $this->actingAs(User::factory()->admin()->create())
-            ->post(route('admin.organizations.activities.store', $organization), $payload + ['activity_source' => 'sometimes'])
-            ->assertSessionHasErrors('activity_source');
-
+        // No "who organized it" on either form; a value sent anyway is ignored.
+        $this->actingAs($rep)->get(route('cso.activities.index'))->assertDontSee('Who organized it?')
+            ->assertSee('LGU events you attend are recorded by the Desk Office');
         $this->actingAs($rep)->post(route('cso.activities.store'), $payload + ['activity_source' => 'lgu_organized'])->assertSessionHasNoErrors();
-        $this->assertSame('lgu_organized', Activity::firstOrFail()->activity_source);
+        $this->actingAs(User::factory()->admin()->create())
+            ->post(route('admin.organizations.activities.store', $organization), $payload)->assertSessionHasNoErrors();
+
+        $this->assertSame(['independent', 'independent'], Activity::orderBy('id')->pluck('activity_source')->all());
     }
 
-    public function test_peso_confirms_or_corrects_the_source_at_verification(): void
+    public function test_verifying_keeps_an_organizations_own_activity_self_initiated(): void
     {
         $admin = User::factory()->admin()->create();
-        $claimed = Activity::factory()->create(['activity_source' => 'independent']);
-        $confirmed = Activity::factory()->create(['activity_source' => 'independent']);
+        $activity = Activity::factory()->create(['activity_source' => 'independent']);
 
-        $this->actingAs($admin)->post(route('admin.activities.verify', $claimed))->assertSessionHasErrors('activity_source');
-        $this->assertSame('pending', $claimed->fresh()->status);
+        $this->actingAs($admin)->post(route('admin.activities.verify', $activity), ['activity_source' => 'lgu_organized'])->assertSessionHasNoErrors();
 
-        $this->actingAs($admin)->post(route('admin.activities.verify', $claimed), ['activity_source' => 'lgu_organized']);
-        $this->assertSame('lgu_organized', $claimed->fresh()->activity_source);
-        $this->assertSame('verified', $claimed->fresh()->status);
-        $this->assertDatabaseHas('audit_logs', ['action' => 'activity.source_corrected', 'subject_id' => $claimed->id]);
-
-        $this->actingAs($admin)->post(route('admin.activities.verify', $confirmed), ['activity_source' => 'independent']);
-        $this->assertDatabaseMissing('audit_logs', ['action' => 'activity.source_corrected', 'subject_id' => $confirmed->id]);
+        $this->assertSame(['verified', 'independent'], [$activity->fresh()->status, $activity->fresh()->activity_source]);
     }
 
     // ReportData

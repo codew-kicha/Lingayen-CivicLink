@@ -80,9 +80,18 @@ Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->name('ad
     Route::put('/fee-periods/{period}', [Admin\FeeFreePeriodController::class, 'update'])->name('fee-periods.update');
     Route::delete('/fee-periods/{period}', [Admin\FeeFreePeriodController::class, 'destroy'])->name('fee-periods.destroy');
 
+    // LGU events: organized by the LGU, recorded and announced by the office, attendance credited to CSOs.
+    Route::get('/lgu-events', [Admin\LguEventController::class, 'index'])->name('lgu-events.index');
+    Route::post('/lgu-events', [Admin\LguEventController::class, 'store'])->name('lgu-events.store');
+    Route::get('/lgu-events/{event}', [Admin\LguEventController::class, 'show'])->name('lgu-events.show');
+    Route::put('/lgu-events/{event}', [Admin\LguEventController::class, 'update'])->name('lgu-events.update');
+    Route::post('/lgu-events/{event}/attendance', [Admin\LguEventController::class, 'attendance'])->name('lgu-events.attendance');
+    Route::delete('/lgu-events/{event}', [Admin\LguEventController::class, 'destroy'])->name('lgu-events.destroy');
+
     Route::get('/activities', [Admin\ActivityVerificationController::class, 'index'])->name('activities.index');
     Route::post('/activities/{activity}/verify', [Admin\ActivityVerificationController::class, 'verify'])->name('activities.verify');
     Route::post('/activities/{activity}/reject', [Admin\ActivityVerificationController::class, 'reject'])->name('activities.reject');
+    Route::post('/activities/{activity}/link-event', [Admin\ActivityVerificationController::class, 'linkToEvent'])->name('activities.link-event');
 
     Route::get('/organizations', [Admin\OrganizationModerationController::class, 'index'])->name('organizations.index');
     Route::get('/organizations/create', [Admin\OrganizationModerationController::class, 'create'])->name('organizations.create');

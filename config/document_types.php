@@ -10,6 +10,9 @@
 // receipt in the by-laws slot is caught. Matching ignores case, spacing and punctuation ("By-Laws",
 // "bylaws" and "BY LAWS" are the same word). The result is advice for the reviewer, never a block.
 //
+// 'expires' => false: the document carries no validity date, so no expiry is asked for or kept
+// (an official receipt; the DOLE/SEC certificate of registration).
+//
 // 'made_online' documents are not uploaded by an applicant: the accreditation form is filled in on
 // the website and the officer list comes from the member list, and the system produces both when the
 // application is submitted (App\Services\ApplicationSteps). The office's paper filing (assisted
@@ -46,6 +49,7 @@ return [
     'fee_receipt' => [
         'label' => 'Official Receipt of the Accreditation Fee',
         'optional' => false,
+        'expires' => false,
         'checks' => [
             'the word "receipt"' => ['receipt'],
             'the Treasury or an amount paid' => ['treasur', 'amount', 'paid', 'pesos', 'php'],
@@ -54,6 +58,7 @@ return [
     'dole_sec_certification' => [
         'label' => 'DOLE or SEC Certification',
         'optional' => true,
+        'expires' => false,
         'checks' => [
             'a certificate or certification' => ['certif'],
             'DOLE or SEC as the issuing office' => ['labor and employment', 'dole', 'securities and exchange'],

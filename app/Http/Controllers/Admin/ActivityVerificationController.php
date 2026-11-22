@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\RejectActivityRequest;
 use App\Models\Activity;
 use App\Models\AuditLog;
+use App\Models\LguEvent;
 use App\Notifications\ActivityVerified;
 use App\Services\PerformanceScoreCalculator;
 use App\Services\SheetReader;
@@ -16,7 +17,6 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
-use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class ActivityVerificationController extends Controller
@@ -52,23 +52,26 @@ class ActivityVerificationController extends Controller
         $check = $status === 'pending' && array_key_exists($request->string('check')->value(), self::CHECKS) ? $request->string('check')->value() : null;
         $waiting = fn () => Activity::where('status', 'pending');
 
+        $activities = ListPagination::paginate(Activity::with(['organization', 'loggedBy', 'verifiedBy:id,name', 'partnerOrganizations:id,name', 'photos'])
+            ->where('status', $status)
+            ->when($request->string('q')->trim()->value(), fn ($q, $term) => $q->where(fn ($q) => $q
+                ->where('title', 'like', "%{$term}%")
+                ->orWhereHas('organization', fn ($q) => $q->where('name', 'like', "%{$term}%")->orWhere('barangay', 'like', "%{$term}%"))))
+            ->when($from, fn ($q, $from) => $q->whereDate('activity_date', '>=', $from))
+            ->when($to, fn ($q, $to) => $q->whereDate('activity_date', '<=', $to))
+            ->when($check, fn ($q, $check) => $check === 'unchecked' ? $q->whereNull('check_status') : $q->where('check_status', $check))
+            ->tap(fn ($q) => match ($sort) {
+                'logged' => $q->latest('created_at')->latest('id'),
+                'held_new' => $q->latest('activity_date')->latest('id'),
+                'held_old' => $q->oldest('activity_date')->oldest('id'),
+                'decided' => $q->latest('verified_at')->latest('id'),
+                default => $q->oldest('created_at')->oldest('id'),   // waiting longest: the fair queue order
+            }),
+            $request);
+
         return view('admin.activities.index', [
-            'activities' => ListPagination::paginate(Activity::with(['organization', 'loggedBy', 'verifiedBy:id,name', 'partnerOrganizations:id,name', 'photos'])
-                ->where('status', $status)
-                ->when($request->string('q')->trim()->value(), fn ($q, $term) => $q->where(fn ($q) => $q
-                    ->where('title', 'like', "%{$term}%")
-                    ->orWhereHas('organization', fn ($q) => $q->where('name', 'like', "%{$term}%")->orWhere('barangay', 'like', "%{$term}%"))))
-                ->when($from, fn ($q, $from) => $q->whereDate('activity_date', '>=', $from))
-                ->when($to, fn ($q, $to) => $q->whereDate('activity_date', '<=', $to))
-                ->when($check, fn ($q, $check) => $check === 'unchecked' ? $q->whereNull('check_status') : $q->where('check_status', $check))
-                ->tap(fn ($q) => match ($sort) {
-                    'logged' => $q->latest('created_at')->latest('id'),
-                    'held_new' => $q->latest('activity_date')->latest('id'),
-                    'held_old' => $q->oldest('activity_date')->oldest('id'),
-                    'decided' => $q->latest('verified_at')->latest('id'),
-                    default => $q->oldest('created_at')->oldest('id'),   // waiting longest: the fair queue order
-                }),
-                $request),
+            'activities' => $activities,
+            'nearbyEvents' => $status === 'pending' ? $this->nearbyEvents($activities->getCollection()) : collect(),
             'currentStatus' => $status,
             'sorts' => $sorts,
             'currentSort' => $sort,
@@ -118,6 +121,22 @@ class ActivityVerificationController extends Controller
         return back()->with('status', $activities->count().' '.str('activity')->plural($activities->count()).' marked Verified by the checks '.($activities->count() === 1 ? 'was' : 'were').' verified, and scores recalculated.');
     }
 
+    /** How far from an activity's date an LGU event can be and still be offered to link it to. */
+    public const LINK_WINDOW_DAYS = 14;
+
+    /** LGU events held near the activities on this page, for the review dialog's "This was an LGU event". */
+    private function nearbyEvents($activities)
+    {
+        $dates = $activities->pluck('activity_date');
+        if ($dates->isEmpty()) {
+            return collect();
+        }
+
+        return LguEvent::whereDate('held_on', '>=', $dates->min()->copy()->subDays(self::LINK_WINDOW_DAYS)->toDateString())
+            ->whereDate('held_on', '<=', $dates->max()->copy()->addDays(self::LINK_WINDOW_DAYS)->min(today())->toDateString())
+            ->orderByDesc('held_on')->get(['id', 'title', 'held_on']);
+    }
+
     /** Reads up to READ_BATCH waiting sheets with the AI (those it hasn't read yet). */
     public function readSheets(Request $request): RedirectResponse
     {
@@ -141,18 +160,9 @@ class ActivityVerificationController extends Controller
 
         abort_unless($activity->status === 'pending', 422, 'This activity has already been reviewed.');
 
-        // The organization's own claim of who organized it is confirmed here, since a CSO has a
-        // reason to call LGU events its own. Corrections are kept in the audit log.
-        $source = $request->validate([
-            'activity_source' => ['required', Rule::in(array_keys(Activity::SOURCES))],
-        ])['activity_source'];
-
-        if ($activity->activity_source !== $source) {
-            AuditLog::record('activity.source_corrected', $activity, ['from' => $activity->activity_source, 'to' => $source]);
-        }
-
+        // A CSO's own log is self-initiated; LGU events are recorded by the office (LguEvent), and one
+        // logged by mistake is linked to its event instead (linkToEvent).
         $activity->update([
-            'activity_source' => $source,
             'status' => 'verified',
             'verified_by' => $request->user()->id,
             'verified_at' => now(),
@@ -165,6 +175,38 @@ class ActivityVerificationController extends Controller
         $sent = Mailer::send($activity->organization->user, new ActivityVerified($activity));
 
         return $this->done($request, 'Activity verified and the score has been recalculated.', $sent);
+    }
+
+    /**
+     * The organization logged an LGU event as its own activity: it is credited as attending that event
+     * instead (an LGU-organized credit, like the office's attendance), and its own log is removed.
+     */
+    public function linkToEvent(Request $request, Activity $activity): RedirectResponse|JsonResponse
+    {
+        $this->authorize('verify', $activity);
+        abort_unless($activity->status === 'pending' && ! $activity->isLguEvent(), 422, 'This activity has already been reviewed.');
+        $event = LguEvent::findOrFail($request->validate(['lgu_event_id' => ['required', 'integer']])['lgu_event_id']);
+        abort_unless($event->isHeld(), 422, 'That LGU event has not been held yet.');
+
+        $organization = $activity->organization;
+        // Only accredited organizations are credited for LGU events; keep the log and say why.
+        abort_unless($organization->isAccredited(), 422, "{$organization->name} is no longer accredited, so it can't be credited for an LGU event. Verify or reject the activity instead.");
+
+        $attending = $event->attendance()->pluck('organization_id')->push($organization->id)->unique()->all();
+        $changes = $event->recordAttendance($attending, $request->user());
+        AuditLog::record('activity.linked_to_lgu_event', $organization, ['activity' => $activity->title, 'lgu_event_id' => $event->id]);
+        $activity->withdraw();
+
+        // recordAttendance told a newly credited organization in the app; this adds the email, once.
+        // One already credited for the event is not told again.
+        $credit = $event->attendance()->where('organization_id', $organization->id)->first();
+        $sent = in_array($organization->id, $changes['added_ids'], true) && $credit && $organization->user
+            ? Mailer::send($organization->user, new ActivityVerified($credit, ['mail']))
+            : true;
+
+        return $this->done($request, in_array($organization->id, $changes['added_ids'], true)
+            ? "Credited to {$organization->name} as attending the LGU event “{$event->title}”."
+            : "{$organization->name} was already credited for “{$event->title}”; its duplicate log was removed.", $sent);
     }
 
     public function reject(RejectActivityRequest $request, Activity $activity): RedirectResponse|JsonResponse

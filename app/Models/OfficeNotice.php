@@ -43,6 +43,22 @@ class OfficeNotice extends Model
             });
     }
 
+    /**
+     * Whether this notice's audience includes the representative's organization: the same rule as
+     * recipients(), checked in PHP so a list of notices needs no query each. $accredited saves the
+     * one lookup when the caller already knows.
+     */
+    public function reaches(Organization $organization, ?bool $accredited = null): bool
+    {
+        return match ($this->audience) {
+            'organization' => (int) $this->audience_value === $organization->id,
+            'sector' => $this->audience_value === $organization->sector,
+            'barangay' => $this->audience_value === $organization->barangay,
+            'accredited' => $accredited ?? $organization->isAccredited(),
+            default => true,
+        };
+    }
+
     /** "KALIPI (Women's) sector", "Brgy. Baay", the organization's name... */
     public function audienceLabel(): string
     {

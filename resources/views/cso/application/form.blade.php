@@ -61,9 +61,11 @@
                     <div>
                         <label for="{{ $field }}" class="field-label">{{ $label }}</label>
                         <input id="{{ $field }}" name="{{ $field }}" value="{{ $value($field) }}" required maxlength="255" autocomplete="{{ $autocomplete }}"
+                               @if ($field === 'representative_name') pattern="{{ \App\Rules\PersonName::PATTERN }}" data-person-name="{{ \App\Rules\PersonName::MESSAGE }}" @endif
                                @error($field) aria-invalid="true" aria-describedby="{{ $field }}-error" @enderror
                                class="field-input @error($field) field-input-error @enderror">
                         @error($field)<p id="{{ $field }}-error" class="field-error">{{ $message }}</p>@enderror
+                        @if ($field === 'representative_name')<p class="field-error" data-person-name-error hidden aria-live="polite"></p>@endif
                     </div>
                 @endforeach
             </div>
@@ -118,9 +120,11 @@
                 <div class="max-w-md">
                     <label for="certified_name" class="field-label">Your full name, as your signature</label>
                     <input id="certified_name" name="certified_name" value="{{ old('certified_name', $form['certified_name'] ?? auth()->user()->name) }}" required maxlength="255"
+                           pattern="{{ \App\Rules\PersonName::PATTERN }}" data-person-name="{{ \App\Rules\PersonName::MESSAGE }}"
                            @error('certified_name') aria-invalid="true" aria-describedby="certified_name-error" @enderror
                            class="field-input @error('certified_name') field-input-error @enderror">
                     @error('certified_name')<p id="certified_name-error" class="field-error">{{ $message }}</p>@enderror
+                    <p class="field-error" data-person-name-error hidden aria-live="polite"></p>
                 </div>
             </div>
         </div>

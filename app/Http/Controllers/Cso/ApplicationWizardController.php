@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\ApplicationModel;
 use App\Models\Document;
 use App\Models\OrganizationMember;
+use App\Rules\PersonName;
 use App\Services\ApplicationSteps;
 use App\Services\DocumentPrecheck;
 use Illuminate\Http\RedirectResponse;
@@ -111,12 +112,12 @@ class ApplicationWizardController extends Controller
         $data = $request->validate([
             'type' => ['required', Rule::in(['new', 'renewal'])],
             'organization_name' => ['required', 'string', 'max:255'],
-            'representative_name' => ['required', 'string', 'max:255'],
+            'representative_name' => ['required', 'string', 'max:255', new PersonName],
             'contact_number' => ['required', 'string', 'max:40'],
             'place_barangay' => ['required', Rule::in(config('barangays'))],
             'place_detail' => ['nullable', 'string', 'max:150'],
             'certify' => ['accepted'],
-            'certified_name' => ['required', 'string', 'max:255'],
+            'certified_name' => ['required', 'string', 'max:255', new PersonName],
         ], [
             'certify.accepted' => 'Tick the box to certify that the form is true and correct.',
             'place_barangay.required' => 'Choose the barangay where the organization operates.',
@@ -200,11 +201,11 @@ class ApplicationWizardController extends Controller
                     'file_path' => $file->store("documents/{$organization->id}"),
                     'original_filename' => $file->getClientOriginalName(),
                     'mime_type' => $file->getMimeType(),
-                    'expires_at' => $request->input("expires_at.{$key}") ?: null,
+                    'expires_at' => Document::expires($key) ? ($request->input("expires_at.{$key}") ?: null) : null,
                     'ocr_status' => $check['status'],
                     'ocr_details' => $check['details'],
                 ]);
-            } elseif ($existing && $request->has("expires_at.{$key}")) {
+            } elseif ($existing && Document::expires($key) && $request->has("expires_at.{$key}")) {
                 $existing->update(['expires_at' => $request->input("expires_at.{$key}") ?: null]);
             }
         }

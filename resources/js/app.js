@@ -888,7 +888,7 @@ Alpine.data('activityReview', (items) => ({
     items,                  // [{ id, title, ..., verifyUrl, rejectUrl }] in table order
     decided: [],            // ids hidden from the list (sent, or waiting in `pending`)
     index: 0,
-    source: '',
+    eventId: '',            // "This was an LGU event": the event to credit instead
     rejecting: false,
     reason: '',
     pending: null,          // { item, url, body, message, timer }
@@ -931,7 +931,7 @@ Alpine.data('activityReview', (items) => ({
 
     show(index) {
         this.index = index;
-        this.source = '';
+        this.eventId = '';
         this.rejecting = false;
         this.reason = '';
         this.$dispatch('open-dialog', 'review');
@@ -943,7 +943,12 @@ Alpine.data('activityReview', (items) => ({
     },
 
     verify() {
-        if (this.source) this.decide(this.current.verifyUrl, { activity_source: this.source }, 'Activity verified.');
+        this.decide(this.current.verifyUrl, {}, 'Activity verified.');
+    },
+
+    // An LGU event logged as the organization's own: credited as attending that event instead.
+    link() {
+        if (this.eventId) this.decide(this.current.linkUrl, { lgu_event_id: Number(this.eventId) }, 'Credited as attending the LGU event.');
     },
 
     reject() {
@@ -1014,6 +1019,26 @@ Alpine.data('activityReview', (items) => ({
         if (!undo) this.toastTimer = setTimeout(() => { this.toast = null; }, 6000);
     },
 }));
+
+// Person names (App\Rules\PersonName): letters, spaces, hyphens, apostrophes and periods. The input's
+// pattern holds the rule and data-person-name the server's message; as soon as a number or symbol is
+// typed, the message shows under the field and the form won't submit (the server refuses it too).
+// Its look comes from its own data-name-invalid attribute (app.css), never from the classes and
+// aria-invalid that Blade and Alpine set for server errors, so neither undoes the other.
+document.addEventListener('input', (event) => {
+    const input = event.target;
+    if (!(input instanceof HTMLInputElement) || !input.hasAttribute('data-person-name')) return;
+    input.setCustomValidity('');
+    const wrong = input.value.trim() !== '' && input.validity.patternMismatch;
+    const message = input.dataset.personName;
+    input.setCustomValidity(wrong ? message : '');
+    input.toggleAttribute('data-name-invalid', wrong);
+    const note = input.closest('div')?.querySelector('[data-person-name-error]');
+    if (note) {
+        note.textContent = wrong ? message : '';
+        note.hidden = !wrong;
+    }
+});
 
 window.Alpine = Alpine;
 

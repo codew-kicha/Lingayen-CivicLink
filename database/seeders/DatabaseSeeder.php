@@ -9,6 +9,7 @@ use App\Models\ApplicationModel;
 use App\Models\AuditLog;
 use App\Models\Document;
 use App\Models\FeeFreePeriod;
+use App\Models\LguEvent;
 use App\Models\NewsPost;
 use App\Models\OfficeNotice;
 use App\Models\Organization;
@@ -178,6 +179,8 @@ class DatabaseSeeder extends Seeder
      */
     private function accreditedOrganizations(User $admin): void
     {
+        $lguEvents = $this->heldLguEvents($admin);
+
         $profiles = [
             ['Pangapisan Fisherfolk Association', 'Farmers and Fisherfolks', 'Pangapisan North',
                 'Protects the shoreline and mangrove areas through regular clean-ups and coastal monitoring.',
@@ -270,14 +273,14 @@ class DatabaseSeeder extends Seeder
             $this->documents($organization, $application, expiring: $index === 3);
 
             // TODA groups mostly turn up at LGU events rather than running their own, the pattern the
-            // client described; the analytics should make that visible.
-            $source = fn () => fake()->boolean($sector === 'TODA' ? 10 : 65) ? 'independent' : 'lgu_organized';
+            // client described; the analytics should make that visible. What an organization logs is
+            // its own work; the LGU events it attended are credited by the office (below).
+            $attendsLgu = fn () => ! fake()->boolean($sector === 'TODA' ? 10 : 65);
 
             // Real sentences, not lorem ipsum: these print verbatim on the public profile.
-            $describe = fn (string $source) => ($source === 'independent'
-                    ? 'Organized by members for residents of Barangay '.$barangay
-                    : 'Members took part in the municipal government\'s event in Barangay '.$barangay)
+            $describe = 'Organized by members for residents of Barangay '.$barangay
                 .'. Attendance was recorded on the sign-in sheet submitted to the Civil Society Desk Office.';
+            $attended = 0;
 
             // The last organization has gone quiet, so the dashboard's inactive flag has a real case.
             $quiet = $index === count($profiles) - 1;
@@ -289,14 +292,18 @@ class DatabaseSeeder extends Seeder
                     $n === 1 => fake()->numberBetween(2, 60),
                     default => fake()->numberBetween(2, 340),
                 });
+                if ($attendsLgu()) {
+                    $attended++;
+
+                    continue;
+                }
                 $title = fake()->randomElement($activityTitles);
-                $from = $source();
 
                 Activity::factory()->for($organization)->create([
                     'title' => ucfirst($title),
-                    'description' => $describe($from),
+                    'description' => $describe,
                     'activity_date' => $heldOn->toDateString(),
-                    'activity_source' => $from,
+                    'activity_source' => 'independent',
                     'status' => 'verified',
                     // PESO verifies a few days after the activity, never before it.
                     'verified_at' => $heldOn->copy()->addDays(fake()->numberBetween(1, 6))->min(now()),
@@ -310,16 +317,18 @@ class DatabaseSeeder extends Seeder
                     break;
                 }
                 $title = fake()->randomElement($activityTitles);
-                $from = $source();
 
                 Activity::factory()->for($organization)->create([
                     'title' => ucfirst($title),
-                    'description' => $describe($from),
-                    'activity_source' => $from,
+                    'description' => $describe,
+                    'activity_source' => 'independent',
                     'activity_date' => now()->subDays(fake()->numberBetween(1, 14))->toDateString(),
                     'logged_by' => $user->id,
                 ]);
             }
+
+            // The LGU events it attended, credited by the office (a quiet organization's are all old).
+            $this->creditLguAttendance($organization, $lguEvents->filter(fn (LguEvent $event) => ! $quiet || $event->held_on->lt(now()->subDays(200))), $attended, $admin);
         }
 
         // Cross-CSO tags: one verified joint activity, and one still awaiting verification.
@@ -539,7 +548,7 @@ class DatabaseSeeder extends Seeder
     {
         foreach ([
             ['accredited', null, 'CSO Assembly on 15 December', "All accredited organizations are invited to the year-end CSO Assembly at the Municipal Hall, 9:00 AM.\n\nPlease send one officer besides the representative."],
-            ['sector', 'TODA', 'Road safety seminar for TODA members', 'The municipal traffic office holds a road safety refresher for tricycle drivers next Saturday at the Poblacion terminal.'],
+            ['sector', 'TODA', 'LGU event: Road safety seminar for TODA members', 'The municipal traffic office holds a road safety refresher for tricycle drivers next Saturday at the Poblacion terminal.'],
         ] as [$audience, $value, $title, $body]) {
             $recipients = OfficeNotice::recipients($audience, $value)->get();
             $notice = OfficeNotice::create([
@@ -547,6 +556,50 @@ class DatabaseSeeder extends Seeder
                 'audience' => $audience, 'audience_value' => $value, 'recipients' => $recipients->count(), 'emailed' => false,
             ]);
             Notification::send($recipients, new OfficeNoticeSent($notice));
+
+            // The seminar is an LGU event still to come: TODA representatives see it on their Activities page.
+            if ($audience === 'sector') {
+                LguEvent::create([
+                    'title' => 'Road safety seminar for TODA members', 'venue' => 'Poblacion tricycle terminal',
+                    'description' => 'The Municipal Traffic Management Office holds a road safety refresher for tricycle drivers and operators.',
+                    'held_on' => now()->next('Saturday')->toDateString(), 'notice_id' => $notice->id, 'created_by' => $admin->id,
+                ]);
+            }
+        }
+    }
+
+    /**
+     * LGU events across the past year, as the office records them (pre-final defense panel: LGU-organized
+     * activities come from the office, not from the CSOs' own logs). Attendance is credited per
+     * organization in creditLguAttendance().
+     */
+    private function heldLguEvents(User $admin)
+    {
+        return collect([
+            ['Municipal road safety seminar', 'Municipal Gymnasium', 'The Municipal Traffic Management Office briefs transport groups on road safety and the new traffic scheme.', 18],
+            ['Coastal clean-up drive', 'Lingayen Baywalk', 'The Municipal Environment and Natural Resources Office leads a clean-up of the shoreline with volunteer organizations.', 47],
+            ['Disaster preparedness orientation', 'Municipal Hall, Session Hall', 'The MDRRMO trains community volunteers on evacuation and first response before the typhoon season.', 95],
+            ['Barangay health day', 'Rural Health Unit I', 'The Municipal Health Office offers free check-ups and vaccinations; organizations help with registration and crowd control.', 140],
+            ['Senior citizens month celebration', 'Lingayen Civic Center', 'The Office of Senior Citizens Affairs celebrates Elderly Filipino Week with a program and health booths.', 182],
+            ['Tree planting along the Agno River', 'Agno River easement, Brgy. Tonton', 'The municipal agriculture office plants native trees along the river easement with community groups.', 230],
+            ['Livelihood and jobs fair', 'Capitol Plaza', 'PESO and partner agencies hold a jobs fair and livelihood demonstrations for residents.', 270],
+            ['Municipal fiesta street cleaning', 'Poblacion streets', 'The LGU mobilizes volunteers to clean the town proper before the fiesta.', 320],
+        ])->map(fn (array $e) => LguEvent::create([
+            'title' => $e[0], 'venue' => $e[1], 'description' => $e[2], 'held_on' => now()->subDays($e[3])->toDateString(),
+            'created_by' => $admin->id, 'attendance_recorded_at' => now()->subDays(max(1, $e[3] - 2)),
+        ]));
+    }
+
+    /** Credits the organization with attending $count of the LGU events, as the office records it. */
+    private function creditLguAttendance(Organization $organization, $events, int $count, User $admin): void
+    {
+        foreach ($events->shuffle()->take($count) as $event) {
+            $event->attendance()->create([
+                'organization_id' => $organization->id, 'title' => $event->title, 'description' => $event->description,
+                'venue' => $event->venue, 'activity_date' => $event->held_on->toDateString(), 'participants_estimate' => null,
+                'activity_source' => 'lgu_organized', 'status' => 'verified', 'verified_at' => $event->attendance_recorded_at,
+                'logged_by' => $admin->id, 'verified_by' => $admin->id,
+            ]);
         }
     }
 
@@ -756,6 +809,7 @@ class DatabaseSeeder extends Seeder
                 'original_filename' => "{$type}.pdf",
                 'mime_type' => 'application/pdf',
                 'expires_at' => match (true) {
+                    ! Document::expires($type) => null,
                     $expiring && $index === 0 => now()->addDays(21)->toDateString(),
                     $index % 3 === 0 => now()->addYears(2)->toDateString(),
                     default => null,

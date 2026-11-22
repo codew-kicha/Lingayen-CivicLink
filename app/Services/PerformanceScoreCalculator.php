@@ -94,7 +94,7 @@ class PerformanceScoreCalculator
     {
         return Activity::crediting($organization)
             ->where('status', 'verified')
-            ->whereBetween('activity_date', [$start, $end]);
+            ->whereBetween('activity_date', [Carbon::parse($start)->toDateString(), Carbon::parse($end)->toDateString()]);
     }
 
     /**

@@ -53,7 +53,7 @@
 
     <div class="mt-2 divide-y divide-line border-t border-line">
         @foreach ($documentTypes as $key => $type)
-            <div class="grid gap-3 py-4 sm:grid-cols-[minmax(0,1fr)_11rem]"
+            <div @class(['grid gap-3 py-4', 'sm:grid-cols-[minmax(0,1fr)_11rem]' => \App\Models\Document::expires($key)])
                  @if (! empty($type['new_only'])) x-show="type === 'new'" @endif
                  @if ($key === 'fee_receipt') x-show="! waived" @endif>
                 @php
@@ -105,6 +105,7 @@
                         <p id="doc-{{ $key }}-error" class="field-error">{{ $message }}</p>
                     @enderror
                 </div>
+                @if (\App\Models\Document::expires($key))
                 <div>
                     <label for="exp-{{ $key }}" class="field-label">
                         Expires <span class="font-normal text-muted">(optional)</span>
@@ -114,6 +115,7 @@
                            class="field-input @error("expires_at.{$key}") field-input-error @enderror">
                     @error("expires_at.{$key}")<p class="field-error">{{ $message }}</p>@enderror
                 </div>
+                @endif
             </div>
         @endforeach
     </div>

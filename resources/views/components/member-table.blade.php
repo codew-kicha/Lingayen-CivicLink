@@ -105,9 +105,13 @@
                                    :name="blank(row) ? null : 'members[' + index + '][{{ $field }}]'"
                                    x-model="row.{{ $field }}" autocomplete="off" maxlength="{{ $field === 'email' ? 255 : 100 }}"
                                    @if ($field === 'position') list="member-positions" :readonly="row.locked" placeholder="Member" @endif
+                                   @if (in_array($field, ['last_name', 'first_name', 'middle_name'], true)) pattern="{{ \App\Rules\PersonName::PATTERN }}" data-person-name="{{ \App\Rules\PersonName::MESSAGE }}" @endif
                                    :aria-invalid="error(row, '{{ $field }}') ? 'true' : null"
                                    class="field-input min-h-10 text-sm" :class="{ 'field-input-error': error(row, '{{ $field }}'), 'bg-canvas': row.locked && '{{ $field }}' === 'position' }">
                             <p class="field-error" x-show="error(row, '{{ $field }}')" x-text="error(row, '{{ $field }}')"></p>
+                            @if (in_array($field, ['last_name', 'first_name', 'middle_name'], true))
+                                <p class="field-error" data-person-name-error hidden aria-live="polite"></p>
+                            @endif
                         </div>
                     @endforeach
                 </div>

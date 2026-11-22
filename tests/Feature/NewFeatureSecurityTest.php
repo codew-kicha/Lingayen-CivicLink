@@ -103,13 +103,17 @@ class NewFeatureSecurityTest extends TestCase
         $rep = $this->rep();
         $admin = User::factory()->admin()->create();
 
-        // A name, a member and the form's answers.
+        // A name and a member: the name fields refuse markup outright (App\Rules\PersonName)...
         $this->actingAs($rep)->patch(route('profile.update'), ['last_name' => $script, 'first_name' => 'Ana', 'email' => $rep->email, 'phone' => '0917 123 4567'])
-            ->assertSessionHasNoErrors();
+            ->assertSessionHasErrors('last_name');
         $members = $this->memberRows();
         $members[1]['first_name'] = $script;
         $this->actingAs($rep)->get(route('cso.application'));
-        $this->actingAs($rep)->post(route('cso.application.members'), ['step' => 'members', 'action' => 'next', 'members' => $members]);
+        $this->actingAs($rep)->post(route('cso.application.members'), ['step' => 'members', 'action' => 'next', 'members' => $members])
+            ->assertSessionHasErrors('members.1.first_name');
+
+        // ...and a name stored some other way (an old record, an import) is still shown as text.
+        $rep->update(['last_name' => $script]);
         $this->actingAs($rep)->get(route('cso.dashboard'))->assertDontSee($script, false)->assertSee(e($script), false);
         $this->actingAs($rep)->get(route('cso.application.step', 'form'))->assertDontSee($script, false);
 

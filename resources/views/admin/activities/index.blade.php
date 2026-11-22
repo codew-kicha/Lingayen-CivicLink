@@ -2,6 +2,8 @@
     $pending = $currentStatus === 'pending';
     $filtered = request()->filled('q') || $from || $to;
 
+    $window = \App\Http\Controllers\Admin\ActivityVerificationController::LINK_WINDOW_DAYS;
+
     // Everything the review dialog shows, in table order (data-index points into this list).
     $items = $activities->getCollection()->values()->map(fn ($activity) => [
         'id' => $activity->id,
@@ -37,6 +39,9 @@
         ])->all(),
         'verifyUrl' => route('admin.activities.verify', $activity),
         'rejectUrl' => route('admin.activities.reject', $activity),
+        'linkUrl' => route('admin.activities.link-event', $activity),
+        'events' => $nearbyEvents->filter(fn ($event) => abs($event->held_on->diffInDays($activity->activity_date)) <= $window)
+            ->map(fn ($event) => ['id' => $event->id, 'label' => $event->title.' · '.$event->held_on->format('d M Y')])->values()->all(),
     ]);
 @endphp
 
@@ -241,7 +246,7 @@
                                 <dd class="text-ink" x-text="current.venue || 'Not given'"></dd>
                                 <dt class="text-muted">Logged by</dt>
                                 <dd class="text-ink" x-text="current.loggedBy"></dd>
-                                <dt class="text-muted" x-text="current.status === 'pending' ? 'Claimed source' : 'Source'"></dt>
+                                <dt class="text-muted">Organized by</dt>
                                 <dd class="text-ink" x-text="current.source"></dd>
                                 <template x-if="current.partners">
                                     <dt class="text-muted">Partners</dt>
@@ -330,19 +335,29 @@
                                 <p x-show="! current.photos.length" class="mt-2 text-sm text-muted">No photos were attached.</p>
                             </section>
 
-                            <div x-show="current.status === 'pending'">
-                                <label for="review-source" class="field-label field-required">Verified source</label>
-                                <select id="review-source" x-model="source" required class="field-input" aria-describedby="review-source-hint">
-                                    <option value="" disabled>Choose who organized it</option>
-                                    @foreach (\App\Models\Activity::SOURCES as $value => $label)
-                                        <option value="{{ $value }}">{{ $label }}</option>
-                                    @endforeach
-                                </select>
-                                <p id="review-source-hint" class="field-hint">
-                                    Confirm who organized it; the organization claimed <span class="font-semibold text-ink" x-text="current.source"></span>.
-                                    Verify activity unlocks once you choose.
+                            {{-- An LGU event logged as the organization's own: credit it as attending that event instead. --}}
+                            <details x-show="current.status === 'pending'" class="rounded-md border border-line px-4 py-3 text-sm">
+                                <summary class="cursor-pointer font-semibold text-ink">This was an LGU event</summary>
+                                <template x-if="current.events.length">
+                                    <div class="mt-3 space-y-3">
+                                        <p class="text-muted">Credit the organization as attending the LGU event instead. Its own log is removed.</p>
+                                        <label for="review-event" class="field-label">LGU event</label>
+                                        <select id="review-event" x-model="eventId" class="field-input">
+                                            <option value="">Choose the event</option>
+                                            <template x-for="event in current.events" :key="event.id">
+                                                <option :value="event.id" x-text="event.label"></option>
+                                            </template>
+                                        </select>
+                                        <button type="button" class="btn-secondary" :disabled="! eventId" @click="link()">
+                                            <x-phosphor-flag class="h-4 w-4" aria-hidden="true" />Link to this event
+                                        </button>
+                                    </div>
+                                </template>
+                                <p x-show="! current.events.length" class="mt-3 text-muted">
+                                    No LGU event is recorded within two weeks of this date.
+                                    <a href="{{ route('admin.lgu-events.index') }}" class="entity-link">Add it under LGU events</a>, then link it here.
                                 </p>
-                            </div>
+                            </details>
 
                             <template x-if="current.status === 'verified'">
                                 <p class="rounded-sm border border-success bg-success-subtle px-4 py-3 text-sm text-success">
@@ -360,7 +375,7 @@
                         <div class="dialog-footer" x-show="current.status === 'pending' && ! rejecting">
                             <button type="button" class="btn-danger mr-auto"
                                     @click="rejecting = true; $nextTick(() => $refs.reason.focus())">Reject</button>
-                            <button type="button" class="btn-primary" :disabled="! source" @click="verify()">
+                            <button type="button" class="btn-primary" @click="verify()">
                                 <x-phosphor-check class="h-4 w-4" aria-hidden="true" />Verify activity
                             </button>
                         </div>

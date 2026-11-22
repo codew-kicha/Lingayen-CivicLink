@@ -25,10 +25,12 @@
                 @continue($count === 0)
                 <button type="button" @click="part = part === '{{ $key }}' ? null : '{{ $key }}'" :aria-pressed="(part === '{{ $key }}').toString()"
                         aria-label="{{ $name }}: {{ $count }} of {{ $known }} activities, {{ $shares[$key] }}%"
-                        class="flex h-full min-w-0 items-center justify-center overflow-hidden text-xs font-semibold tabular-nums transition-opacity duration-fast focus-visible:outline-focus {{ $bg }} {{ $fg }}"
+                        class="chart-seg flex h-full min-w-0 items-center justify-center overflow-hidden text-xs font-semibold tabular-nums transition-[opacity,min-width] duration-fast focus-visible:outline-focus data-[on=true]:min-w-12 {{ $bg }} {{ $fg }}"
                         :class="part && part !== '{{ $key }}' && 'opacity-40'"
+                        :data-on="(part === '{{ $key }}').toString()"
                         style="flex: {{ $count }} 1 0%">
-                    @if ($shares[$key] >= 12){{ $shares[$key] }}%@endif
+                    {{-- Shown whenever it fits (app.css .chart-seg); clicking a narrow part widens it so it does. --}}
+                    <span class="chart-seg-label chart-len-{{ min(5, strlen($shares[$key].'%')) }}">{{ $shares[$key] }}%</span>
                 </button>
             @endforeach
         </div>

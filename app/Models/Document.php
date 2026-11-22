@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Casts\DateOnly;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Str;
@@ -11,6 +12,12 @@ class Document extends Model
     public static function label(string $type): string
     {
         return config("document_types.{$type}.label", Str::headline($type));
+    }
+
+    /** Whether a document of this type has an expiry date (not a receipt or the DOLE/SEC certificate). */
+    public static function expires(string $type): bool
+    {
+        return config("document_types.{$type}.expires", true) !== false;
     }
 
     /** @return list<string> */
@@ -27,7 +34,7 @@ class Document extends Model
     protected function casts(): array
     {
         return [
-            'expires_at' => 'date',
+            'expires_at' => DateOnly::class,
             'ocr_details' => 'array',
         ];
     }

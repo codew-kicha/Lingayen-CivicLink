@@ -7,7 +7,7 @@ use App\Models\Organization;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends Factory<\App\Models\Activity>
+ * @extends Factory<Activity>
  */
 class ActivityFactory extends Factory
 {
@@ -30,7 +30,8 @@ class ActivityFactory extends Factory
             'description' => fake()->paragraph(),
             'activity_date' => fake()->dateTimeBetween('-10 months', 'now')->format('Y-m-d'),
             'participants_estimate' => fake()->numberBetween(20, 400),
-            'activity_source' => fake()->randomElement(array_keys(Activity::SOURCES)),
+            // What an organization logs is its own work; LGU events come from LguEvent attendance.
+            'activity_source' => 'independent',
             'status' => 'pending',
         ];
     }

@@ -45,18 +45,9 @@
             ];
         @endphp
 
+        {{-- The application's next step (upload requirements, continue, renew, apply) is offered once,
+             in the card that explains it below, not again up here. --}}
         <x-slot:actions>
-            @if ($awaitingRequirements)
-                <a href="{{ route('cso.application.requirements.show') }}" class="btn-primary">Upload requirements</a>
-            @elseif ($draft)
-                <a href="{{ route('cso.application') }}" class="btn-primary">Continue your application</a>
-            @elseif ($showLapsed)
-                <a href="{{ route('cso.application') }}" class="btn-primary">File a renewal</a>
-            @elseif ($latestApplication && ! $accreditation)
-                <a href="{{ route('cso.applications.show', $latestApplication) }}" class="btn-secondary">View application</a>
-            @elseif (! $accreditation)
-                <a href="{{ route('cso.application') }}" class="btn-secondary">Apply for accreditation</a>
-            @endif
             @if ($accreditation)
                 <a href="{{ route('cso.activities.index', ['log' => 1]) }}" class="btn-primary">
                     <x-phosphor-plus class="h-4 w-4" aria-hidden="true" />Log an activity

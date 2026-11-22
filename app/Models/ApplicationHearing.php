@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Casts\DateOnly;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -23,7 +24,7 @@ class ApplicationHearing extends Model
 
     protected function casts(): array
     {
-        return ['held_on' => 'date'];
+        return ['held_on' => DateOnly::class];
     }
 
     public function application(): BelongsTo

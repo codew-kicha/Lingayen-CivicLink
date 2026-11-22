@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Admin;
 
 use App\Exports\OrganizationList;
 use App\Http\Controllers\Controller;
-use App\Support\Mailer;
 use App\Http\Requests\Admin\ConfirmedOrganizationRequest;
 use App\Http\Requests\Admin\InviteAccountRequest;
 use App\Http\Requests\Admin\ManageOrganizationRequest;
@@ -17,6 +16,7 @@ use App\Notifications\AccreditationExpiring;
 use App\Services\OrganizationRecords;
 use App\Services\ReportData;
 use App\Support\ListPagination;
+use App\Support\Mailer;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -40,8 +40,7 @@ class OrganizationModerationController extends Controller
                 ->when($request->input('account') === 'none', fn ($q) => $q->whereNull('user_id'))
                 ->when($request->input('status') === 'inactive', fn ($q) => $q->inactive())
                 // Same window as the dashboard's "Expiring within 90 days" tile.
-                ->when($request->input('status') === 'expiring', fn ($q) => $q->whereHas('accreditations', fn ($a) => $a
-                    ->where('status', 'active')->whereBetween('expires_at', [now(), now()->addDays(90)])))
+                ->when($request->input('status') === 'expiring', fn ($q) => $q->whereHas('accreditations', fn ($a) => $a->expiringWithin(90)))
                 // Same definition and period as the analytics at-risk list and its Excel sheet.
                 ->when($request->input('status') === 'at-risk', fn ($q) => $q->whereKey(ReportData::fromRequest($request)->atRisk()->pluck('id')))
                 ->orderBy('name'),

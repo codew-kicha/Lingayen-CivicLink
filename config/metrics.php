@@ -42,7 +42,7 @@ return [
     'self_share' => [
         'Self-initiated share',
         'Self-initiated activities ÷ (self-initiated + LGU-organized activities) × 100',
-        'Activities whose organizer was not recorded are left out. Shown once there are 3 or more with a known organizer; a low share means the organization mostly attends LGU events.',
+        'Self-initiated: activities an organization logged itself and the office verified. LGU-organized: LGU events the office recorded it attending. Older activities with no organizer recorded are left out. Shown once there are 3 or more; a low share means the organization mostly attends LGU events.',
     ],
     'accreditation_rate' => [
         'Accreditation rate',

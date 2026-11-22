@@ -42,7 +42,6 @@ class StoreActivityRequest extends FormRequest
             'venue' => ['nullable', 'string', 'max:150'],
             'activity_date' => ['required', 'date', 'before_or_equal:today'],
             'participants_estimate' => ['nullable', 'integer', 'min:0', 'max:1000000'],
-            'activity_source' => ['required', Rule::in(array_keys(Activity::SOURCES))],
             'evidence' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
             'remove_evidence' => ['boolean'],
             // What the browser read from the sign-in sheet, for the checks only; never stored.
@@ -83,7 +82,6 @@ class StoreActivityRequest extends FormRequest
             'photos.*.max' => 'Each photo must be 5 MB or smaller.',
             'venue.max' => 'Keep the venue under 150 characters.',
             'activity_date.before_or_equal' => 'Log activities after they have taken place, not before.',
-            'activity_source.required' => 'Say who organized the activity.',
             'evidence.mimes' => 'The sign-in sheet must be a PDF, JPG, or PNG file.',
             'evidence.max' => 'The sign-in sheet must be 5 MB or smaller.',
             'partners.max' => 'Tag at most 10 partner organizations.',

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Casts\DateOnly;
 use App\Services\ImageForensics;
 use App\Services\SheetChecks;
 use App\Services\SheetReader;
@@ -30,7 +31,7 @@ class Activity extends Model
     ];
 
     protected $fillable = [
-        'organization_id', 'logged_by', 'verified_by', 'title', 'description', 'venue',
+        'organization_id', 'lgu_event_id', 'logged_by', 'verified_by', 'title', 'description', 'venue',
         'activity_date', 'participants_estimate', 'activity_source', 'status', 'verified_at', 'rejection_reason',
         'evidence_path', 'evidence_filename', 'evidence_mime', 'evidence_hash', 'evidence_phash',
     ];
@@ -162,7 +163,7 @@ class Activity extends Model
     protected function casts(): array
     {
         return [
-            'activity_date' => 'date',
+            'activity_date' => DateOnly::class,
             'verified_at' => 'datetime',
             'check_findings' => 'array',
             'checked_at' => 'datetime',
@@ -200,5 +201,16 @@ class Activity extends Model
     public function photos(): HasMany
     {
         return $this->hasMany(ActivityPhoto::class)->orderBy('id');
+    }
+
+    /** The LGU event this activity credits the organization for attending, if it is one. */
+    public function lguEvent(): BelongsTo
+    {
+        return $this->belongsTo(LguEvent::class);
+    }
+
+    public function isLguEvent(): bool
+    {
+        return $this->lgu_event_id !== null;
     }
 }

@@ -22,9 +22,7 @@ class DashboardController extends Controller
                 'awaiting_review' => ApplicationModel::whereIn('status', ApplicationModel::WITH_OFFICE)->count(),
                 'pending_activities' => Activity::where('status', 'pending')->count(),
                 'active_accreditations' => Accreditation::where('status', 'active')->count(),
-                'expiring_soon' => Accreditation::where('status', 'active')
-                    ->whereBetween('expires_at', [now(), now()->addDays(90)])
-                    ->count(),
+                'expiring_soon' => Accreditation::expiringWithin(90)->count(),
                 // Accredited, but no verified activity in Organization::INACTIVE_AFTER_MONTHS (PRD §3).
                 'inactive' => Organization::inactive()->count(),
             ],
@@ -64,7 +62,7 @@ class DashboardController extends Controller
         $days = fn ($date) => $date ? (int) Carbon::parse($date)->diffInDays(now()) : null;
 
         $expiring = Accreditation::with('organization:id,name')
-            ->where('status', 'active')->whereBetween('expires_at', [now(), now()->addDays(90)])
+            ->expiringWithin(90)
             ->orderBy('expires_at')->limit(6)->get();
         $reminded = AuditLog::where('action', 'accreditation.reminder_sent')->where('subject_type', 'Organization')
             ->whereIn('subject_id', $expiring->pluck('organization_id'))

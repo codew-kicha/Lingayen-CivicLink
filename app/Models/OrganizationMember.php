@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\HasPersonName;
+use App\Rules\PersonName;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -23,9 +24,9 @@ class OrganizationMember extends Model
     {
         return [
             'members' => ['required', 'array', 'min:'.self::MINIMUM, 'max:300'],
-            'members.*.last_name' => ['required', 'string', 'max:100'],
-            'members.*.first_name' => ['required', 'string', 'max:100'],
-            'members.*.middle_name' => ['nullable', 'string', 'max:100'],
+            'members.*.last_name' => ['required', 'string', 'max:100', new PersonName],
+            'members.*.first_name' => ['required', 'string', 'max:100', new PersonName],
+            'members.*.middle_name' => ['nullable', 'string', 'max:100', new PersonName],
             'members.*.position' => ['nullable', 'string', 'max:100'],
             'members.*.contact_number' => ['nullable', 'string', 'max:40'],
             'members.*.email' => ['nullable', 'email', 'max:255'],

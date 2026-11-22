@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Models\Concerns\HasPersonName;
 use App\Notifications\VerifyEmailCode;
+use App\Rules\PersonName;
 use Database\Factories\UserFactory;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -12,6 +13,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
 
 class User extends Authenticatable implements MustVerifyEmail
 {
@@ -88,10 +90,10 @@ class User extends Authenticatable implements MustVerifyEmail
     public static function nameRules(): array
     {
         return [
-            'last_name' => ['required', 'string', 'max:100'],
-            'first_name' => ['required', 'string', 'max:100'],
-            'middle_name' => ['nullable', 'string', 'max:100'],
-            'suffix' => ['nullable', \Illuminate\Validation\Rule::in(self::SUFFIXES)],
+            'last_name' => ['required', 'string', 'max:100', new PersonName],
+            'first_name' => ['required', 'string', 'max:100', new PersonName],
+            'middle_name' => ['nullable', 'string', 'max:100', new PersonName],
+            'suffix' => ['nullable', Rule::in(self::SUFFIXES)],
         ];
     }
 

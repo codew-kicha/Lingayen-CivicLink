@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Casts\DateOnly;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Str;
@@ -16,9 +18,16 @@ class Accreditation extends Model
     protected function casts(): array
     {
         return [
-            'issued_at' => 'date',
-            'expires_at' => 'date',
+            'issued_at' => DateOnly::class,
+            'expires_at' => DateOnly::class,
         ];
+    }
+
+    /** Active and expiring between today and $days from now (an accreditation ending today included). */
+    public function scopeExpiringWithin(Builder $query, int $days = 90): void
+    {
+        $query->where('status', 'active')
+            ->whereBetween('expires_at', [today()->toDateString(), today()->addDays($days)->toDateString()]);
     }
 
     /**

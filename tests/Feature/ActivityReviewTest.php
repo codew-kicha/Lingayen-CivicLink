@@ -35,11 +35,12 @@ class ActivityReviewTest extends TestCase
         $this->assertStringNotContainsString('Already verified', $html);
         $this->assertStringContainsString('45 days', $html);
         $this->assertStringContainsString('font-semibold text-warning', $html, 'Over 30 days is flagged.');
-        // No inline decisions or status chips in the list; the dialog asks for a source, not pre-filled.
+        // No inline decisions or status chips in the list. The dialog no longer asks who organized it (an
+        // organization's own log is self-initiated); an LGU event logged by mistake is linked instead.
         $this->assertStringNotContainsString('Pending verification', $html);
-        $this->assertSame(1, substr_count($html, 'id="review-source"'));
-        $this->assertMatchesRegularExpression('/<option value="" disabled>Choose who organized it<\/option>/', $html);
-        $this->assertStringNotContainsString('selected', substr($html, strpos($html, 'id="review-source"'), 600));
+        $this->assertStringNotContainsString('id="review-source"', $html);
+        $this->assertStringNotContainsString('Choose who organized it', $html);
+        $this->assertStringContainsString('This was an LGU event', $html);
     }
 
     public function test_a_too_short_reason_is_refused_with_a_message_for_the_dialog(): void
@@ -60,17 +61,14 @@ class ActivityReviewTest extends TestCase
             ->assertUnprocessable()->assertJsonPath('message', 'This activity has already been reviewed.');
     }
 
-    public function test_verifying_from_the_dialog_needs_a_source(): void
+    public function test_verifying_from_the_dialog_takes_one_click(): void
     {
         $admin = User::factory()->admin()->create();
         $activity = Activity::factory()->create(['activity_source' => 'independent']);
 
         $this->actingAs($admin)->postJson(route('admin.activities.verify', $activity), [])
-            ->assertUnprocessable()->assertJsonValidationErrors('activity_source');
-
-        $this->actingAs($admin)->postJson(route('admin.activities.verify', $activity), ['activity_source' => 'lgu_organized'])
             ->assertOk()->assertJsonPath('message', 'Activity verified and the score has been recalculated.');
-        $this->assertSame(['verified', 'lgu_organized'], [$activity->fresh()->status, $activity->fresh()->activity_source]);
+        $this->assertSame(['verified', 'independent'], [$activity->fresh()->status, $activity->fresh()->activity_source]);
     }
 
     public function test_a_sign_in_sheet_is_kept_private_and_previewed_in_the_review(): void

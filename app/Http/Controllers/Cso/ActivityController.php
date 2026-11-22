@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Cso;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreActivityRequest;
 use App\Models\Activity;
+use App\Models\LguEvent;
 use App\Models\Organization;
 use App\Support\ListPagination;
 use Illuminate\Http\RedirectResponse;
@@ -36,7 +37,23 @@ class ActivityController extends Controller
                 ->get() ?? collect(),
             'taggedInTotal' => $organization?->partneredActivities()->count() ?? 0,
             'canLog' => (bool) $organization?->isAccredited(),
+            'upcomingEvents' => $this->upcomingEvents($request),
         ]);
+    }
+
+    /** LGU events still to come whose announcement reached this representative. */
+    private function upcomingEvents(Request $request)
+    {
+        $organization = $request->user()->organization;
+        if (! $organization) {
+            return collect();
+        }
+        $accredited = $organization->isAccredited();
+
+        return LguEvent::with('announcement')->whereNotNull('notice_id')->whereDate('held_on', '>=', today())
+            ->orderBy('held_on')->get()
+            ->filter(fn (LguEvent $event) => $event->announcement?->reaches($organization, $accredited))
+            ->take(10)->values();
     }
 
     public function store(StoreActivityRequest $request): RedirectResponse

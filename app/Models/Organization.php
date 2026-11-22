@@ -115,7 +115,7 @@ class Organization extends Model
                     'file_path' => $file->store("documents/{$this->id}"),
                     'original_filename' => $file->getClientOriginalName(),
                     'mime_type' => $file->getMimeType(),
-                    'expires_at' => ($expiries[$documentType] ?? null) ?: null,
+                    'expires_at' => Document::expires($documentType) ? (($expiries[$documentType] ?? null) ?: null) : null,
                     'ocr_status' => $check['status'],
                     'ocr_details' => $check['details'],
                 ]);
@@ -130,9 +130,11 @@ class Organization extends Model
     {
         $activity = DB::transaction(function () use ($data, $loggedBy) {
             $evidence = $data['evidence'] ?? null;
-            $activity = $this->activities()->create(Arr::except($data, ['partners', 'evidence', 'evidence_text', 'photos', 'remove_evidence', 'remove_photos']) + [
+            $activity = $this->activities()->create(Arr::except($data, ['partners', 'evidence', 'evidence_text', 'photos', 'remove_evidence', 'remove_photos', 'activity_source']) + [
                 'logged_by' => $loggedBy->id,
                 'status' => 'pending',
+                // An organization's own log is its own work; LGU events are recorded by the office (LguEvent).
+                'activity_source' => 'independent',
             ] + ($evidence ? Activity::evidenceAttributes($evidence, $this->id) : []));
             $activity->partnerOrganizations()->sync($data['partners'] ?? []);
             $activity->syncPhotos($data['photos'] ?? []);

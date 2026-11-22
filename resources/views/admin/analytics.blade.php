@@ -324,9 +324,9 @@
                                     <x-dashboard-fact :label="Str::ucfirst($earlier)" :value="$percent($before['selfInitiatedRatio'])" />
                                 </dl>
                                 <p class="text-xs text-muted">
-                                    The share of activities the organization planned and ran itself, out of those whose organizer was
-                                    recorded. Shown once there are {{ ReportData::MIN_FOR_RATIO }} or more. A low share means CSOs mostly
-                                    attend LGU events.
+                                    The share of activities CSOs logged and ran themselves, out of those plus the LGU events the office
+                                    recorded them attending. Shown once there are {{ ReportData::MIN_FOR_RATIO }} or more. A low share
+                                    means CSOs mostly attend LGU events.
                                 </p>
                             </div>
                             @break
@@ -555,11 +555,13 @@
                                                     @click="pick(@js($sector), '{{ $key }}')"
                                                     :aria-pressed="(picked === @js($sector) && pickedSource === '{{ $key }}').toString()"
                                                     aria-label="{{ $sector }}, {{ $name }}: {{ $count }} of {{ $known }} activities, {{ $shares[$key] }}%"
-                                                    class="flex h-6 min-w-0 items-center justify-center overflow-hidden text-xs font-semibold tabular-nums transition-opacity duration-fast focus-visible:outline-focus {{ $bg }} {{ $fg }}"
+                                                    class="chart-seg flex h-6 min-w-0 items-center justify-center overflow-hidden text-xs font-semibold tabular-nums transition-[opacity,min-width] duration-fast focus-visible:outline-focus data-[on=true]:min-w-12 {{ $bg }} {{ $fg }}"
                                                     :class="(source && source !== '{{ $key }}') || (picked === @js($sector) && pickedSource && pickedSource !== '{{ $key }}') ? 'opacity-30' : ''"
+                                                    :data-on="(source === '{{ $key }}' || (picked === @js($sector) && pickedSource === '{{ $key }}')).toString()"
                                                     style="flex: {{ $count }} 1 0%">
-                                                <span x-show="metric === 'share'" @class(['hidden' => $shares[$key] < 14, 'max-sm:hidden' => $shares[$key] < 25])>{{ $shares[$key] }}%</span>
-                                                <span x-show="metric === 'count'" x-cloak @class(['hidden' => $count / $sectorMax < 0.08, 'max-sm:hidden' => $count / $sectorMax < 0.15])>{{ $count }}</span>
+                                                {{-- Shown whenever it fits (app.css .chart-seg); a clicked colour widens a narrow segment so it does. --}}
+                                                <span x-show="metric === 'share'" class="chart-seg-label chart-len-{{ min(5, strlen($shares[$key].'%')) }}">{{ $shares[$key] }}%</span>
+                                                <span x-show="metric === 'count'" x-cloak class="chart-seg-label chart-len-{{ min(5, strlen((string) $count)) }}">{{ $count }}</span>
                                             </button>
                                         @endforeach
                                     </span>

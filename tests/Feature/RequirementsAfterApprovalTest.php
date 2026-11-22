@@ -78,8 +78,9 @@ class RequirementsAfterApprovalTest extends TestCase
         });
 
         // The dashboard and "Apply" both lead to the now-open page.
-        $this->actingAs($rep)->get(route('cso.dashboard'))->assertSee('Your application form was approved')
+        $dashboard = $this->actingAs($rep)->get(route('cso.dashboard'))->assertSee('Your application form was approved')
             ->assertSee(route('cso.application.requirements.show'), false);
+        $this->assertSame(1, substr_count($dashboard->getContent(), 'Upload requirements'));   // once, in its card
         $this->actingAs($rep)->get(route('cso.application'))->assertRedirect(route('cso.application.requirements.show'));
         $this->actingAs($rep)->get(route('cso.application.requirements.show'))->assertOk()
             ->assertSee('Your application form was approved')->assertSee('Submit requirements');

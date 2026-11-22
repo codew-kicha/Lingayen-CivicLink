@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Cso;
 use App\Exports\ReportSheet;
 use App\Http\Controllers\Controller;
 use App\Models\OrganizationMember;
+use App\Rules\PersonName;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
@@ -50,6 +51,11 @@ class MemberListController extends Controller
             }
             if ($row['last_name'] === '' || $row['first_name'] === '') {
                 $skipped[] = 'Row '.($i + 2).': the last name and first name are needed.';
+
+                continue;
+            }
+            if (! PersonName::valid($row['last_name']) || ! PersonName::valid($row['first_name']) || ! PersonName::valid($row['middle_name'])) {
+                $skipped[] = 'Row '.($i + 2).': the name has numbers or symbols ('.trim("{$row['first_name']} {$row['last_name']}").').';
 
                 continue;
             }

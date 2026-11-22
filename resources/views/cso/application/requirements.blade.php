@@ -56,7 +56,7 @@
                     $document = $saved->get($key);
                     $lowerLabel = preg_replace_callback('/\b[A-Za-z][a-z]+\b/', fn ($m) => strtolower($m[0]), $type['label']);
                 @endphp
-                <div class="grid gap-3 py-6 sm:grid-cols-[minmax(0,1fr)_11rem]">
+                <div @class(['grid gap-3 py-6', 'sm:grid-cols-[minmax(0,1fr)_11rem]' => \App\Models\Document::expires($key)])>
                     <div x-data="documentPrecheck(@js($type['checks'] ?? []))" class="min-w-0">
                         <label for="doc-{{ $key }}" class="field-label">
                             {{ $type['label'] }}
@@ -92,12 +92,14 @@
                         </p>
                         @error("documents.{$key}")<p id="doc-{{ $key }}-error" class="field-error">{{ $message }}</p>@enderror
                     </div>
+                    @if (\App\Models\Document::expires($key))
                     <div>
                         <label for="exp-{{ $key }}" class="field-label">Expires <span class="font-normal text-muted">(optional)</span></label>
                         <input type="date" id="exp-{{ $key }}" name="expires_at[{{ $key }}]" value="{{ old("expires_at.{$key}", $document?->expires_at?->toDateString()) }}"
                                class="field-input @error("expires_at.{$key}") field-input-error @enderror">
                         @error("expires_at.{$key}")<p class="field-error">{{ $message }}</p>@enderror
                     </div>
+                    @endif
                 </div>
             @endforeach
         </div>

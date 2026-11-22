@@ -25,11 +25,13 @@
                 {{ $label }} @unless ($required)<span class="font-normal text-muted">(optional)</span>@endunless
             </label>
             <input id="{{ $id }}" name="{{ $name }}" value="{{ old($name, $saved[$field] ?? null) }}" maxlength="100"
+                   pattern="{{ \App\Rules\PersonName::PATTERN }}" data-person-name="{{ \App\Rules\PersonName::MESSAGE }}"
                    autocomplete="{{ $prefix ? 'off' : $autocomplete }}" @required($required) @if ($autofocus && $loop->first) autofocus @endif
                    @if ($disabled) :disabled="{{ $disabled }}" @endif
                    @error($name) aria-invalid="true" aria-describedby="{{ $id }}-error" @enderror
                    class="field-input @error($name) field-input-error @enderror">
             @error($name)<p id="{{ $id }}-error" class="field-error">{{ $message }}</p>@enderror
+            <p class="field-error" data-person-name-error hidden aria-live="polite"></p>
         </div>
     @endforeach
 

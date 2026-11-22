@@ -16,7 +16,7 @@ abstract class TestCase extends BaseTestCase
     {
         $rows = [['last_name' => 'Reyes', 'first_name' => 'Ana', 'position' => 'Representative', 'contact_number' => '', 'email' => '']];
         foreach (array_slice(['Cruz', 'Santos', 'Garcia', 'Mendoza', 'Bautista', 'Torres', 'Ramos'], 0, $count - 1) as $i => $last) {
-            $rows[] = ['last_name' => $last, 'first_name' => 'Member'.($i + 1), 'position' => $i === 0 ? 'Treasurer' : '', 'contact_number' => '', 'email' => ''];
+            $rows[] = ['last_name' => $last, 'first_name' => ['Jose', 'Maria', 'Pedro', 'Rosa', 'Luis', 'Carmen', 'Andres'][$i], 'position' => $i === 0 ? 'Treasurer' : '', 'contact_number' => '', 'email' => ''];
         }
 
         return $rows;

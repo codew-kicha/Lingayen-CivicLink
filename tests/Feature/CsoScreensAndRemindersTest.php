@@ -96,7 +96,7 @@ class CsoScreensAndRemindersTest extends TestCase
         $this->assertSame('Treasurer', $organization->members()->where('last_name', 'Cruz')->value('position'));
         // A blank position is saved as Member; the display name is composed from the parts.
         $this->assertSame('Member', $organization->members()->where('last_name', 'Santos')->value('position'));
-        $this->assertSame('Member2 Santos', $organization->members()->where('last_name', 'Santos')->value('name'));
+        $this->assertSame('Maria Santos', $organization->members()->where('last_name', 'Santos')->value('name'));
     }
 
     public function test_the_logo_can_be_removed(): void
