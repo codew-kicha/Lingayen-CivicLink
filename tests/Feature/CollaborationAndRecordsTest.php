@@ -67,8 +67,8 @@ class CollaborationAndRecordsTest extends TestCase
     public function test_a_cso_can_tag_partners_and_they_are_credited_only_after_verification(): void
     {
         $rep = User::factory()->create();
-        $organization = Organization::factory()->for($rep)->create();
-        $partner = Organization::factory()->create();
+        $organization = Organization::factory()->for($rep)->accredited()->create();
+        $partner = Organization::factory()->accredited()->create();
 
         $this->actingAs($rep)
             ->post(route('cso.activities.store'), $this->activityPayload(['partners' => [$partner->id]]))
@@ -89,7 +89,7 @@ class CollaborationAndRecordsTest extends TestCase
     public function test_an_organization_cannot_tag_itself_or_an_unknown_organization(): void
     {
         $rep = User::factory()->create();
-        $organization = Organization::factory()->for($rep)->create();
+        $organization = Organization::factory()->for($rep)->accredited()->create();
 
         $this->actingAs($rep)
             ->post(route('cso.activities.store'), $this->activityPayload(['partners' => [$organization->id, 99999]]))
@@ -157,8 +157,8 @@ class CollaborationAndRecordsTest extends TestCase
     public function test_admin_can_log_an_activity_with_partners_for_an_organization(): void
     {
         $admin = User::factory()->admin()->create();
-        $organization = Organization::factory()->create(['user_id' => null]);
-        $partner = Organization::factory()->create();
+        $organization = Organization::factory()->accredited()->create(['user_id' => null]);
+        $partner = Organization::factory()->accredited()->create();
 
         $this->actingAs($admin)
             ->post(route('admin.organizations.activities.store', $organization), $this->activityPayload(['partners' => [$partner->id]]))

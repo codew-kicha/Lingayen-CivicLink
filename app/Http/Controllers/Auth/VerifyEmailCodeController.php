@@ -33,7 +33,12 @@ class VerifyEmailCodeController extends Controller
 
         event(new Verified($user));
 
-        // Straight to the role's own dashboard: going through /dashboard would spend the message on that redirect.
+        // A new organization goes on to the application steps (members, form, requirements); everyone
+        // else straight to their dashboard (going through /dashboard would spend the message on that redirect).
+        $organization = $user->isCsoRep() ? $user->organization : null;
+        if ($organization && ! $organization->accreditations()->exists() && ! $organization->applications()->where('status', '!=', 'draft')->exists()) {
+            return redirect()->route('cso.application')->with('status', 'Email confirmed. Next, list your members and fill in the accreditation form.');
+        }
         $home = route($user->isAdmin() ? 'admin.dashboard' : 'cso.dashboard', absolute: false);
 
         return redirect()->intended($home.'?verified=1')->with('status', 'Email confirmed. Welcome to the CSO Desk Office.');

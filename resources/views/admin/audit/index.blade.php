@@ -37,7 +37,6 @@
                             <th scope="col" class="table-head">Event</th>
                             <th scope="col" class="table-head">By</th>
                             <th scope="col" class="table-head">Details</th>
-                            <th scope="col" class="table-head">IP address</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -58,7 +57,6 @@
                                         <span class="block">{{ str_replace('_', ' ', $key) }}: {{ is_array($value) ? implode(', ', $value) : $value }}</span>
                                     @endforeach
                                 </td>
-                                <td class="table-cell whitespace-nowrap tabular-nums text-muted">{{ $entry->ip_address }}</td>
                             </tr>
                         @endforeach
                     </tbody>

@@ -59,6 +59,7 @@ class ScreenSmokeTest extends TestCase
         }
 
         $this->actingAs($admin)->get(route('admin.applications.show', $application))->assertOk();
+        config(['app.admin_invites' => true]);
         $this->actingAs($admin)->withSession(['auth.password_confirmed_at' => time()])
             ->get(route('admin.accounts.create'))->assertOk();
 
@@ -77,7 +78,14 @@ class ScreenSmokeTest extends TestCase
             ->assertOk()->assertSee('File an application')->assertSee('name="documents[accreditation_form]"', false)
             ->assertSee("dialog('file-application', true)", false);
         $this->actingAs($admin)->get(route('admin.organizations.activities.create', $withoutLogin))
-            ->assertOk()->assertSee('Partner organizations');
+            ->assertRedirect(route('admin.organizations.edit', $withoutLogin))->assertSessionHas('error');
+        $accredited = Organization::factory()->accredited()->create(['user_id' => null]);
+        Organization::factory()->accredited()->create(); // someone to tag as a partner
+        $this->actingAs($admin)->get(route('admin.organizations.activities.create', $accredited))
+            ->assertRedirect(route('admin.organizations.edit', [$accredited, 'log' => 1]));
+        $this->actingAs($admin)->get(route('admin.organizations.edit', [$accredited, 'log' => 1]))
+            ->assertOk()->assertSee('Partner organizations')->assertSee('Log on their behalf')
+            ->assertSee("dialog('log-activity', true)", false);
         $this->actingAs($admin)->get(route('admin.organizations.import'))->assertOk();
         $this->actingAs($admin)->get(route('admin.organizations.import.template'))->assertOk();
     }
@@ -112,7 +120,8 @@ class ScreenSmokeTest extends TestCase
     {
         $rep = User::factory()->create();
         $organization = Organization::factory()->for($rep)->create();
-        $application = ApplicationModel::factory()->for($organization)->create();
+        // Rejected, so a new application can be started (one under review would lead to itself).
+        $application = ApplicationModel::factory()->for($organization)->rejected()->create();
 
         foreach ([
             'cso.dashboard',
@@ -123,10 +132,10 @@ class ScreenSmokeTest extends TestCase
             $this->actingAs($rep)->get(route($route))->assertOk();
         }
 
-        // Applying is a dialog on the Applications page; the old address opens it.
-        $this->actingAs($rep)->get(route('cso.applications.create'))->assertRedirect(route('cso.applications.index', ['apply' => 1]));
-        $this->actingAs($rep)->get(route('cso.applications.index', ['apply' => 1]))
-            ->assertSee("dialog('apply', true)", false)->assertSee('name="documents[accreditation_form]"', false);
+        // Applying is a set of steps; the old address leads there, and each reached step renders.
+        $this->actingAs($rep)->get(route('cso.applications.create'))->assertRedirect(route('cso.application'));
+        $this->actingAs($rep)->get(route('cso.application'))->assertRedirect(route('cso.application.step', 'members'));
+        $this->actingAs($rep)->get(route('cso.application.step', 'members'))->assertOk()->assertSee('Step 3 of 7');
 
         $this->actingAs($rep)->get(route('cso.applications.show', $application))->assertOk();
     }
@@ -150,15 +159,12 @@ class ScreenSmokeTest extends TestCase
                 'sector' => config('sectors')[0],
                 'barangay' => array_values(config('barangays'))[0],
                 'advocacy' => 'Shoreline protection and clean-up drives.',
-                'members' => [
-                    ['name' => 'Ana Reyes', 'position' => 'President'],
-                    ['name' => '', 'position' => ''],
-                ],
+                'members' => $this->memberRows(),
             ])
             ->assertRedirect(route('cso.profile.edit'));
 
         $organization = $rep->refresh()->organization;
         $this->assertSame('Bantayan Coastal Volunteers', $organization->name);
-        $this->assertCount(1, $organization->members);
+        $this->assertCount(5, $organization->members);
     }
 }

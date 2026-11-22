@@ -35,4 +35,13 @@ return [
         ],
     ],
 
+    // AI reading of activity sign-in sheets (App\Services\SheetReader). Off until both are set; the
+    // free checks run either way. Costs about USD 0.0004 a sheet with Claude Haiku 5.5. Needs the
+    // office's Data Privacy Act approval first (docs/CLIENT_CONFIRMATIONS.md).
+    'anthropic' => [
+        'key' => env('ANTHROPIC_API_KEY'),
+        'sheet_reader' => (bool) env('AI_SHEET_READER', false),
+        'model' => env('AI_SHEET_MODEL', 'claude-haiku-5-5'),
+    ],
+
 ];

@@ -31,6 +31,24 @@ Alpine.data('activityTicker', (count) => ({
     },
 }));
 
+// Signed-in layout: the phone drawer, and the desktop sidebar that collapses to an icon rail to give the
+// page the full width. The collapsed state lives on <html data-sidebar> (set before first paint from localStorage) so
+// the CSS in app.css applies it without a flash.
+Alpine.data('appShell', () => ({
+    drawer: false,
+    collapsed: document.documentElement.dataset.sidebar === 'collapsed',
+
+    toggleSidebar() {
+        this.collapsed = !this.collapsed;
+        if (this.collapsed) {
+            document.documentElement.dataset.sidebar = 'collapsed';
+        } else {
+            delete document.documentElement.dataset.sidebar;
+        }
+        try { localStorage.setItem('sidebar', this.collapsed ? 'collapsed' : 'open'); } catch (e) { /* private mode */ }
+    },
+}));
+
 // Signed-in pages: a thin progress bar while the next page loads (link, pagination or filter
 // form). Waits 150 ms so fast loads don't flash it, and resets when the page is restored from the
 // back/forward cache.
@@ -66,6 +84,9 @@ Alpine.data('heroVideo', () => ({
         const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
         const saveData = navigator.connection && navigator.connection.saveData;
 
+        // Phones only autoplay a video that is muted as a property, not just as an attribute. If the
+        // browser still refuses (e.g. iOS Low Power Mode), the poster simply stays.
+        this.$refs.video.muted = true;
         if (!reduceMotion && !saveData) this.$refs.video.play().catch(() => {});
     },
 }));
@@ -122,14 +143,14 @@ if (document.documentElement.classList.contains('motion-ok')) {
 
 // Application form: reads each requirement as it is chosen and says whether it looks like the
 // right document. Advisory only; it never blocks submitting (resources/js/ocr.js).
-Alpine.data('documentPrecheck', (keywords, minMatches) => ({
+Alpine.data('documentPrecheck', (checks) => ({
     state: 'idle', // idle | reading | matched | mismatch | unreadable | failed
     text: '',
-    found: [],
+    missing: [],
 
     async check(event) {
         const file = event.target.files[0];
-        Object.assign(this, { state: 'idle', text: '', found: [] });
+        Object.assign(this, { state: 'idle', text: '', missing: [] });
 
         if (!file || file.size > 5 * 1024 * 1024) return;
 
@@ -140,11 +161,474 @@ Alpine.data('documentPrecheck', (keywords, minMatches) => ({
 
             if (event.target.files[0] !== file) return; // replaced while reading
 
-            Object.assign(this, { text }, evaluate(text, keywords, minMatches));
+            Object.assign(this, { text }, evaluate(text, checks));
         } catch (error) {
             console.warn('Document pre-check failed', error);
             this.state = 'failed';
         }
+    },
+}));
+
+// <x-email-field>: helps type an email without limiting it. Gmail is the usual provider here, so a
+// faint "@gmail.com" completes a name with no "@" yet (Tab or → accepts it); after "@" the common
+// domains are offered as you type; on leaving the field a likely typo gets "Did you mean ...?".
+const EMAIL_DOMAINS = ['gmail.com', 'yahoo.com', 'yahoo.com.ph', 'outlook.com', 'hotmail.com', 'icloud.com', 'ymail.com', 'live.com', 'lingayen.gov.ph'];
+
+// Edit distance (insertions, deletions, substitutions, and swapped neighbours count as one).
+function editDistance(a, b) {
+    const d = Array.from({ length: a.length + 1 }, (_, i) => [i, ...Array(b.length).fill(0)]);
+    for (let j = 1; j <= b.length; j++) d[0][j] = j;
+    for (let i = 1; i <= a.length; i++) {
+        for (let j = 1; j <= b.length; j++) {
+            const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+            d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + cost);
+            if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) d[i][j] = Math.min(d[i][j], d[i - 2][j - 2] + 1);
+        }
+    }
+    return d[a.length][b.length];
+}
+
+// The known domain a typed one was probably meant to be, or null when it looks intended.
+export function likelyDomain(domain) {
+    domain = domain.toLowerCase();
+    if (!domain || EMAIL_DOMAINS.includes(domain)) return null;
+    let best = null;
+    let bestDistance = 3;
+    for (const known of EMAIL_DOMAINS) {
+        const distance = editDistance(domain, known);
+        if (distance < bestDistance) [best, bestDistance] = [known, distance];
+    }
+    // "gmail" or "gmail.co" without the rest also counts.
+    return best ?? EMAIL_DOMAINS.find((known) => known.startsWith(domain) && domain.length >= 4) ?? null;
+}
+
+Alpine.data('emailAssist', (initial = '') => ({
+    value: initial,
+    open: false,
+    active: 0,
+    suggestion: '',
+
+    get local() { return this.value.split('@')[0]; },
+    get domainPart() { return this.value.includes('@') ? this.value.split('@')[1] : null; },
+    // Shown only while the caret is at the end of a name with no "@" yet.
+    get ghost() { return this.value && !this.value.includes('@') && !/\s/.test(this.value) ? '@gmail.com' : ''; },
+    get options() {
+        const typed = this.domainPart;
+        if (typed === null || EMAIL_DOMAINS.includes(typed.toLowerCase())) return [];
+        return EMAIL_DOMAINS.filter((domain) => domain.startsWith(typed.toLowerCase())).slice(0, 6);
+    },
+
+    update() {
+        this.suggestion = '';
+        this.active = 0;
+        this.open = this.domainPart !== null;
+    },
+
+    key(event) {
+        // Email inputs don't report the caret position (selectionStart is null); treat that as the end.
+        const input = this.$refs.input;
+        const atEnd = input.selectionStart === null || input.selectionStart === this.value.length;
+        if (this.ghost && atEnd && (event.key === 'Tab' || event.key === 'ArrowRight') && !event.shiftKey) {
+            event.preventDefault();
+            this.value += this.ghost;
+            return;
+        }
+        if (!this.open || !this.options.length) return;
+        if (event.key === 'ArrowDown') { event.preventDefault(); this.active = (this.active + 1) % this.options.length; }
+        if (event.key === 'ArrowUp') { event.preventDefault(); this.active = (this.active + this.options.length - 1) % this.options.length; }
+        if (event.key === 'Enter' || (event.key === 'Tab' && !event.shiftKey)) { event.preventDefault(); this.pick(this.options[this.active]); }
+        if (event.key === 'Escape') this.open = false;
+    },
+
+    pick(domain) {
+        this.value = this.local + '@' + domain;
+        this.open = false;
+        this.$nextTick(() => this.$refs.input.focus());
+    },
+
+    check() {
+        this.open = false;
+        const domain = this.domainPart;
+        const fix = domain ? likelyDomain(domain) : null;
+        this.suggestion = fix ? this.local + '@' + fix : '';
+    },
+
+    useSuggestion() {
+        this.value = this.suggestion;
+        this.suggestion = '';
+        this.$refs.input.focus();
+    },
+}));
+
+// <x-member-table>: the member list, five rows to a page. Every row stays rendered (hidden when on
+// another page) so the whole list is submitted; a completely blank row has no input names, so it is
+// not. The first row is the representative and can't be removed. A spreadsheet upload is read by the
+// server and appended for review. Adding or removing a row fires `input` so save bars notice.
+const MEMBER_FIELDS = ['last_name', 'first_name', 'middle_name', 'position', 'contact_number', 'email'];
+const PER_PAGE = 5;
+
+Alpine.data('memberTable', ({ rows, errors, minimum, representative, importUrl }) => ({
+    rows: rows.map((row, i) => ({ ...Object.fromEntries(MEMBER_FIELDS.map((f) => [f, row[f] ?? ''])), src: row.src, key: i, locked: i === 0 })),
+    errors,
+    minimum,
+    page: 1,
+    nextKey: rows.length,
+    importing: false,
+    notice: '',
+    noticeError: false,
+    skipped: [],
+
+    init() {
+        // After a failed save, open the page holding the first row with an error.
+        const first = this.rows.findIndex((row) => MEMBER_FIELDS.some((f) => this.error(row, f)));
+        if (first > 0) this.page = Math.floor(first / PER_PAGE) + 1;
+    },
+
+    get pages() { return Math.max(1, Math.ceil(this.rows.length / PER_PAGE)); },
+    get filled() { return this.rows.filter((row) => row.last_name.trim() && row.first_name.trim()).length; },
+    onPage(index) { return Math.floor(index / PER_PAGE) + 1 === this.page; },
+    blank(row) { return !row.locked && MEMBER_FIELDS.every((f) => !String(row[f]).trim()); },
+    error(row, field) { return row.src === undefined ? '' : (this.errors[`members.${row.src}.${field}`] ?? [''])[0]; },
+    changed() { this.$root.dispatchEvent(new Event('input', { bubbles: true })); },
+
+    add(values = {}) {
+        this.rows.push({ ...Object.fromEntries(MEMBER_FIELDS.map((f) => [f, values[f] ?? ''])), key: this.nextKey++, locked: false });
+        if (!Object.keys(values).length) {
+            this.page = this.pages;
+            const key = this.rows.at(-1).key;
+            this.$nextTick(() => document.getElementById(`member-${key}-last_name`)?.focus());
+        }
+        this.changed();
+    },
+
+    remove(row) {
+        if (row.locked) return;
+        this.rows = this.rows.filter((r) => r !== row);
+        this.page = Math.min(this.page, this.pages);
+        this.changed();
+    },
+
+    async upload(event) {
+        const file = event.target.files[0];
+        event.target.value = '';
+        if (!file) return;
+        this.importing = true;
+        this.notice = '';
+        this.skipped = [];
+        try {
+            const body = new FormData();
+            body.append('file', file);
+            const response = await fetch(importUrl, {
+                method: 'POST',
+                body,
+                headers: { Accept: 'application/json', 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content },
+            });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message ?? Object.values(data.errors ?? {})[0]?.[0] ?? 'The file could not be read.');
+
+            // Empty rows give way to the imported ones; the representative stays first.
+            this.rows = this.rows.filter((row) => !this.blank(row));
+            const rep = this.rows[0];
+            let added = 0;
+            for (const row of data.rows) {
+                const sameAsRep = row.last_name.toLowerCase() === rep.last_name.toLowerCase() && row.first_name.toLowerCase() === rep.first_name.toLowerCase();
+                if (sameAsRep) continue;
+                if (row.position.toLowerCase() === representative.toLowerCase()) row.position = '';
+                this.add(row);
+                added++;
+            }
+            this.page = 1;
+            this.noticeError = false;
+            this.skipped = data.skipped ?? [];
+            this.notice = `${added} ${added === 1 ? 'member was' : 'members were'} added from the file. Check them, then save.`;
+        } catch (error) {
+            this.noticeError = true;
+            this.notice = error.message;
+        } finally {
+            this.importing = false;
+        }
+    },
+}));
+
+// Admin dashboard tiles: a number that counts up from zero when the page opens (about 0.6 s, easing
+// out). Under reduced motion it simply shows the number. The server-rendered number is the fallback.
+Alpine.data('countUp', (target) => ({
+    shown: target,
+
+    init() {
+        if (target <= 0 || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+        const start = performance.now();
+        const step = (now) => {
+            // A frame's timestamp can be a little earlier than `start`; never go below zero.
+            const t = Math.min(1, Math.max(0, (now - start) / 600));
+            this.shown = Math.round(target * (1 - Math.pow(1 - t, 3)));
+            if (t < 1) requestAnimationFrame(step);
+        };
+        this.shown = 0;
+        requestAnimationFrame(step);
+    },
+}));
+
+// Public nav dropdowns: open on hover (with a short grace period so moving the pointer down into the
+// panel doesn't close it) or when the link takes keyboard focus; Esc, leaving, or a click elsewhere
+// closes. On touch screens without hover, the first tap on the link opens the panel instead of
+// navigating; a second tap follows the link.
+Alpine.data('navMenu', () => ({
+    open: false,
+    timer: null,
+
+    show() {
+        clearTimeout(this.timer);
+        if (!this.open) this.$dispatch('nav-menu-open', this.$el);
+        this.open = true;
+    },
+
+    hide() {
+        clearTimeout(this.timer);
+        this.timer = setTimeout(() => { this.open = false; }, 120);
+    },
+
+    // Only one panel at a time: another menu opening closes this one at once, without its grace period.
+    closeIfOther(event) {
+        if (event.detail !== this.$el) {
+            clearTimeout(this.timer);
+            this.open = false;
+        }
+    },
+
+    leave(event) {
+        if (!this.$el.contains(event.relatedTarget)) this.open = false;
+    },
+
+    tap(event) {
+        if (window.matchMedia('(hover: none)').matches && !this.open) {
+            event.preventDefault();
+            this.show();
+        }
+    },
+}));
+
+// <x-process-explorer> (Accreditation page): the chosen step shows in full beside the list on wide
+// screens and opens in place on phones. `active` is what's open (null when a phone closes it);
+// `shown` is what the wide panel and the rail show. Arrow keys, Home and End move between steps.
+Alpine.data('processExplorer', (count) => ({
+    active: 0,
+    shown: 0,
+
+    choose(i) {
+        const wide = window.matchMedia('(min-width: 1024px)').matches;
+        this.active = !wide && this.active === i ? null : i;
+        this.shown = i;
+    },
+
+    keys(event, i) {
+        const to = { ArrowDown: i + 1, ArrowUp: i - 1, Home: 0, End: count - 1 }[event.key];
+        if (to === undefined || to < 0 || to >= count) return;
+        event.preventDefault();
+        this.choose(to);
+        document.getElementById(`step-${to}-button`)?.focus();
+    },
+}));
+
+// <x-process-timeline> (Home): steps light up as the reader scrolls past them, the rail filling
+// behind. Everything starts lit, so no-JS and reduced-motion readers see the finished timeline.
+Alpine.data('timelineProgress', (count) => ({
+    reached: count,
+
+    init() {
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+        const steps = [...this.$el.querySelectorAll(':scope > li')];
+        let frame = null;
+        const update = () => {
+            frame = null;
+            const line = window.innerHeight * 0.55;
+            this.reached = steps.filter((step) => step.getBoundingClientRect().top < line).length;
+        };
+        update();
+        window.addEventListener('scroll', () => { frame ??= requestAnimationFrame(update); }, { passive: true });
+    },
+}));
+
+// About page: the "On this page" list marks the section being read (the last one whose heading has
+// passed the upper third of the window).
+Alpine.data('scrollSpy', (ids) => ({
+    current: ids[0],
+
+    init() {
+        const sections = ids.map((id) => document.getElementById(id)).filter(Boolean);
+        let frame = null;
+        const update = () => {
+            frame = null;
+            const line = window.innerHeight * 0.33;
+            const passed = sections.filter((section) => section.getBoundingClientRect().top < line);
+            // At the bottom of the page the last section can't reach the line; it is the one being read.
+            const atBottom = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2;
+            this.current = (atBottom ? sections.at(-1) : passed.at(-1) ?? sections[0])?.id;
+        };
+        update();
+        window.addEventListener('scroll', () => { frame ??= requestAnimationFrame(update); }, { passive: true });
+    },
+}));
+
+// Accreditation page: "Do we qualify?" Four criteria ticked by the visitor; the answer below says
+// which application fits. Nothing is sent anywhere.
+Alpine.data('eligibilityCheck', () => ({
+    met: [false, false, false, false],
+
+    get count() {
+        return this.met.filter(Boolean).length;
+    },
+
+    get verdict() {
+        if (this.count === 0) return 'none';
+        if (this.count === 4) return 'accreditation';
+        if (!this.met[0] && this.met.slice(1).every(Boolean)) return 'recognition';
+        return 'not-yet';
+    },
+}));
+
+// Accreditation page: the requirements as a checklist, New application or Renewal. What a visitor
+// ticks is remembered on this device only (localStorage, wrapped: it may be unavailable).
+Alpine.data('requirementsChecklist', (counts) => ({
+    tab: 'new',
+    ticked: {},
+
+    init() {
+        try {
+            this.ticked = JSON.parse(localStorage.getItem('civiclink.requirements') || '{}');
+        } catch (e) {
+            this.ticked = {};
+        }
+    },
+
+    toggle(key) {
+        this.ticked[key] = !this.ticked[key];
+        try {
+            localStorage.setItem('civiclink.requirements', JSON.stringify(this.ticked));
+        } catch (e) {
+            // Private window or storage blocked: the ticks last for this visit only.
+        }
+    },
+
+    ready(form) {
+        return Object.keys(this.ticked).filter((key) => key.startsWith(`${form}.`) && this.ticked[key]).length;
+    },
+
+    total(form) {
+        return counts[form] ?? 0;
+    },
+}));
+
+// Analytics charts: one read-out that follows the pointer or keyboard focus, the mark that was clicked
+// (its details open under the chart), and the measure shown on the monthly chart. Each mark carries
+// its read-out as JSON in data-tip; it is shown with x-text, so names stay text. `bar` charts put
+// the read-out at the end of the bar, `column` charts above the column.
+Alpine.data('chart', ({ shape = 'column', metric = null } = {}) => ({
+    tip: null,
+    picked: null,
+    // On the sector chart: the colour that was clicked within the picked bar, and the colour the
+    // legend highlights across every bar.
+    pickedSource: null,
+    source: null,
+    metric,
+    more: false,
+
+    show(event) {
+        const target = event.currentTarget;
+        const plot = this.$refs.plot.getBoundingClientRect();
+        const marks = [...target.querySelectorAll('[data-mark]')].filter((el) => el.getClientRects().length);
+        const mark = (marks[0] ?? target).getBoundingClientRect();
+        const x = shape === 'bar' ? mark.left + Math.max(mark.width, 0) : mark.left + mark.width / 2;
+        const { title, rows } = JSON.parse(target.dataset.tip);
+        const half = Math.min(112, plot.width / 2);
+        this.tip = { title, rows, x: Math.min(Math.max(x - plot.left, half), plot.width - half), y: mark.top - plot.top };
+    },
+
+    hide() {
+        this.tip = null;
+    },
+
+    pick(key, source = null) {
+        const same = this.picked === key && this.pickedSource === source;
+        this.picked = same ? null : key;
+        this.pickedSource = same ? null : source;
+    },
+}));
+
+// <x-info-tip>: a metric's definition beside it. Hover or focus shows it; a click pins it open until
+// Esc, a click elsewhere, or scrolling. It sits in the top layer (popover) where supported, placed
+// under the button (above when there's no room) and kept inside the window.
+Alpine.data('infoTip', () => ({
+    open: false,
+    pinned: false,
+
+    show() {
+        this.open = true;
+        this.$nextTick(() => this.place());
+    },
+
+    hide(force = false) {
+        if (this.pinned && !force) return;
+        this.pinned = false;
+        this.open = false;
+        if (this.$refs.tip.matches?.(':popover-open')) this.$refs.tip.hidePopover();
+    },
+
+    pin() {
+        if (this.pinned) return this.hide(true);
+        this.pinned = true;
+        this.show();
+    },
+
+    place() {
+        const tip = this.$refs.tip;
+        if (tip.showPopover && !tip.matches(':popover-open')) tip.showPopover();
+        const button = this.$refs.button.getBoundingClientRect();
+        const width = Math.min(288, window.innerWidth - 32);
+        tip.style.inset = 'auto';
+        tip.style.width = `${width}px`;
+        tip.style.left = `${Math.min(Math.max(button.left + button.width / 2 - width / 2, 16), window.innerWidth - width - 16)}px`;
+        const below = button.bottom + 8;
+        tip.style.top = below + tip.offsetHeight > window.innerHeight - 8 ? `${Math.max(8, button.top - 8 - tip.offsetHeight)}px` : `${below}px`;
+    },
+}));
+
+// Sortable tables on the analytics page: a header button sorts by its column, numbers by value
+// (cells may carry data-sort), text alphabetically; a second click reverses.
+Alpine.data('sortTable', () => ({
+    column: null,
+    ascending: false,
+
+    sort(index, text = false) {
+        this.ascending = this.column === index ? ! this.ascending : text;
+        this.column = index;
+        const body = this.$refs.body;
+        const value = (row) => row.cells[index].dataset.sort ?? row.cells[index].textContent.trim();
+        const rows = [...body.rows].sort((a, b) => {
+            const x = value(a);
+            const y = value(b);
+            const order = text ? x.localeCompare(y) : parseFloat(x) - parseFloat(y);
+            return this.ascending ? order : -order;
+        });
+        body.append(...rows);
+    },
+
+    order(index) {
+        if (this.column !== index) return 'none';
+        return this.ascending ? 'ascending' : 'descending';
+    },
+}));
+
+// <x-file-field>: the × beside a file input. Clearing fires `change` so listeners (the pre-check)
+// reset as if the person had cleared it themselves; focus returns to the input.
+Alpine.data('fileField', () => ({
+    has: false,
+
+    clear() {
+        const input = this.$root.querySelector('input[type=file]');
+        input.value = '';
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+        input.focus();
     },
 }));
 
@@ -360,13 +844,13 @@ Alpine.data('postEditor', (items, initial = null) => ({
 // Accounts › Edit login: one dialog for every representative row. `generate` makes a password that
 // meets Password::defaults() (12+ characters, mixed case, a number, a symbol) without look-alikes.
 Alpine.data('loginEditor', (initial = null, resetOnLoad = false) => ({
-    account: initial ?? { id: null, name: '', email: '', phone: '', organization: '', url: '' },
+    account: initial ?? { id: null, last_name: '', first_name: '', middle_name: '', suffix: '', email: '', phone: '', organization: '', url: '' },
     reset: resetOnLoad,
     password: '',
     show: false,
 
     edit(account) {
-        this.account = { ...account, phone: account.phone ?? '' };
+        this.account = { ...account, phone: account.phone ?? '', middle_name: account.middle_name ?? '', suffix: account.suffix ?? '' };
         Object.assign(this, { reset: false, password: '', show: false });
         if (this.$refs.adminPassword) this.$refs.adminPassword.value = ''; // drop anything a browser filled in
         this.$dispatch('open-dialog', 'edit-login');
@@ -404,7 +888,7 @@ Alpine.data('activityReview', (items) => ({
     items,                  // [{ id, title, ..., verifyUrl, rejectUrl }] in table order
     decided: [],            // ids hidden from the list (sent, or waiting in `pending`)
     index: 0,
-    source: '',
+    eventId: '',            // "This was an LGU event": the event to credit instead
     rejecting: false,
     reason: '',
     pending: null,          // { item, url, body, message, timer }
@@ -447,7 +931,7 @@ Alpine.data('activityReview', (items) => ({
 
     show(index) {
         this.index = index;
-        this.source = '';
+        this.eventId = '';
         this.rejecting = false;
         this.reason = '';
         this.$dispatch('open-dialog', 'review');
@@ -459,7 +943,12 @@ Alpine.data('activityReview', (items) => ({
     },
 
     verify() {
-        if (this.source) this.decide(this.current.verifyUrl, { activity_source: this.source }, 'Activity verified.');
+        this.decide(this.current.verifyUrl, {}, 'Activity verified.');
+    },
+
+    // An LGU event logged as the organization's own: credited as attending that event instead.
+    link() {
+        if (this.eventId) this.decide(this.current.linkUrl, { lgu_event_id: Number(this.eventId) }, 'Credited as attending the LGU event.');
     },
 
     reject() {
@@ -530,6 +1019,26 @@ Alpine.data('activityReview', (items) => ({
         if (!undo) this.toastTimer = setTimeout(() => { this.toast = null; }, 6000);
     },
 }));
+
+// Person names (App\Rules\PersonName): letters, spaces, hyphens, apostrophes and periods. The input's
+// pattern holds the rule and data-person-name the server's message; as soon as a number or symbol is
+// typed, the message shows under the field and the form won't submit (the server refuses it too).
+// Its look comes from its own data-name-invalid attribute (app.css), never from the classes and
+// aria-invalid that Blade and Alpine set for server errors, so neither undoes the other.
+document.addEventListener('input', (event) => {
+    const input = event.target;
+    if (!(input instanceof HTMLInputElement) || !input.hasAttribute('data-person-name')) return;
+    input.setCustomValidity('');
+    const wrong = input.value.trim() !== '' && input.validity.patternMismatch;
+    const message = input.dataset.personName;
+    input.setCustomValidity(wrong ? message : '');
+    input.toggleAttribute('data-name-invalid', wrong);
+    const note = input.closest('div')?.querySelector('[data-person-name-error]');
+    if (note) {
+        note.textContent = wrong ? message : '';
+        note.hidden = !wrong;
+    }
+});
 
 window.Alpine = Alpine;
 

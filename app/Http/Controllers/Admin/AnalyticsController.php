@@ -24,12 +24,22 @@ class AnalyticsController extends Controller
     {
         $this->authorize('viewAny', Organization::class);
 
-        $data = ReportData::fromRequest($request)->all();
+        $report = ReportData::fromRequest($request);
+        $data = $report->all();
+        $previous = $report->previous();
 
         // The page shows the 10 least active; the PDF and Excel exports keep the full list. At-risk
         // is computed from aggregated rows in ReportData, so the cap is applied here, not in SQL.
+        // The rest is for the page's details: the same period compared with the one before, and the
+        // records behind each chart for its click-through.
         return view('admin.analytics', [
             ...$data,
+            'previous' => $previous,
+            'before' => $previous->summary(),
+            'highlights' => $report->highlights(),
+            'insights' => $report->insights(),
+            'monthActivities' => $report->activitiesByMonth(),
+            'organizations' => $report->organizationRows(),
             'atRiskTotal' => $data['atRisk']->count(),
             'atRisk' => $data['atRisk']->take(self::AT_RISK_SHOWN),
         ]);

@@ -56,37 +56,30 @@ class AdvocacyAnalyticsTest extends TestCase
 
     // Capturing the source
 
-    public function test_the_source_is_required_on_the_cso_form_and_in_assisted_encoding(): void
+    public function test_what_an_organization_logs_is_self_initiated_with_no_question_asked(): void
     {
         $rep = User::factory()->create();
-        $organization = Organization::factory()->for($rep)->create();
+        $organization = Organization::factory()->for($rep)->accredited()->create();
         $payload = ['title' => 'Clean-up', 'description' => 'Shoreline.', 'activity_date' => now()->subDay()->toDateString()];
 
-        $this->actingAs($rep)->post(route('cso.activities.store'), $payload)->assertSessionHasErrors('activity_source');
-        $this->actingAs(User::factory()->admin()->create())
-            ->post(route('admin.organizations.activities.store', $organization), $payload + ['activity_source' => 'sometimes'])
-            ->assertSessionHasErrors('activity_source');
-
+        // No "who organized it" on either form; a value sent anyway is ignored.
+        $this->actingAs($rep)->get(route('cso.activities.index'))->assertDontSee('Who organized it?')
+            ->assertSee('LGU events you attend are recorded by the Desk Office');
         $this->actingAs($rep)->post(route('cso.activities.store'), $payload + ['activity_source' => 'lgu_organized'])->assertSessionHasNoErrors();
-        $this->assertSame('lgu_organized', Activity::firstOrFail()->activity_source);
+        $this->actingAs(User::factory()->admin()->create())
+            ->post(route('admin.organizations.activities.store', $organization), $payload)->assertSessionHasNoErrors();
+
+        $this->assertSame(['independent', 'independent'], Activity::orderBy('id')->pluck('activity_source')->all());
     }
 
-    public function test_peso_confirms_or_corrects_the_source_at_verification(): void
+    public function test_verifying_keeps_an_organizations_own_activity_self_initiated(): void
     {
         $admin = User::factory()->admin()->create();
-        $claimed = Activity::factory()->create(['activity_source' => 'independent']);
-        $confirmed = Activity::factory()->create(['activity_source' => 'independent']);
+        $activity = Activity::factory()->create(['activity_source' => 'independent']);
 
-        $this->actingAs($admin)->post(route('admin.activities.verify', $claimed))->assertSessionHasErrors('activity_source');
-        $this->assertSame('pending', $claimed->fresh()->status);
+        $this->actingAs($admin)->post(route('admin.activities.verify', $activity), ['activity_source' => 'lgu_organized'])->assertSessionHasNoErrors();
 
-        $this->actingAs($admin)->post(route('admin.activities.verify', $claimed), ['activity_source' => 'lgu_organized']);
-        $this->assertSame('lgu_organized', $claimed->fresh()->activity_source);
-        $this->assertSame('verified', $claimed->fresh()->status);
-        $this->assertDatabaseHas('audit_logs', ['action' => 'activity.source_corrected', 'subject_id' => $claimed->id]);
-
-        $this->actingAs($admin)->post(route('admin.activities.verify', $confirmed), ['activity_source' => 'independent']);
-        $this->assertDatabaseMissing('audit_logs', ['action' => 'activity.source_corrected', 'subject_id' => $confirmed->id]);
+        $this->assertSame(['verified', 'independent'], [$activity->fresh()->status, $activity->fresh()->activity_source]);
     }
 
     // ReportData
@@ -210,7 +203,7 @@ class AdvocacyAnalyticsTest extends TestCase
 
         $workbook = IOFactory::load($response->getFile()->getPathname());
         $this->assertSame(
-            ['Summary', 'Sector comparison', 'Monthly trend', 'At-risk organizations', 'Barangays', 'Top contributors', 'Awards ranking'],
+            ['Summary', 'Sector comparison', 'Monthly trend', 'At-risk organizations', 'Barangays', 'Top contributors', 'Awards ranking', 'Definitions'],
             $workbook->getSheetNames(),
         );
         $this->assertSame('Workbook Weavers', $workbook->getSheetByName('Top contributors')->getCell('A2')->getValue());
@@ -259,17 +252,20 @@ class AdvocacyAnalyticsTest extends TestCase
         $this->assertDatabaseHas('audit_logs', ['action' => 'organization.members_printed', 'subject_id' => $organization->id]);
     }
 
-    public function test_anyone_can_download_both_official_paper_forms(): void
+    public function test_the_blank_paper_forms_are_for_the_office_only(): void
     {
+        // Applicants fill the form in online; the office prints the blank ones for walk-ins.
+        $admin = User::factory()->admin()->create();
         foreach (['new' => 'accreditation-form-new-application.pdf', 'renewal' => 'accreditation-form-renewal.pdf'] as $type => $file) {
-            $response = $this->get(route('accreditation.form', $type));
+            $response = $this->actingAs($admin)->get(route('admin.accreditation.form', $type));
 
             $response->assertOk()->assertHeader('content-type', 'application/pdf')->assertDownload();
             $this->assertSame(file_get_contents(resource_path('forms/'.$file)), $response->streamedContent() ?: file_get_contents($response->getFile()->getPathname()));
-            $this->get(route('accreditation'))->assertSee(route('accreditation.form', $type));
         }
 
-        $this->get('/accreditation/forms/anything-else')->assertNotFound();
+        $this->actingAs(User::factory()->create())->get(route('admin.accreditation.form', 'new'))->assertForbidden();
+        $this->get('/accreditation/forms/new')->assertNotFound();
+        $this->get(route('accreditation'))->assertDontSee('/forms/new')->assertSee('Register and apply online');
     }
 
     public function test_the_requirement_lists_match_the_sangguniang_bayan_forms(): void

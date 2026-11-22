@@ -3,7 +3,7 @@
     then cards with a header row (title, optional link). The title bar and its actions stay pinned
     on desktop (layout `sticky`).
 --}}
-<x-layouts.app header="Dashboard" :subheader="$organization?->name" :sticky="(bool) $organization">
+<x-layouts.app header="Dashboard" :subheader="$organization?->name" :sticky="(bool) $organization" :woven="true">
     @if (! $organization)
         <section class="card">
             <x-empty-state title="Set up your organization first" icon="user-circle">
@@ -17,6 +17,11 @@
     @else
         @php
             $daysLeft = $accreditation ? (int) now()->diffInDays($accreditation->expires_at, false) : null;
+            // Lapsed with no renewal filed since (a renewal in progress shows as the latest application instead).
+            $showLapsed = $lapsed && (! $latestApplication || $latestApplication->status === 'approved');
+            $draftStep = $draft ? \App\Services\ApplicationSteps::current($draft) : null;
+            $draftNumber = $draftStep ? \App\Services\ApplicationSteps::number($draftStep) : null;
+            $totalSteps = count(\App\Services\ApplicationSteps::STEPS);
             $waiting = collect();
             if ($pendingActivities) {
                 $waiting->push(['hourglass', $pendingActivities.' '.Str::plural('activity', $pendingActivities).' awaiting verification', false]);
@@ -25,27 +30,63 @@
                 $waiting->push(['calendar-x', \App\Models\Document::label($document->document_type).' expires '.$document->expires_at->format('d M Y'), true]);
             }
             $tiles = [
-                $accreditation
+                ! $accreditation && $draft
+                    ? ['Accreditation', 'Application in progress', "Step {$draftNumber} of {$totalSteps} · continue", 'clipboard-text', route('cso.application'), false]
+                    : ($accreditation
                     ? ['Accreditation', 'Active', "Until {$accreditation->expires_at->format('d M Y')} · {$daysLeft} days left", 'seal-check', null, $daysLeft <= 60]
-                    : ($latestApplication
+                    : ($showLapsed
+                        ? ['Accreditation', 'Expired', "Ended {$lapsed->expires_at->format('d M Y')} · file a renewal", 'calendar-x', route('cso.application'), true]
+                        : ($latestApplication
                         ? ['Accreditation', ucfirst(str_replace('_', ' ', $latestApplication->status)), 'Latest application', 'clipboard-text', route('cso.applications.show', $latestApplication), false]
-                        : ['Accreditation', 'Not accredited', 'Apply when you are ready', 'seal-check', route('cso.applications.index', ['apply' => 1]), false]),
+                        : ['Accreditation', 'Not accredited', 'Apply when you are ready', 'seal-check', route('cso.application'), false]))),
                 ['Performance score', $score ? number_format($score->total_score * 100, 0).'%' : 'Not yet', 'Informational only', 'chart-line-up', null, false],
                 ['Verified activities', $verifiedActivities, 'All time', 'check-circle', route('cso.activities.index'), false],
                 ['Awaiting verification', $pendingActivities, 'Checked by the office', 'hourglass', route('cso.activities.index'), false],
             ];
         @endphp
 
+        {{-- The application's next step (upload requirements, continue, renew, apply) is offered once,
+             in the card that explains it below, not again up here. --}}
         <x-slot:actions>
-            @if ($latestApplication && ! $accreditation)
-                <a href="{{ route('cso.applications.show', $latestApplication) }}" class="btn-secondary">View application</a>
-            @elseif (! $accreditation)
-                <a href="{{ route('cso.applications.index', ['apply' => 1]) }}" class="btn-secondary">Apply for accreditation</a>
+            @if ($accreditation)
+                <a href="{{ route('cso.activities.index', ['log' => 1]) }}" class="btn-primary">
+                    <x-phosphor-plus class="h-4 w-4" aria-hidden="true" />Log an activity
+                </a>
             @endif
-            <a href="{{ route('cso.activities.index', ['log' => 1]) }}" class="btn-primary">
-                <x-phosphor-plus class="h-4 w-4" aria-hidden="true" />Log an activity
-            </a>
         </x-slot:actions>
+
+        @if ($draft)
+            {{-- Where the application stands, with a way straight back in. --}}
+            <section class="card mb-6 flex flex-wrap items-center gap-4 border-primary/40 p-6" aria-labelledby="draft-title">
+                <x-phosphor-clipboard-text class="h-8 w-8 shrink-0 text-primary" aria-hidden="true" />
+                <div class="min-w-0 flex-1 basis-64">
+                    <h2 id="draft-title" class="card-title">Your {{ $draft->type === 'renewal' ? 'renewal' : 'application' }} is in progress</h2>
+                    <p class="mt-1 text-sm text-muted">
+                        Step {{ $draftNumber }} of {{ $totalSteps }}: {{ \App\Services\ApplicationSteps::STEPS[$draftStep] }}. Everything so far is saved.
+                    </p>
+                    <div class="mt-3 h-1.5 max-w-md overflow-hidden rounded-full bg-canvas" aria-hidden="true">
+                        <div class="h-full rounded-full bg-primary" style="width: {{ round(($draftNumber - 1) / $totalSteps * 100) }}%"></div>
+                    </div>
+                </div>
+                <a href="{{ route('cso.application') }}" class="btn-primary">Continue <x-phosphor-arrow-right class="h-4 w-4" aria-hidden="true" /></a>
+            </section>
+        @endif
+
+        @if ($awaitingRequirements)
+            {{-- The form was approved: the requirements are what the office now waits for. --}}
+            <section class="card mb-6 flex flex-wrap items-center gap-4 border-warning/40 bg-warning-subtle p-6" aria-labelledby="requirements-title">
+                <x-phosphor-upload-simple class="h-8 w-8 shrink-0 text-warning" aria-hidden="true" />
+                <div class="min-w-0 flex-1 basis-64">
+                    <h2 id="requirements-title" class="card-title">
+                        {{ $awaitingRequirements->requirements_note ? 'Your requirements were returned for correction' : 'Your application form was approved' }}
+                    </h2>
+                    <p class="mt-1 text-sm text-ink">
+                        {{ $awaitingRequirements->requirements_note ?: ($awaitingRequirements->fee_waived ? 'Upload the other requirements; there is no fee for your application.' : 'Upload the official receipt and the other requirements.').' Once they are validated, your application goes to the committee hearing.' }}
+                    </p>
+                </div>
+                <a href="{{ route('cso.application.requirements.show') }}" class="btn-primary">Upload requirements <x-phosphor-arrow-right class="h-4 w-4" aria-hidden="true" /></a>
+            </section>
+        @endif
 
         <section aria-label="Summary" class="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
             @foreach ($tiles as [$label, $value, $note, $icon, $url, $alert])
@@ -85,17 +126,32 @@
                                 Reference code
                                 <span class="font-mono text-ink">{{ $accreditation->verification_code }}</span>
                             </p>
+                        @elseif ($showLapsed)
+                            <div class="flex flex-wrap items-center gap-3">
+                                <x-status-badge status="expired" />
+                                <p class="text-sm text-muted">
+                                    Ended on <span class="tabular-nums text-ink">{{ $lapsed->expires_at->format('d F Y') }}</span>
+                                </p>
+                            </div>
+                            <p class="mt-3 max-w-[60ch] text-sm text-muted">
+                                File a renewal to return to the public directory and log activities again.
+                                Your profile, officers and activity history carry over.
+                            </p>
+                            <x-fee-period-note class="mt-3" />
+                            <a href="{{ route('cso.application') }}" class="btn-primary mt-4">File a renewal</a>
                         @elseif ($latestApplication)
                             <div class="flex flex-wrap items-center gap-3">
                                 <x-status-badge :status="$latestApplication->status" />
                                 <a href="{{ route('cso.applications.show', $latestApplication) }}"
                                    class="text-sm font-semibold text-primary hover:underline">View application</a>
                             </div>
-                            <p class="mt-6 text-sm font-semibold text-ink">Sangguniang Bayan reading stage</p>
-                            <div class="mt-2"><x-sb-stepper :stage="$latestApplication->sb_stage" /></div>
+                            @if ($latestApplication->status !== 'rejected')
+                                <p class="mt-6 text-sm font-semibold text-ink">Where it stands</p>
+                                <x-phase-stepper :application="$latestApplication" class="mt-2" />
+                            @endif
                         @else
                             <p class="text-sm text-muted">Your organization is not yet accredited and has no application on file.</p>
-                            <a href="{{ route('cso.applications.index', ['apply' => 1]) }}" class="btn-primary mt-4">Apply for accreditation</a>
+                            <a href="{{ route('cso.application') }}" class="btn-primary mt-4">Apply for accreditation</a>
                         @endif
                     </div>
                 </section>
@@ -197,13 +253,18 @@
 
                 @if ($notifications->isNotEmpty())
                     <section class="card" aria-labelledby="updates-title">
-                        <div class="border-b border-line px-6 py-4">
+                        <div class="flex items-center gap-3 border-b border-line px-6 py-4">
                             <h2 id="updates-title" class="card-title">Recent updates</h2>
+                            <a href="{{ route('cso.notifications.index') }}" class="ml-auto whitespace-nowrap text-sm font-semibold text-primary hover:underline">All notifications</a>
                         </div>
                         <ul class="divide-y divide-line px-6">
                             @foreach ($notifications as $notification)
                                 <li class="py-3">
-                                    <p class="text-sm font-semibold text-ink">{{ $notification->data['headline'] ?? 'Update' }}</p>
+                                    <p class="flex items-center gap-2 text-sm font-semibold text-ink">
+                                        {{ $notification->data['headline'] ?? 'Update' }}
+                                        @unless ($notification->read_at)<span class="badge-info">New</span>@endunless
+                                        <span class="ml-auto text-xs font-normal text-muted">{{ $notification->created_at->diffForHumans() }}</span>
+                                    </p>
                                     <p class="mt-1 text-sm text-muted">{{ $notification->data['body'] ?? '' }}</p>
                                 </li>
                             @endforeach

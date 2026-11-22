@@ -6,7 +6,8 @@
 --}}
 @php
     $organization = $application->organization;
-    $required = \App\Models\Document::requiredTypes();
+    // This application's required documents: no constitution on a renewal, no receipt when the fee is waived.
+    $required = collect(\App\Services\ApplicationSteps::requirements($application))->reject(fn ($type) => $type['optional'])->keys()->all();
     $uploadedRequired = $application->documents->whereIn('document_type', $required)->count();
     $flagged = $application->documents->whereIn('ocr_status', ['mismatch', 'unreadable'])->count();
     $positions = collect(preg_split('/\R/', (string) $organization->org_chart))->map(fn ($line) => trim($line))->filter();
@@ -27,9 +28,46 @@
                 </div>
                 <div class="space-y-4 p-6">
                     <div>
-                        <p class="text-sm font-semibold text-muted">Sangguniang Bayan reading stage</p>
-                        <div class="mt-2"><x-sb-stepper :stage="$application->sb_stage" /></div>
+                        <p class="text-sm font-semibold text-muted">Where it stands</p>
+                        <x-phase-stepper :application="$application" class="mt-2" />
+                        <x-hearing-history :hearings="$application->hearings" class="mt-4" />
                     </div>
+
+                    <dl class="grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
+                        <div>
+                            <dt class="text-muted">Application form</dt>
+                            <dd class="text-ink">
+                                {{ $application->form_approved_at ? 'Approved '.$application->form_approved_at->format('d M Y') : 'Not approved yet' }}
+                            </dd>
+                        </div>
+                        <div>
+                            <dt class="text-muted">Requirements</dt>
+                            <dd class="text-ink">
+                                @if ($application->requirements_submitted_at)
+                                    Submitted {{ $application->requirements_submitted_at->format('d M Y') }}
+                                @elseif ($application->status === 'requirements_pending')
+                                    Waiting for the organization
+                                @else
+                                    Asked for after the form is approved
+                                @endif
+                            </dd>
+                        </div>
+                        {{-- Free within a free period (or waived here); otherwise PHP 1,000 / PHP 500. Changeable until the hearing. --}}
+                        <div class="sm:col-span-2">
+                            <dt class="text-muted">Accreditation fee</dt>
+                            <dd class="flex flex-wrap items-center gap-x-3 gap-y-1 text-ink">
+                                <span>{{ $application->feeNote() }}</span>
+                                @if (in_array($application->status, \App\Models\ApplicationModel::FEE_OPEN, true))
+                                    <form method="POST" action="{{ route('admin.applications.fee', $application) }}">
+                                        @csrf
+                                        @method('PATCH')
+                                        <input type="hidden" name="fee_waived" value="{{ $application->fee_waived ? 0 : 1 }}">
+                                        <button type="submit" class="btn-ghost btn-sm">{{ $application->fee_waived ? 'Require the fee' : 'Waive the fee' }}</button>
+                                    </form>
+                                @endif
+                            </dd>
+                        </div>
+                    </dl>
 
                     @if ($application->status === 'rejected' && $application->rejection_reason)
                         <div class="rounded-sm border border-danger bg-danger-subtle px-4 py-3">
@@ -162,44 +200,177 @@
 
         <aside class="xl:sticky xl:top-8">
             @can('review', $application)
-                @if (in_array($application->status, ['submitted', 'under_review'], true))
+                {{--
+                    Pre-final defense panel's order: the form is approved first, then the requirements
+                    come in, then the committee hearing and the approval.
+                --}}
+                @if ($application->status === 'submitted')
                     <section class="card" aria-labelledby="review-title">
                         <div class="border-b border-line px-6 py-4">
-                            <h2 id="review-title" class="card-title">Advance the review</h2>
+                            <h2 id="review-title" class="card-title">Review the application form</h2>
                         </div>
                         <div class="p-6">
-                            <form method="POST" action="{{ route('admin.applications.stage', $application) }}">
+                            <p class="text-sm text-muted">
+                                Check the accreditation form and the member list. Approving asks the organization to upload the official
+                                receipt and the other requirements; they are notified by email and on their dashboard.
+                            </p>
+                            <form method="POST" action="{{ route('admin.applications.approve-form', $application) }}" class="mt-4">
                                 @csrf
-                                @method('PATCH')
-                                <label for="sb_stage" class="field-label">Sangguniang Bayan stage</label>
-                                <div class="flex gap-2">
-                                    <select id="sb_stage" name="sb_stage" class="field-input">
-                                        @foreach (['not_endorsed', 'first_reading', 'second_reading', 'third_reading', 'endorsed'] as $stage)
-                                            <option value="{{ $stage }}" @selected($application->sb_stage === $stage)>{{ Str::headline($stage) }}</option>
-                                        @endforeach
-                                    </select>
-                                    <button type="submit" class="btn-secondary shrink-0">Update</button>
-                                </div>
+                                <button type="submit" class="btn-primary w-full">
+                                    <x-phosphor-check class="h-4 w-4" aria-hidden="true" />Approve application form
+                                </button>
                             </form>
+                            @include('admin.applications.reject-form')
+                        </div>
+                    </section>
+                @elseif ($application->status === 'requirements_pending')
+                    <section class="card" aria-labelledby="review-title">
+                        <div class="border-b border-line px-6 py-4">
+                            <h2 id="review-title" class="card-title">Waiting for the requirements</h2>
+                        </div>
+                        <div class="p-6">
+                            <p class="text-sm text-muted">
+                                Form approved {{ $application->form_approved_at?->format('d M Y') }}{{ $application->formApprovedBy ? ' by '.$application->formApprovedBy->name : '' }}.
+                                The organization has been asked to upload:
+                            </p>
+                            <ul class="mt-2 list-disc pl-6 text-sm text-ink">
+                                @foreach (\App\Services\ApplicationSteps::uploads($application) as $type)
+                                    <li>{{ $type['label'] }}@if ($type['optional']) <span class="text-muted">(optional)</span>@endif</li>
+                                @endforeach
+                            </ul>
+                            @if ($application->requirements_note)
+                                <p class="mt-3 rounded-sm border border-warning/40 bg-warning-subtle px-3 py-2 text-sm text-ink">
+                                    <span class="font-semibold text-warning">Returned with:</span> {{ $application->requirements_note }}
+                                </p>
+                            @endif
+                            @include('admin.applications.reject-form')
+                        </div>
+                    </section>
+                @elseif ($application->status === 'requirements_submitted')
+                    {{-- Validation, second half: the requirements are in; check them, then forward to the committee. --}}
+                    <section class="card" aria-labelledby="review-title">
+                        <div class="border-b border-line px-6 py-4">
+                            <h2 id="review-title" class="card-title">Validate the requirements</h2>
+                        </div>
+                        <div class="p-6">
+                            <p class="text-sm text-muted">
+                                Check the uploaded requirements on the left. When everything is in order, forward the application to the
+                                Sangguniang Bayan committee for its hearing; the organization is told by email and on its dashboard.
+                            </p>
+                            <form method="POST" action="{{ route('admin.applications.forward', $application) }}" class="mt-4">
+                                @csrf
+                                <button type="submit" class="btn-primary w-full">
+                                    <x-phosphor-paper-plane-tilt class="h-4 w-4" aria-hidden="true" />Validated: forward to the committee
+                                </button>
+                            </form>
+
+                            <form method="POST" action="{{ route('admin.applications.return-requirements', $application) }}" class="mt-6 border-t border-line pt-6">
+                                @csrf
+                                <label for="requirements_note" class="field-label">Return the requirements</label>
+                                <textarea id="requirements_note" name="requirements_note" rows="2"
+                                          class="field-input @error('requirements_note') field-input-error @enderror"
+                                          @error('requirements_note') aria-invalid="true" aria-describedby="requirements_note-error" @enderror
+                                          placeholder="e.g. The receipt is unreadable; upload a clearer scan">{{ old('requirements_note') }}</textarea>
+                                @error('requirements_note')<p id="requirements_note-error" class="field-error">{{ $message }}</p>@enderror
+                                <button type="submit" class="btn-secondary mt-3 w-full">Send back for correction</button>
+                            </form>
+
+                            @include('admin.applications.reject-form')
+                        </div>
+                    </section>
+                @elseif ($application->status === 'under_review')
+                    {{--
+                        Committee hearing: recorded after it takes place (date, outcome, remarks), and the
+                        organization is told each time. A favorable hearing opens Approve.
+                    --}}
+                    @php $ready = $application->readyToApprove(); @endphp
+                    <section class="card" aria-labelledby="review-title">
+                        <div class="border-b border-line px-6 py-4">
+                            <h2 id="review-title" class="card-title">Committee hearing</h2>
+                            <p class="mt-1 text-sm text-muted">{{ $application->phaseNote() }}.</p>
+                        </div>
+                        <div class="p-6">
+                            <form method="POST" action="{{ route('admin.applications.hearing', $application) }}" class="space-y-4 rounded-md border border-line bg-canvas p-4">
+                                @csrf
+                                <p class="text-sm font-semibold text-ink">{{ $application->hearing_outcome ? 'Record another hearing' : 'Record the hearing' }}</p>
+
+                                <div>
+                                    <label for="held_on" class="field-label">Date of the hearing</label>
+                                    <input type="date" id="held_on" name="held_on" required max="{{ now()->toDateString() }}"
+                                           value="{{ old('held_on', now()->toDateString()) }}"
+                                           @error('held_on') aria-invalid="true" aria-describedby="held_on-error" @enderror
+                                           class="field-input @error('held_on') field-input-error @enderror">
+                                    @error('held_on')<p id="held_on-error" class="field-error">{{ $message }}</p>@enderror
+                                </div>
+
+                                <div>
+                                    <label for="committee" class="field-label">Committee <span class="font-normal text-muted">(optional)</span></label>
+                                    <input id="committee" name="committee" maxlength="120" value="{{ old('committee', $application->hearings->last()?->committee) }}"
+                                           placeholder="e.g. Committee on Social Services"
+                                           class="field-input @error('committee') field-input-error @enderror">
+                                    @error('committee')<p class="field-error">{{ $message }}</p>@enderror
+                                </div>
+
+                                <fieldset>
+                                    <legend class="field-label">Outcome</legend>
+                                    <div class="space-y-2">
+                                        @foreach (\App\Models\ApplicationHearing::OUTCOMES as $value => [$label, $meaning])
+                                            <label class="flex items-start gap-2 text-sm">
+                                                <input type="radio" name="outcome" value="{{ $value }}" @checked(old('outcome', 'favorable') === $value) required
+                                                       class="mt-hair h-4 w-4 shrink-0 border-line-strong text-primary">
+                                                <span><span class="font-semibold text-ink">{{ $label }}</span> <span class="text-muted">{{ $meaning }}</span></span>
+                                            </label>
+                                        @endforeach
+                                    </div>
+                                    @error('outcome')<p class="field-error">{{ $message }}</p>@enderror
+                                </fieldset>
+
+                                <div>
+                                    <label for="remarks" class="field-label">Remarks for the organization</label>
+                                    <textarea id="remarks" name="remarks" rows="3" maxlength="2000" required
+                                              placeholder="What the committee said, questions raised, and anything the organization should do"
+                                              @error('remarks') aria-invalid="true" aria-describedby="remarks-error" @enderror
+                                              class="field-input @error('remarks') field-input-error @enderror">{{ old('remarks') }}</textarea>
+                                    <p class="field-hint">Sent to the organization by email and in their notifications.</p>
+                                    @error('remarks')<p id="remarks-error" class="field-error">{{ $message }}</p>@enderror
+                                </div>
+
+                                <button type="submit" class="btn-secondary w-full">
+                                    <x-phosphor-paper-plane-tilt class="h-4 w-4" aria-hidden="true" />Record hearing and notify
+                                </button>
+                            </form>
+
+                            @if ($application->hearings->isNotEmpty())
+                                <form method="POST" action="{{ route('admin.applications.hearing.undo', $application) }}" class="mt-3">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="btn-ghost btn-sm">Undo the last hearing record</button>
+                                    <p class="field-hint">For a mistake. Removes it; the organization is not notified.</p>
+                                </form>
+                            @endif
 
                             <form method="POST" action="{{ route('admin.applications.approve', $application) }}" class="mt-6 border-t border-line pt-6">
                                 @csrf
-                                <button type="submit" class="btn-primary w-full">Approve application</button>
-                                <p class="field-hint">Issues an accreditation valid for three years and lists the organization in the public directory.</p>
+                                <label for="expires_at" class="field-label">Accreditation valid until</label>
+                                <input type="date" id="expires_at" name="expires_at" required
+                                       value="{{ old('expires_at', now()->addYears($application->validityYears())->toDateString()) }}"
+                                       min="{{ now()->addDay()->toDateString() }}" max="{{ now()->addYears(10)->toDateString() }}"
+                                       @disabled(! $ready)
+                                       class="field-input mb-3 @error('expires_at') field-input-error @enderror">
+                                @error('expires_at')<p class="field-error mb-3">{{ $message }}</p>@enderror
+                                <button type="submit" class="btn-primary w-full" @disabled(! $ready)>Approve application</button>
+                                <p class="field-hint">
+                                    @if ($ready)
+                                        Issues the accreditation until the date above
+                                        ({{ $application->fee_waived ? 'three years: filed free' : 'one year: the fee applied, renewed yearly' }}),
+                                        with its reference code, and lists the organization in the public directory.
+                                    @else
+                                        Opens once the committee hearing is favorable.
+                                    @endif
+                                </p>
                             </form>
 
-                            <form method="POST" action="{{ route('admin.applications.reject', $application) }}" class="mt-6 border-t border-line pt-6">
-                                @csrf
-                                <label for="rejection_reason" class="field-label">Reason for rejection</label>
-                                <textarea id="rejection_reason" name="rejection_reason" rows="2"
-                                          class="field-input @error('rejection_reason') field-input-error @enderror"
-                                          @error('rejection_reason') aria-invalid="true" aria-describedby="rejection_reason-error" @enderror
-                                          placeholder="What the organization needs to correct">{{ old('rejection_reason') }}</textarea>
-                                @error('rejection_reason')
-                                    <p id="rejection_reason-error" class="field-error">{{ $message }}</p>
-                                @enderror
-                                <button type="submit" class="btn-danger mt-3 w-full">Reject application</button>
-                            </form>
+                            @include('admin.applications.reject-form')
                         </div>
                     </section>
                 @else

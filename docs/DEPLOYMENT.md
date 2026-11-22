@@ -43,7 +43,8 @@ zip, xml, curl and bcmath; MySQL 8 or MariaDB 10.4+; HTTPS; Apache with mod_rewr
 3. Walk through the main flow in a browser on a fresh copy (`php artisan migrate:fresh --seed`):
    - CSO: register, file an application with documents, log an activity with a sign-in sheet,
      edit it, withdraw one.
-   - Admin: move the application through the SB readings and approve it; verify one activity,
+   - Admin: approve the form, validate the requirements and forward them to the committee, record
+     a Deferred then a Favorable hearing, and approve it; verify one activity,
      reject one (and try Undo); write and publish a post; register an organization with a login;
      reset a representative's password; download both Excel files; merge and delete a test
      organization.
@@ -99,12 +100,15 @@ ssh -p 65002 uXXXXXXX@your-server-ip
 cd ~/domains/your-domain.me
 git clone https://github.com/codew-kicha/Lingayen-CivicLink.git app
 cd app
-composer install --no-dev --optimize-autoloader
+# Hostinger's PHP blocks proc_open, which Composer's post-install script needs: skip the scripts
+# and run Laravel's one step (package discovery) directly.
+composer install --no-dev --optimize-autoloader --no-scripts
+php artisan package:discover --ansi
 cp .env.production.example .env && nano .env      # APP_URL=https://your-domain.me, database, mail
 php artisan key:generate
 php artisan migrate --force
 php artisan app:create-admin
-php artisan storage:link
+php artisan storage:link   # if symlink() is disabled: ln -s "$PWD/storage/app/public" "$PWD/public/storage"
 php artisan config:cache && php artisan route:cache && php artisan view:cache
 # Serve only public/: replace the empty public_html with a link to it.
 cd .. && mv public_html public_html.bak && ln -s app/public public_html
@@ -120,7 +124,8 @@ project's root `.htaccess` keeps everything except `public/` unreachable).
 
 ```bash
 cd ~/domains/your-domain.me/app && git pull
-composer install --no-dev --optimize-autoloader && php artisan migrate --force
+composer install --no-dev --optimize-autoloader --no-scripts && php artisan package:discover --ansi
+php artisan migrate --force
 php artisan config:cache && php artisan route:cache && php artisan view:cache
 ```
 
@@ -172,6 +177,10 @@ Upload `public/build` from your computer (or install Node on the server and run 
 - **Firewall:** allow only SSH, 80 and 443. MySQL must listen on 127.0.0.1 only.
 - After every code update: `git pull`, `composer install --no-dev -o`, `php artisan migrate --force`,
   then the three cache commands again.
+- After the update that adds activity photos and the confidence score (migration
+  `2026_11_18_150000`): run `php artisan activities:recheck` once, so activities already waiting get
+  a score. It needs PHP's `gd` and `exif` extensions (both on by default on Hostinger); without
+  them the photo checks are skipped and the rest still run.
 
 ---
 
@@ -212,6 +221,13 @@ re-open System check: the Demo data warning is gone.
 ---
 
 ## 6. After going live
+
+- **AI reading of sign-in sheets (optional):** off by default. To switch it on, add to `.env`
+  `ANTHROPIC_API_KEY=<key from console.anthropic.com>` and `AI_SHEET_READER=true` (optionally
+  `AI_SHEET_MODEL=claude-haiku-5-5`, the default), then `php artisan config:cache`. Load a small
+  prepaid credit in the Anthropic Console; Claude Haiku 5.5 costs about USD 0.0004 a sheet. The
+  office must approve sending sign-in sheets to an outside service first
+  (`docs/CLIENT_CONFIRMATIONS.md`, item 4). Without it, the free checks still run.
 
 - **Backups, weekly:** export the database (phpMyAdmin or `mysqldump`) and download
   `storage/app` (uploaded documents and sign-in sheets). Keep a copy off the server.

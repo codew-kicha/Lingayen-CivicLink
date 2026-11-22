@@ -3,6 +3,7 @@
     'param' => 'status',     // query key the chips set
     'search' => 'Search',    // accessible label and placeholder for the search box
     'counts' => [],          // optional [value => number] shown after a chip's label
+    'keep' => [],            // other query keys (e.g. sort, dates) that chips and search carry along
 ])
 
 {{--
@@ -13,6 +14,7 @@
     $current = (string) request($param, '');
     $current = array_key_exists($current, $chips) ? $current : array_key_first($chips);
     $query = request()->string('q')->trim()->value();
+    $kept = array_filter(request()->only($keep), fn ($v) => is_string($v) && $v !== '');
 @endphp
 
 <div {{ $attributes->merge(['class' => 'mb-4 flex flex-wrap items-center gap-3']) }}>
@@ -23,11 +25,14 @@
         @if ($current !== '')
             <input type="hidden" name="{{ $param }}" value="{{ $current }}">
         @endif
+        @foreach ($kept as $key => $value)
+            <input type="hidden" name="{{ $key }}" value="{{ $value }}">
+        @endforeach
     </form>
 
     <nav aria-label="Filter" class="flex flex-wrap gap-2">
         @foreach ($chips as $value => $label)
-            <a href="{{ url()->current().(($link = http_build_query(array_filter([$param => $value, 'q' => $query], 'strlen'))) ? '?'.$link : '') }}"
+            <a href="{{ url()->current().(($link = http_build_query(array_filter([$param => $value, 'q' => $query] + $kept, 'strlen'))) ? '?'.$link : '') }}"
                @if ((string) $value === $current) aria-current="page" @endif
                class="filter-chip">
                 {{ $label }}

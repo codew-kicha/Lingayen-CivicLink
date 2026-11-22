@@ -24,6 +24,8 @@ class StoreApplicationRequest extends FormRequest
     {
         return [
             'type' => ['required', Rule::in(['new', 'renewal'])],
+            // Filed within a free period (or waived by the office): no official receipt.
+            'fee_waived' => ['boolean'],
 
             'documents' => ['required', 'array'],
             'documents.*' => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120'],
@@ -38,6 +40,7 @@ class StoreApplicationRequest extends FormRequest
             ->mapWithKeys(fn (array $type, string $key) => [
                 "documents.{$key}" => [
                     ...(! empty($type['new_only']) ? ['exclude_unless:type,new'] : []),
+                    ...($key === 'fee_receipt' ? ['exclude_if:fee_waived,1'] : []),
                     $type['optional'] ? 'nullable' : 'required', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:5120',
                 ],
             ])

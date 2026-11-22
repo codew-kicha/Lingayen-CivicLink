@@ -22,9 +22,12 @@
                 </div>
                 @if ($accreditation)
                     <div class="col-span-2 flex flex-wrap items-center gap-x-3 gap-y-1 sm:col-span-1 sm:block sm:text-right">
-                        <x-status-badge :status="$accreditation->status" />
+                        <span class="inline-flex items-center gap-tight rounded-sm border border-success/40 bg-success-subtle px-2 py-1 text-sm font-semibold text-success">
+                            <x-phosphor-seal-check class="h-4 w-4" aria-hidden="true" />Accredited
+                        </span>
                         <p class="text-sm text-muted sm:mt-2">
-                            Accredited until <span class="tabular-nums">{{ $accreditation->expires_at->format('d M Y') }}</span>
+                            Since <span class="tabular-nums">{{ $accreditation->issued_at?->format('d M Y') }}</span><br class="hidden sm:inline">
+                            <span class="sm:hidden">·</span> until <span class="tabular-nums">{{ $accreditation->expires_at->format('d M Y') }}</span>
                         </p>
                     </div>
                 @endif
@@ -46,12 +49,24 @@
                     </dd>
                 </div>
                 <div class="py-4 pl-4">
-                    <dt class="text-xs text-muted sm:text-sm">Logging since</dt>
+                    <dt class="text-xs text-muted sm:text-sm">First activity</dt>
                     <dd class="mt-1 text-xl font-semibold tabular-nums text-brand-800">
                         {{ $ledger['since'] ? \Illuminate\Support\Carbon::parse($ledger['since'])->format('M Y') : 'Not yet' }}
                     </dd>
                 </div>
             </dl>
+
+            {{-- The last 24 months, month by month: steady work and quiet stretches both show. --}}
+            <section class="mt-8" aria-labelledby="months-title">
+                <div class="flex flex-wrap items-baseline gap-x-4 gap-y-2">
+                    <h2 id="months-title" class="text-sm font-semibold text-ink">Verified activity, last 24 months</h2>
+                    <x-source-legend class="sm:ml-auto" with-unknown />
+                </div>
+                <div class="mt-3">
+                    <x-source-columns :series="$timeline['months']" height="5rem"
+                                      :label="'Verified activities per month for '.$organization->name" />
+                </div>
+            </section>
         </div>
     </div>
 
@@ -59,7 +74,7 @@
         @if ($organization->advocacy)
             <section>
                 <h2 class="font-serif text-xl font-bold text-brand-900">Advocacy</h2>
-                <p class="mt-3 max-w-[68ch] text-muted">{{ $organization->advocacy }}</p>
+                <p class="mt-3 max-w-[58ch] text-muted">{{ $organization->advocacy }}</p>
             </section>
         @endif
 
@@ -80,7 +95,7 @@
             @else
                 <ol class="mt-6">
                     @foreach ($activities as $activity)
-                        <li class="reveal grid gap-x-6 gap-y-1 border-b border-line py-4 sm:grid-cols-[7rem_minmax(0,1fr)]">
+                        <li class="grid gap-x-6 gap-y-1 border-b border-line py-4 sm:grid-cols-[7rem_minmax(0,1fr)]">
                             <p class="text-sm tabular-nums text-muted">
                                 <time datetime="{{ $activity->activity_date->toDateString() }}">
                                     {{ $activity->activity_date->format('d M Y') }}
@@ -88,7 +103,7 @@
                             </p>
                             <div>
                                 <h3 class="font-semibold text-ink">{{ $activity->title }}</h3>
-                                <p class="mt-1 max-w-[68ch] text-sm text-muted">{{ $activity->description }}</p>
+                                <p class="mt-1 max-w-[58ch] text-sm text-muted">{{ $activity->description }}</p>
                                 @php
                                     $others = $activity->partnerOrganizations->prepend($activity->organization)
                                         ->reject(fn ($org) => $org->id === $organization->id);

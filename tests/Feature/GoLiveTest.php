@@ -29,6 +29,18 @@ class GoLiveTest extends TestCase
         }
     }
 
+    public function test_a_host_patched_php_passes_only_when_declared_and_says_so(): void
+    {
+        $this->assertSame('fail', GoLiveChecks::php('8.3.35')['status']);
+
+        $declared = GoLiveChecks::php('8.3.35', patchedByHost: true);
+        $this->assertSame('pass', $declared['status']);
+        $this->assertStringContainsString('PHP_PATCHED_BY_HOST', $declared['detail']);
+
+        // Unsupported branches never pass, whatever the host says.
+        $this->assertSame('fail', GoLiveChecks::php('8.1.30', patchedByHost: true)['status']);
+    }
+
     public function test_debug_mode_insecure_urls_and_demo_accounts_fail(): void
     {
         config(['app.debug' => true, 'app.url' => 'http://example.gov.ph']);

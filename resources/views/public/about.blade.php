@@ -27,9 +27,9 @@
 
     <div class="mx-auto grid max-w-7xl gap-12 px-4 py-12 sm:px-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] lg:px-8 lg:py-section">
         <div class="space-y-section">
-            <section class="reveal">
-                <h2 class="section-title">Why this exists</h2>
-                <div class="mt-4 max-w-[68ch] space-y-4 leading-relaxed text-muted">
+            <section id="why" class="scroll-mt-28" aria-labelledby="why-title">
+                <h2 id="why-title" class="section-title">Why this exists</h2>
+                <div class="mt-4 max-w-[58ch] space-y-4 leading-relaxed text-muted">
                     <p>
                         Accreditation in Lingayen has run on physical visits, printed forms, a logbook at the Sangguniang
                         Bayan Secretariat, and phone calls to ask where an application stands. Records go missing, applicants
@@ -53,9 +53,9 @@
                 </div>
             </section>
 
-            <section class="reveal" aria-labelledby="what-title">
+            <section id="what" class="scroll-mt-28" aria-labelledby="what-title">
                 <h2 id="what-title" class="section-title">What civil society organizations are</h2>
-                <p class="mt-4 max-w-[68ch] leading-relaxed text-muted">
+                <p class="mt-4 max-w-[58ch] leading-relaxed text-muted">
                     The DILG guidelines define a civil society organization as "a non-state and non-profit association that
                     works to improve society and the human condition." In Lingayen that includes:
                 </p>
@@ -74,9 +74,9 @@
                 </ul>
             </section>
 
-            <section class="reveal" aria-labelledby="purpose-title">
+            <section id="purpose" class="scroll-mt-28" aria-labelledby="purpose-title">
                 <h2 id="purpose-title" class="section-title">Their purpose in local governance</h2>
-                <p class="mt-4 max-w-[68ch] leading-relaxed text-muted">
+                <p class="mt-4 max-w-[58ch] leading-relaxed text-muted">
                     CSOs bring residents' needs into government decisions and carry programs into the barangays. The law
                     gives them that role in so many words:
                 </p>
@@ -96,7 +96,7 @@
                         <figcaption class="mt-2 text-sm font-semibold text-muted">Local Government Code of 1991, Section 34</figcaption>
                     </figure>
                 </div>
-                <p class="mt-8 max-w-[68ch] leading-relaxed text-muted">
+                <p class="mt-8 max-w-[58ch] leading-relaxed text-muted">
                     Under the same Code, the municipality may work with CSOs through joint ventures and cooperative
                     arrangements (Section 35) and may assist their economic, social, environmental and cultural projects, with
                     the Sanggunian's concurrence (Section 36). Accredited CSOs sit on the municipality's Local Special Bodies:
@@ -111,7 +111,7 @@
                 </dl>
             </section>
 
-            <section aria-labelledby="history-title">
+            <section id="history" class="scroll-mt-28" aria-labelledby="history-title">
                 <h2 id="history-title" class="section-title reveal">How this came to be</h2>
                 <ol class="relative mt-8">
                     <span class="reveal-line reveal-line-y absolute bottom-6 left-[4.5rem] top-2 hidden w-px bg-line-strong sm:block" aria-hidden="true"></span>
@@ -128,9 +128,9 @@
                 </ol>
             </section>
 
-            <section class="reveal" aria-labelledby="office-title">
+            <section id="office" class="scroll-mt-28" aria-labelledby="office-title">
                 <h2 id="office-title" class="section-title">Lingayen and the Civil Society Desk Office</h2>
-                <div class="mt-4 max-w-[68ch] space-y-4 leading-relaxed text-muted">
+                <div class="mt-4 max-w-[58ch] space-y-4 leading-relaxed text-muted">
                     <p>
                         Lingayen is the capital of Pangasinan, with 32 barangays. Its Civil Society Desk Office works within the
                         Public Employment Service Office, which every municipality maintains under the PESO Act (RA 8759, as
@@ -143,8 +143,8 @@
                 </div>
             </section>
 
-            <section class="reveal">
-                <h2 class="section-title">Office officials</h2>
+            <section id="officials" class="scroll-mt-28" aria-labelledby="officials-title">
+                <h2 id="officials-title" class="section-title">Office officials</h2>
                 <ul class="mt-6 divide-y divide-line border-y border-line">
                     @foreach ($officials as $official)
                         <li class="flex flex-wrap items-baseline gap-x-4 gap-y-1 py-3">
@@ -156,43 +156,46 @@
             </section>
         </div>
 
-        <aside class="reveal panel h-fit p-6 lg:sticky lg:top-24">
-            <h2 class="card-title">Office details</h2>
-            <dl class="mt-4 space-y-4 text-sm">
-                <div>
-                    <dt class="text-muted">Office</dt>
-                    <dd class="mt-1 text-ink">{{ config('office.office.name') }}</dd>
-                    <dd class="text-muted">{{ config('office.office.parent') }}</dd>
-                </div>
-                <div>
-                    <dt class="text-muted">Address</dt>
-                    <dd class="mt-1 text-ink">{{ config('office.office.address') }}</dd>
-                </div>
-                <div>
-                    <dt class="text-muted">Phone</dt>
-                    <dd class="mt-1">
-                        <a href="tel:{{ config('office.office.phone_link') }}" class="tabular-nums text-brand-700 hover:underline">{{ config('office.office.phone') }}</a>
-                    </dd>
-                </div>
-                <div>
-                    <dt class="text-muted">Email</dt>
-                    <dd class="mt-1">
-                        <a href="mailto:{{ config('office.office.email') }}" class="break-all text-brand-700 hover:underline">{{ config('office.office.email') }}</a>
-                    </dd>
-                </div>
-                <div>
-                    <dt class="text-muted">Office hours</dt>
-                    <dd class="mt-1 text-ink">{{ config('office.office.hours') }}</dd>
-                </div>
-                <div>
-                    <dt class="text-muted">Facebook</dt>
-                    <dd class="mt-1">
-                        <a href="{{ config('office.office.facebook') }}" rel="noopener" target="_blank"
-                           class="text-brand-700 hover:underline">facebook.com/pesolingayen</a>
-                    </dd>
-                </div>
-            </dl>
-            <a href="{{ route('contact') }}" class="btn-secondary mt-6 w-full">Contact the office</a>
+        {{--
+            The rail follows the reader: where they are on this long page (the current section lights up as
+            it scrolls into view), then how to reach the office.
+        --}}
+        <aside class="h-fit space-y-6 lg:sticky lg:top-24" x-data="scrollSpy(['why', 'what', 'purpose', 'history', 'office', 'officials'])">
+            <nav aria-label="On this page" class="hidden lg:block">
+                <p class="text-sm font-semibold text-ink">On this page</p>
+                <ul class="mt-3 border-l border-line text-sm">
+                    @foreach ([
+                        'why' => 'Why this exists',
+                        'what' => 'What civil society organizations are',
+                        'purpose' => 'Their purpose in local governance',
+                        'history' => 'How this came to be',
+                        'office' => 'Lingayen and the Desk Office',
+                        'officials' => 'Office officials',
+                    ] as $id => $label)
+                        <li>
+                            <a href="#{{ $id }}" :aria-current="current === '{{ $id }}' ? 'true' : null"
+                               class="ml-2 flex min-h-9 items-center rounded-sm px-3 text-muted transition-colors duration-fast hover:bg-brand-50 hover:text-brand-800
+                                      aria-[current=true]:bg-brand-50 aria-[current=true]:font-semibold aria-[current=true]:text-brand-900">{{ $label }}</a>
+                        </li>
+                    @endforeach
+                </ul>
+            </nav>
+
+            <section class="rounded-lg bg-brand-900 p-6 text-brand-100" aria-labelledby="office-details-title">
+                <h2 id="office-details-title" class="font-serif text-xl font-bold text-paper">{{ config('office.office.name') }}</h2>
+                <p class="mt-1 text-sm">{{ config('office.office.parent') }}</p>
+                <ul class="mt-4 space-y-3 text-sm">
+                    <li class="flex gap-3"><x-phosphor-map-pin class="mt-hair h-5 w-5 shrink-0 text-accent-400" aria-hidden="true" /><span>{{ config('office.office.address') }}</span></li>
+                    <li class="flex gap-3"><x-phosphor-clock class="mt-hair h-5 w-5 shrink-0 text-accent-400" aria-hidden="true" /><span>{{ config('office.office.hours') }}</span></li>
+                    <li class="flex gap-3"><x-phosphor-phone class="mt-hair h-5 w-5 shrink-0 text-accent-400" aria-hidden="true" />
+                        <a href="tel:{{ config('office.office.phone_link') }}" class="tabular-nums text-paper underline-offset-4 hover:underline">{{ config('office.office.phone') }}</a></li>
+                    <li class="flex gap-3"><x-phosphor-envelope-simple class="mt-hair h-5 w-5 shrink-0 text-accent-400" aria-hidden="true" />
+                        <a href="mailto:{{ config('office.office.email') }}" class="break-all text-paper underline-offset-4 hover:underline">{{ config('office.office.email') }}</a></li>
+                    <li class="flex gap-3"><x-phosphor-facebook-logo class="mt-hair h-5 w-5 shrink-0 text-accent-400" aria-hidden="true" />
+                        <a href="{{ config('office.office.facebook') }}" rel="noopener" target="_blank" class="text-paper underline-offset-4 hover:underline">facebook.com/pesolingayen</a></li>
+                </ul>
+                <a href="{{ route('contact') }}" class="btn-accent mt-6 w-full">Contact the office</a>
+            </section>
         </aside>
     </div>
 </x-layouts.public>

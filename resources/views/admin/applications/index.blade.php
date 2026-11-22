@@ -11,7 +11,7 @@
     </x-slot:actions>
 
     <x-filter-bar search="Search organization or barangay"
-                  :chips="['' => 'All', 'review' => 'Under review', 'approved' => 'Approved', 'rejected' => 'Rejected']" />
+                  :chips="['' => 'All', 'review' => 'To review', 'requirements' => 'Waiting for requirements', 'hearing' => 'For hearing', 'approved' => 'Approved', 'rejected' => 'Rejected']" />
 
     @php $filtered = request()->filled('status') || request()->filled('q'); @endphp
 
@@ -54,7 +54,7 @@
                                 </td>
                                 <td class="table-cell whitespace-nowrap">
                                     <x-status-badge :status="$application->status" />
-                                    <p class="mt-1 text-sm text-muted">SB: {{ $application->sb_stage === 'not_endorsed' ? 'Not endorsed yet' : Str::headline($application->sb_stage) }}</p>
+                                    <p class="mt-1 text-sm text-muted">{{ $application->phaseNote() }}</p>
                                 </td>
                                 <td class="table-date" data-label="Filed">{{ $application->submitted_at?->format('d M Y') ?? 'Not filed' }}</td>
                                 <td class="table-cell stack-hide text-right text-muted">

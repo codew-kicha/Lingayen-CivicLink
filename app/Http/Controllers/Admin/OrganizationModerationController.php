@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Admin;
 
 use App\Exports\OrganizationList;
 use App\Http\Controllers\Controller;
-use App\Support\Mailer;
 use App\Http\Requests\Admin\ConfirmedOrganizationRequest;
 use App\Http\Requests\Admin\InviteAccountRequest;
 use App\Http\Requests\Admin\ManageOrganizationRequest;
@@ -17,6 +16,7 @@ use App\Notifications\AccreditationExpiring;
 use App\Services\OrganizationRecords;
 use App\Services\ReportData;
 use App\Support\ListPagination;
+use App\Support\Mailer;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -40,8 +40,7 @@ class OrganizationModerationController extends Controller
                 ->when($request->input('account') === 'none', fn ($q) => $q->whereNull('user_id'))
                 ->when($request->input('status') === 'inactive', fn ($q) => $q->inactive())
                 // Same window as the dashboard's "Expiring within 90 days" tile.
-                ->when($request->input('status') === 'expiring', fn ($q) => $q->whereHas('accreditations', fn ($a) => $a
-                    ->where('status', 'active')->whereBetween('expires_at', [now(), now()->addDays(90)])))
+                ->when($request->input('status') === 'expiring', fn ($q) => $q->whereHas('accreditations', fn ($a) => $a->expiringWithin(90)))
                 // Same definition and period as the analytics at-risk list and its Excel sheet.
                 ->when($request->input('status') === 'at-risk', fn ($q) => $q->whereKey(ReportData::fromRequest($request)->atRisk()->pluck('id')))
                 ->orderBy('name'),
@@ -123,7 +122,10 @@ class OrganizationModerationController extends Controller
 
             if ($request->validated('rep_email')) {
                 $user = User::create([
-                    'name' => $request->validated('rep_name'),
+                    'last_name' => $request->validated('rep_last_name'),
+                    'first_name' => $request->validated('rep_first_name'),
+                    'middle_name' => $request->validated('rep_middle_name'),
+                    'suffix' => $request->validated('rep_suffix'),
                     'email' => $request->validated('rep_email'),
                     'phone' => $request->validated('rep_phone'),
                     'role' => 'cso_rep',
@@ -156,12 +158,13 @@ class OrganizationModerationController extends Controller
             'sectors' => config('sectors'),
             'barangays' => config('barangays'),
             'timeline' => ReportData::timeline($organization),
-            // For the File an application dialog.
+            // For the File an application and Log an activity dialogs.
             'documentTypes' => config('document_types'),
+            'partnerOptions' => Organization::partnerOptions($organization),
             'lastReminder' => AuditLog::where('action', 'accreditation.reminder_sent')
                 ->where('subject_type', 'Organization')->where('subject_id', $organization->id)
                 ->latest('created_at')->value('created_at'),
-            'hasActiveAccreditation' => $organization->accreditations->contains('status', 'active'),
+            'hasBeenAccredited' => $organization->accreditations->whereIn('status', ['active', 'expired'])->isNotEmpty(),
             // For the Delete and Merge dialogs.
             'footprint' => OrganizationRecords::footprint($organization),
             'mergeOptions' => Organization::whereKeyNot($organization->id)->orderBy('name')->get(['id', 'name', 'barangay'])
@@ -256,6 +259,34 @@ class OrganizationModerationController extends Controller
         ]);
 
         return back()->with('status', "Accreditation {$accreditation->verification_code} has been revoked.");
+    }
+
+    // Sets a new expiry date for the active accreditation (e.g. the SB extended or shortened it).
+    // Ending it now is a revocation, so the date must be in the future. Audited with the old date.
+    public function updateExpiry(Request $request, Organization $organization): RedirectResponse
+    {
+        $this->authorize('manage', Organization::class);
+
+        $accreditation = $organization->accreditations()->where('status', 'active')->firstOrFail();
+        $data = $request->validate([
+            'expires_at' => ['required', 'date', 'after:today', 'before:'.now()->addYears(10)->toDateString()],
+            'expiry_reason' => ['nullable', 'string', 'max:500'],
+        ], [
+            'expires_at.after' => 'Choose a date after today. To end the accreditation now, revoke it instead.',
+            'expires_at.before' => 'Choose an expiry date within ten years.',
+        ]);
+
+        $from = $accreditation->expires_at->toDateString();
+        $accreditation->update(['expires_at' => $data['expires_at']]);
+
+        AuditLog::record('accreditation.expiry_changed', $organization, array_filter([
+            'verification_code' => $accreditation->verification_code,
+            'from' => $from,
+            'to' => $accreditation->expires_at->toDateString(),
+            'reason' => $data['expiry_reason'] ?? null,
+        ]));
+
+        return back()->with('status', "Accreditation {$accreditation->verification_code} now runs until {$accreditation->expires_at->format('d M Y')}.");
     }
 
     public function toggleVisibility(Organization $organization): RedirectResponse

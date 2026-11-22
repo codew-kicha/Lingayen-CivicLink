@@ -45,6 +45,23 @@ class ReportData
         return new self(max($from, $to->copy()->subYears(5)->startOfMonth()), $to);
     }
 
+    /**
+     * The same dates a year earlier, for the "compared with" figures on the page: this year so far
+     * against the same months last year, March against last March. Community work is seasonal
+     * (fiestas, typhoon season, school breaks), so this is fairer than the days just before.
+     * Periods longer than a year go back by whole years so the two never overlap.
+     */
+    public function previous(): self
+    {
+        return new self($this->from->copy()->subYearsNoOverflow($this->yearsBack()), $this->to->copy()->subYearsNoOverflow($this->yearsBack()));
+    }
+
+    /** How many years back previous() looks: one, or more for periods longer than a year. */
+    public function yearsBack(): int
+    {
+        return max(1, (int) ceil($this->from->diffInDays($this->to) / 366));
+    }
+
     public function periodLabel(): string
     {
         return $this->from->format('j M Y').' to '.$this->to->format('j M Y');
@@ -79,7 +96,147 @@ class ReportData
             'independent' => (int) ($sources['independent'] ?? 0),
             'lguOrganized' => (int) ($sources['lgu_organized'] ?? 0),
             'selfInitiatedRatio' => self::ratio((int) ($sources['independent'] ?? 0), (int) ($sources['lgu_organized'] ?? 0)),
+            'unknownSource' => (int) $sources->sum() - (int) ($sources['independent'] ?? 0) - (int) ($sources['lgu_organized'] ?? 0),
+            // Organizations credited (as lead or partner) with at least one verified activity in the period.
+            'activeOrganizations' => $this->organizationRows()->where('verified', '>', 0)->count(),
+            // config('metrics.participation_rate'): today's accredited organizations that did verified work.
+            'activeAccredited' => $active = $this->organizationRows()->where('accredited', true)->where('verified', '>', 0)->count(),
+            'participationRate' => ($accredited = $this->organizationRows()->where('accredited', true)->count())
+                ? round($active / $accredited, 3) : null,
+            ...$this->decisions(),
         ];
+    }
+
+    /** config('metrics.accreditation_rate'): the office's final decisions dated in the period. */
+    private function decisions(): array
+    {
+        $decided = ApplicationModel::whereIn('status', ['approved', 'rejected'])
+            ->whereBetween('reviewed_at', [$this->from, $this->to])
+            ->selectRaw('status, count(*) as total')->groupBy('status')->pluck('total', 'status');
+        $approved = (int) ($decided['approved'] ?? 0);
+        $rejected = (int) ($decided['rejected'] ?? 0);
+
+        return [
+            'approvedDecisions' => $approved,
+            'rejectedDecisions' => $rejected,
+            'accreditationRate' => $approved + $rejected ? round($approved / ($approved + $rejected), 3) : null,
+        ];
+    }
+
+    /**
+     * One plain-language sentence per chart (pre-final defense panel: say what the numbers mean, not
+     * just show them). Computed from the same figures the charts draw, so they always agree.
+     *
+     * @return array<string, string>
+     */
+    public function insights(): array
+    {
+        $trend = $this->activityTrend();
+        $months = max($trend->count(), 1);
+        $total = $trend->sum('total');
+        $busiest = $trend->sortByDesc('total')->first();
+        $quietMonths = $trend->where('total', 0)->count();
+        $reachTop = $trend->sortByDesc('reach')->first();
+        $percent = fn (float $share) => round($share * 100).'%';
+
+        $insights['volume'] = $total === 0
+            ? 'No verified activity in this period.'
+            : sprintf('Busiest month: %s with %d, %s the monthly average of %s.%s',
+                $busiest['label'], $busiest['total'],
+                $busiest['total'] >= 2 * ($total / $months) ? round($busiest['total'] / ($total / $months), 1).'×' : 'above',
+                round($total / $months, 1),
+                $quietMonths ? " {$quietMonths} of {$months} months had none." : ' Every month had at least one.');
+        $insights['reach'] = $reachTop && $reachTop['reach'] > 0
+            ? sprintf('Most residents reached in %s: %s, %s of the period\'s total.', $reachTop['label'], number_format($reachTop['reach']),
+                $percent($reachTop['reach'] / max($trend->sum('reach'), 1)))
+            : 'No residents reached in this period.';
+
+        $sectors = $this->sectorComparison();
+        $rated = $sectors->whereNotNull('ratio')->sortByDesc('ratio');
+        $unrated = $sectors->whereNull('ratio')->count();
+        $insights['sectors'] = $rated->count() >= 2
+            ? sprintf('%s runs most of its own work (%s self-initiated); %s relies most on LGU events (%s).%s',
+                $rated->first()['sector'], $percent($rated->first()['ratio']), $rated->last()['sector'], $percent($rated->last()['ratio']),
+                $unrated ? " {$unrated} ".($unrated === 1 ? 'sector has' : 'sectors have').' too few activities to compare.' : '')
+            : 'Too few activities with a known organizer to compare sectors yet.';
+
+        $barangays = $this->barangayBreakdown();
+        $none = $barangays->where('activities', 0);
+        $top = $barangays->first();
+        $insights['barangays'] = ($top['activities'] ?? 0) > 0
+            ? sprintf('%s leads with %d (%s of all verified activity). %d of %d barangays had none%s.',
+                $top['barangay'], $top['activities'], $percent($top['activities'] / max($barangays->sum('activities'), 1)),
+                $none->count(), $barangays->count(),
+                $none->isNotEmpty() ? ', for example '.$none->take(3)->pluck('barangay')->join(', ', ' and ') : '')
+            : 'No verified activity in any barangay in this period.';
+
+        $summary = $this->summary();
+        $compliance = $this->complianceTrend();
+        $insights['applications'] = sprintf('%d filed and %d approved in this period. %s',
+            $compliance->sum('filed'), $compliance->sum('approved'),
+            $summary['accreditationRate'] === null
+                ? 'No application was decided, so there is no accreditation rate yet.'
+                : sprintf('Accreditation rate %s: %d approved of %d decided.', $percent($summary['accreditationRate']),
+                    $summary['approvedDecisions'], $summary['approvedDecisions'] + $summary['rejectedDecisions']));
+
+        $atRisk = $this->atRisk();
+        $accredited = $this->organizationRows()->where('accredited', true)->count();
+        $reason = $atRisk->flatMap(fn ($row) => array_map(fn ($r) => preg_replace('/ \(.*\)$/', '', $r), $row['reasons']))->countBy()->sortDesc();
+        $insights['at_risk'] = $atRisk->isEmpty()
+            ? 'No accredited organization is at risk in this period.'
+            : sprintf('%d of %d accredited organizations (%s) need a follow-up. Most common reason: %s (%d).',
+                $atRisk->count(), $accredited, $percent($atRisk->count() / max($accredited, 1)), lcfirst($reason->keys()->first()), $reason->first());
+
+        $busy = $sectors->where('accredited', '>', 0)->sortByDesc('perOrganization');
+        $insights['comparison'] = $busy->isNotEmpty() && $busy->first()['perOrganization'] > 0
+            ? sprintf('%s is the most active per organization (%s activities each)%s.', $busy->first()['sector'], $busy->first()['perOrganization'],
+                $busy->count() > 1 ? sprintf('; %s the least (%s)', $busy->last()['sector'], $busy->last()['perOrganization']) : '')
+            : 'No sector has verified activity in this period yet.';
+
+        $leaders = $this->topContributors();
+        $insights['contributors'] = $leaders->isNotEmpty() && $total > 0
+            ? sprintf('These %d organizations were credited with %s of the period\'s verified activities (partner credits count for each partner).',
+                $leaders->count(), $percent(min($leaders->sum('verified') / $total, 1)))
+            : 'No verified activities in this period.';
+
+        return $insights;
+    }
+
+    /**
+     * The details behind the summary figures on the page: what is waiting, what is expiring, the
+     * busiest month and the largest activity, so a number never stands alone.
+     */
+    public function highlights(): array
+    {
+        $rows = $this->organizationRows();
+        $largest = $this->verifiedInPeriod()->with('organization:id,name')
+            ->orderByDesc('participants_estimate')->orderByDesc('activity_date')->first();
+        $busiest = $this->activityTrend()->sortByDesc('total')->first();
+
+        return [
+            'pendingActivities' => Activity::where('status', 'pending')->count(),
+            'expiring' => $rows->filter(fn ($r) => $r['accredited'] && $r['accreditedUntil']?->lte(now()->addDays(90)))
+                ->sortBy(fn ($r) => $r['accreditedUntil'])->values(),
+            'notAccredited' => $rows->where('accredited', false)->count(),
+            'quiet' => $rows->filter(fn ($r) => $r['accredited'] && $r['verified'] === 0)->values(),
+            'busiestMonth' => ($busiest['total'] ?? 0) > 0 ? $busiest : null,
+            'largestActivity' => $largest,
+            'topReach' => $rows->where('reach', '>', 0)->sortByDesc('reach')->take(3)->values(),
+        ];
+    }
+
+    /**
+     * Verified activities per month for the month drill-down: the largest first, a few per month.
+     *
+     * @return Collection<string, array{count: int, items: Collection}> keyed Y-m
+     */
+    public function activitiesByMonth(int $per = 8): Collection
+    {
+        return $this->verifiedInPeriod()->with('organization:id,name')
+            ->orderByDesc('participants_estimate')->orderByDesc('activity_date')
+            ->get(['id', 'organization_id', 'title', 'activity_date', 'activity_source', 'participants_estimate'])
+            ->groupBy(fn (Activity $a) => $a->activity_date->format('Y-m'))
+            ->map(fn (Collection $items) => ['count' => $items->count(), 'items' => $items->take($per)->values()]);
     }
 
     /** Accredited organizations by sector, as of today (not period-bound). */
@@ -93,19 +250,25 @@ class ReportData
             ->pluck('total', 'sector');
     }
 
-    /** @return Collection<int, array{label: string, total: int, independent: int, lgu: int}> */
+    /** @return Collection<int, array{key: string, label: string, total: int, independent: int, lgu: int, unknown: int, reach: int}> */
     public function activityTrend(): Collection
     {
-        $rows = $this->verifiedInPeriod()->get(['activity_date', 'activity_source']);
+        $rows = $this->verifiedInPeriod()->get(['activity_date', 'activity_source', 'participants_estimate']);
 
         return $this->months()->map(function (Carbon $month) use ($rows) {
             $inMonth = $rows->filter(fn ($a) => $a->activity_date->isSameMonth($month));
 
+            $independent = $inMonth->where('activity_source', 'independent')->count();
+            $lgu = $inMonth->where('activity_source', 'lgu_organized')->count();
+
             return [
+                'key' => $month->format('Y-m'),
                 'label' => $month->format('M Y'),
                 'total' => $inMonth->count(),
-                'independent' => $inMonth->where('activity_source', 'independent')->count(),
-                'lgu' => $inMonth->where('activity_source', 'lgu_organized')->count(),
+                'independent' => $independent,
+                'lgu' => $lgu,
+                'unknown' => $inMonth->count() - $independent - $lgu,
+                'reach' => (int) $inMonth->sum('participants_estimate'),
             ];
         });
     }
@@ -113,6 +276,7 @@ class ReportData
     public function complianceTrend(): Collection
     {
         return $this->months()->map(fn (Carbon $month) => [
+            'key' => $month->format('Y-m'),
             'label' => $month->format('M Y'),
             'approved' => ApplicationModel::where('status', 'approved')
                 ->whereBetween('reviewed_at', [$month, $month->copy()->endOfMonth()])->count(),
@@ -294,6 +458,23 @@ class ReportData
                     ] : null,
                 ];
             });
+    }
+
+    /**
+     * Each part's percentage of the activities with a known organizer, in whole numbers that add up
+     * to 100 (LGU-organized is the remainder), for the split bars on the analytics page.
+     *
+     * @return array{independent: int, lgu: int}
+     */
+    public static function shares(int $independent, int $lgu): array
+    {
+        $known = $independent + $lgu;
+        if ($known === 0) {
+            return ['independent' => 0, 'lgu' => 0];
+        }
+        $self = (int) round($independent / $known * 100);
+
+        return ['independent' => $self, 'lgu' => 100 - $self];
     }
 
     /** Self-initiated share of activities with a known source, or null when the sample is too small. */

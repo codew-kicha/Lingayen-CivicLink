@@ -1,10 +1,16 @@
 <?php
 
+use App\Models\Accreditation;
+use App\Models\Activity;
 use App\Models\AuditLog;
 use App\Models\User;
+use App\Services\ImageForensics;
+use App\Services\SheetChecks;
 use App\Support\GoLiveChecks;
 use Illuminate\Foundation\Inspiring;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
@@ -34,6 +40,30 @@ Artisan::command('app:go-live-check {--no-probe : Skip requesting private files 
 
     return 0;
 })->purpose('Check that this server is safe to put online');
+
+// Same as the daily check the website runs on its first visit; useful right after changing dates.
+Artisan::command('accreditations:expire', function () {
+    $count = Accreditation::expireLapsed();
+    $this->info("Expired {$count} accreditation(s) past their expiry date.");
+})->purpose('Mark accreditations past their expiry date as expired');
+
+// After an update that adds checks (or to re-run them): fingerprints the image sign-in sheets that
+// have none and re-runs the automated checks on every waiting activity. The typed-sheet text check
+// can't be repeated (the text is never stored); the rest is.
+Artisan::command('activities:recheck', function () {
+    $activities = Activity::where('status', 'pending')->get();
+    foreach ($activities as $activity) {
+        if ($activity->evidence_path && ! $activity->evidence_phash && $activity->evidenceIsImage()
+            && Storage::disk('local')->exists($activity->evidence_path)) {
+            $activity->evidence_phash = ImageForensics::fingerprint(Storage::disk('local')->path($activity->evidence_path));
+        }
+        // Keep the AI reading's findings; the free ones are recomputed.
+        $kept = Arr::only($activity->check_findings ?? [], ['ai', 'ai_ok']);
+        $activity->check_findings = $kept ?: null;
+        SheetChecks::run($activity);
+    }
+    $this->info("Checked {$activities->count()} waiting ".str('activity')->plural($activities->count()).'.');
+})->purpose('Re-run the automated checks on every waiting activity');
 
 // The live site is never seeded (the demo password is public), so the first administrator is made here.
 Artisan::command('app:create-admin', function () {

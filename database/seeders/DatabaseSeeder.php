@@ -5,17 +5,28 @@ namespace Database\Seeders;
 use App\Models\Accreditation;
 use App\Models\Activity;
 use App\Models\AnnualReport;
-use App\Models\AuditLog;
 use App\Models\ApplicationModel;
+use App\Models\AuditLog;
 use App\Models\Document;
+use App\Models\FeeFreePeriod;
+use App\Models\LguEvent;
 use App\Models\NewsPost;
+use App\Models\OfficeNotice;
 use App\Models\Organization;
+use App\Models\OrganizationMember;
 use App\Models\User;
+use App\Notifications\OfficeNoticeSent;
+use App\Services\ApplicationSteps;
 use App\Services\DocumentPrecheck;
+use App\Services\ImageForensics;
 use App\Services\PerformanceScoreCalculator;
+use App\Services\SheetChecks;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Database\Seeders\Support\DemoPhoto;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -23,7 +34,7 @@ use Illuminate\Support\Str;
  * Rebuilds a realistic demo dataset in one command:
  *   php artisan migrate:fresh --seed
  *
- * Covers organizations in every accreditation state, applications at every SB reading stage,
+ * Covers organizations in every accreditation state, applications at every phase (validation, committee hearing),
  * and a mix of verified, pending, and rejected activities (PRD §8, demo reliability).
  */
 class DatabaseSeeder extends Seeder
@@ -38,7 +49,7 @@ class DatabaseSeeder extends Seeder
         ['Coastal clean-up covers four barangays', 'Fisherfolk and farmers\' associations joined the quarterly shoreline clean-up, collecting waste across four coastal barangays and recording the volumes for the environment office.'],
         ['Reminder on document expiry', 'Accredited organizations are reminded to replace expiring DOLE or SEC certifications and updated officer lists before they lapse. The Desk Office emails a reminder ahead of each accreditation\'s expiry date.'],
         ['Senior citizens\' wellness day draws 300 residents', 'Senior citizens\' groups from Domalandan and Talogtog held a joint wellness day with free blood pressure checks, light exercise, and a talk on managing maintenance medicines. Barangay health workers assisted throughout the morning.'],
-        ['Online filing now available for CSO accreditation', 'Organizations can now register, upload their requirements, and follow their application through each Sangguniang Bayan reading on the CSO Desk Office website. Paper filing at the office remains available for groups without internet access.'],
+        ['Online filing now available for CSO accreditation', 'Organizations can now register, upload their requirements, and follow their application from validation to the committee hearing and approval on the CSO Desk Office website. Paper filing at the office remains available for groups without internet access.'],
         ['Orientation on the accreditation requirements', 'The Desk Office will hold an orientation on the five accreditation requirements for new and renewing organizations. Officers are encouraged to bring their draft documents so staff can check them on the spot.'],
         ['Mangrove planting along the Pangapisan coast', 'Fisherfolk and youth volunteers planted 1,200 mangrove propagules along the Pangapisan shoreline. The planting site will be monitored monthly, and survival counts will be shared with the municipal environment office.'],
         ['Women\'s organizations lead anti-VAWC forum', 'KALIPI chapters and the Capandanan Kababaihan Association held a forum on preventing violence against women and children, with resource speakers from the municipal social welfare office and the women and children protection desk.'],
@@ -50,6 +61,44 @@ class DatabaseSeeder extends Seeder
         ['Farmers receive seeds through community sharing day', 'The Malawa Farmers Association held its seed sharing day, distributing rice and vegetable seeds to smallholder farmers and demonstrating organic fertilizer preparation.'],
         ['CSO Assembly recognizes most active organizations', 'The annual CSO Assembly recognized organizations with the most verified community activities over the past year. Organizations were also briefed on the accreditation calendar for the coming year.'],
     ];
+
+    /** Common Filipino names for demo people, so names in parts look like the real thing. */
+    private const LAST_NAMES = ['Dela Cruz', 'Santos', 'Reyes', 'Bautista', 'Garcia', 'Mendoza', 'Ramos', 'Aquino', 'Fernandez', 'Castillo',
+        'Villanueva', 'Soriano', 'Caguioa', 'De Guzman', 'Rosario', 'Quinto', 'Mamaril', 'Fajardo', 'Biagtan', 'Ferrer', 'Tamayo', 'Ocampo', 'Navarro', 'Pascual'];
+
+    private const FIRST_NAMES = ['Maria', 'Juan', 'Ana', 'Jose', 'Carla', 'Paolo', 'Angelica', 'Jerome', 'Kristine', 'Rogelio', 'Teresita', 'Noel',
+        'Marivic', 'Arnel', 'Liza', 'Ricardo', 'Edna', 'Cesar', 'Lea', 'Daniel', 'Joy', 'Ramon', 'Grace', 'Ronald', 'Rhea'];
+
+    private const OFFICER_POSITIONS = ['President', 'Vice President', 'Secretary', 'Treasurer', 'Auditor', 'Member', 'Member', 'Member'];
+
+    /** A demo person's name in parts. */
+    public static function person(): array
+    {
+        return [
+            'last_name' => fake()->randomElement(self::LAST_NAMES),
+            'first_name' => fake()->randomElement(self::FIRST_NAMES),
+            'middle_name' => fake()->randomElement(self::LAST_NAMES),
+        ];
+    }
+
+    /** The member list: the representative first (from the account), then $others officers and members. */
+    public static function seedMembers(Organization $organization, User $representative, int $others = 5): void
+    {
+        $organization->members()->create([
+            'last_name' => $representative->last_name ?? 'Representative',
+            'first_name' => $representative->first_name ?? $representative->name,
+            'middle_name' => $representative->middle_name,
+            'position' => OrganizationMember::REPRESENTATIVE,
+            'contact_number' => ApplicationSteps::localPhone($representative->phone),
+            'email' => $representative->email,
+        ]);
+        foreach (array_slice(self::OFFICER_POSITIONS, 0, $others) as $position) {
+            $organization->members()->create(self::person() + [
+                'position' => $position,
+                'contact_number' => '09'.fake()->numerify('## ### ####'),
+            ]);
+        }
+    }
 
     /** Hash of the password every demo account gets, worked out once. */
     private string $passwordHash;
@@ -64,13 +113,41 @@ class DatabaseSeeder extends Seeder
             'password' => $this->passwordHash,
         ]);
 
+        $this->freeFilingPeriod($admin);
         $this->accreditedOrganizations($admin);
         $this->organizationsInReview();
         $this->rejectedApplicant();
         $this->brandNewRegistrant();
         $this->accountStates($admin);
+        $this->call(ExpiredAccreditationSeeder::class);
+        $this->applicationInProgress();
         $this->newsAndReports($admin);
+        $this->notices($admin);
+        $this->sheetsForWaitingActivities();
+        $this->photosForWaitingActivities();
+        $this->markFreeFilings();
         $this->computeScores();
+    }
+
+    /**
+     * The free filing period after the 2025 elections (client, Nov 2026): DILG MC No. 2025-060 gave
+     * organizations about three months from the new administration to apply or renew for free.
+     * Placeholder dates; the Desk Office corrects them on the Free filing periods page.
+     */
+    private function freeFilingPeriod(User $admin): void
+    {
+        FeeFreePeriod::create([
+            'memorandum' => 'DILG MC No. 2025-060', 'starts_on' => '2025-07-01', 'ends_on' => '2025-09-30', 'created_by' => $admin->id,
+        ]);
+    }
+
+    /** Applications submitted inside a free period paid nothing (the seeders above create them as paid). */
+    private function markFreeFilings(): void
+    {
+        foreach (FeeFreePeriod::all() as $period) {
+            ApplicationModel::whereDate('submitted_at', '>=', $period->starts_on)->whereDate('submitted_at', '<=', $period->ends_on)
+                ->update(['fee_waived' => true]);
+        }
     }
 
     /**
@@ -102,6 +179,8 @@ class DatabaseSeeder extends Seeder
      */
     private function accreditedOrganizations(User $admin): void
     {
+        $lguEvents = $this->heldLguEvents($admin);
+
         $profiles = [
             ['Pangapisan Fisherfolk Association', 'Farmers and Fisherfolks', 'Pangapisan North',
                 'Protects the shoreline and mangrove areas through regular clean-ups and coastal monitoring.',
@@ -155,7 +234,7 @@ class DatabaseSeeder extends Seeder
 
         foreach ($profiles as $index => [$name, $sector, $barangay, $advocacy, $activityTitles]) {
             $user = User::factory()->create([
-                'name' => "Representative, {$name}",
+                ...self::person(),
                 'email' => 'rep'.($index + 1).'@example.ph',
                 'password' => $this->passwordHash,
             ]);
@@ -168,11 +247,7 @@ class DatabaseSeeder extends Seeder
                 'public_visibility' => $index !== $hiddenIndex,
             ]);
 
-            $organization->members()->createMany([
-                ['name' => fake()->name(), 'position' => 'President', 'contact_number' => '0917'.fake()->numerify('#######')],
-                ['name' => fake()->name(), 'position' => 'Secretary', 'contact_number' => '0918'.fake()->numerify('#######')],
-                ['name' => fake()->name(), 'position' => 'Treasurer', 'contact_number' => '0919'.fake()->numerify('#######')],
-            ]);
+            self::seedMembers($organization, $user, fake()->numberBetween(5, 8));
 
             $application = ApplicationModel::factory()->for($organization)->approved()->create([
                 'submitted_by' => $user->id,
@@ -198,14 +273,14 @@ class DatabaseSeeder extends Seeder
             $this->documents($organization, $application, expiring: $index === 3);
 
             // TODA groups mostly turn up at LGU events rather than running their own, the pattern the
-            // client described; the analytics should make that visible.
-            $source = fn () => fake()->boolean($sector === 'TODA' ? 10 : 65) ? 'independent' : 'lgu_organized';
+            // client described; the analytics should make that visible. What an organization logs is
+            // its own work; the LGU events it attended are credited by the office (below).
+            $attendsLgu = fn () => ! fake()->boolean($sector === 'TODA' ? 10 : 65);
 
             // Real sentences, not lorem ipsum: these print verbatim on the public profile.
-            $describe = fn (string $source) => ($source === 'independent'
-                    ? 'Organized by members for residents of Barangay '.$barangay
-                    : 'Members took part in the municipal government\'s event in Barangay '.$barangay)
+            $describe = 'Organized by members for residents of Barangay '.$barangay
                 .'. Attendance was recorded on the sign-in sheet submitted to the Civil Society Desk Office.';
+            $attended = 0;
 
             // The last organization has gone quiet, so the dashboard's inactive flag has a real case.
             $quiet = $index === count($profiles) - 1;
@@ -217,14 +292,18 @@ class DatabaseSeeder extends Seeder
                     $n === 1 => fake()->numberBetween(2, 60),
                     default => fake()->numberBetween(2, 340),
                 });
+                if ($attendsLgu()) {
+                    $attended++;
+
+                    continue;
+                }
                 $title = fake()->randomElement($activityTitles);
-                $from = $source();
 
                 Activity::factory()->for($organization)->create([
                     'title' => ucfirst($title),
-                    'description' => $describe($from),
+                    'description' => $describe,
                     'activity_date' => $heldOn->toDateString(),
-                    'activity_source' => $from,
+                    'activity_source' => 'independent',
                     'status' => 'verified',
                     // PESO verifies a few days after the activity, never before it.
                     'verified_at' => $heldOn->copy()->addDays(fake()->numberBetween(1, 6))->min(now()),
@@ -238,16 +317,18 @@ class DatabaseSeeder extends Seeder
                     break;
                 }
                 $title = fake()->randomElement($activityTitles);
-                $from = $source();
 
                 Activity::factory()->for($organization)->create([
                     'title' => ucfirst($title),
-                    'description' => $describe($from),
-                    'activity_source' => $from,
+                    'description' => $describe,
+                    'activity_source' => 'independent',
                     'activity_date' => now()->subDays(fake()->numberBetween(1, 14))->toDateString(),
                     'logged_by' => $user->id,
                 ]);
             }
+
+            // The LGU events it attended, credited by the office (a quiet organization's are all old).
+            $this->creditLguAttendance($organization, $lguEvents->filter(fn (LguEvent $event) => ! $quiet || $event->held_on->lt(now()->subDays(200))), $attended, $admin);
         }
 
         // Cross-CSO tags: one verified joint activity, and one still awaiting verification.
@@ -258,23 +339,32 @@ class DatabaseSeeder extends Seeder
         $organizations[2]->activities()->where('status', 'pending')->first()?->partnerOrganizations()->attach($organizations[0]->id);
     }
 
-    /** Applications sitting at each Sangguniang Bayan reading stage. */
+    /**
+     * Applications at each point of the client's process (Nov 2026): in Validation (a form to
+     * validate, requirements awaited, requirements to validate) and at the Committee hearing (waiting
+     * for it, deferred once, favorable and ready for approval).
+     */
     private function organizationsInReview(): void
     {
+        // [status, hearing outcome, name, sector, barangay, advocacy]
         $stages = [
-            ['not_endorsed', 'Tonton Neighborhood Association', 'Independent Organizations', 'Tonton',
+            ['submitted', null, 'Tonton Neighborhood Association', 'Independent Organizations', 'Tonton',
                 'Keeps Tonton\'s streets clean and lit, and organizes the barangay\'s neighborhood watch.'],
-            ['first_reading', 'Estanza Fisherfolk Alliance', 'Farmers and Fisherfolks', 'Estanza',
+            ['under_review', null, 'Estanza Fisherfolk Alliance', 'Farmers and Fisherfolks', 'Estanza',
                 'Unites small-scale fishers in Estanza to protect fishing grounds and sell their catch at fair prices.'],
-            ['second_reading', 'Libsong Health Advocates', 'Health', 'Libsong East',
+            ['under_review', 'deferred', 'Libsong Health Advocates', 'Health', 'Libsong East',
                 'Volunteers who run health education sessions and help residents reach the rural health unit.'],
-            ['third_reading', 'Maniboc TODA', 'TODA', 'Maniboc',
+            ['under_review', 'favorable', 'Maniboc TODA', 'TODA', 'Maniboc',
                 'Represents tricycle operators and drivers serving Maniboc and the routes to the town proper.'],
+            ['requirements_pending', null, 'Namolan Women\'s Livelihood Group', 'KALIPI (Women\'s)', 'Namolan',
+                'Trains Namolan women in food processing and handicrafts and helps them sell at the town market.'],
+            ['requirements_submitted', null, 'Quibaol Senior Citizens Association', 'Senior Citizen', 'Quibaol',
+                'Looks after Quibaol\'s elderly: monthly check-ups, social pension follow-ups, and home visits.'],
         ];
 
-        foreach ($stages as $index => [$stage, $name, $sector, $barangay, $advocacy]) {
+        foreach ($stages as $index => [$status, $outcome, $name, $sector, $barangay, $advocacy]) {
             $user = User::factory()->create([
-                'name' => "Representative, {$name}",
+                ...self::person(),
                 'email' => 'applicant'.($index + 1).'@example.ph',
                 'password' => $this->passwordHash,
             ]);
@@ -286,31 +376,56 @@ class DatabaseSeeder extends Seeder
                 'advocacy' => $advocacy,
             ]);
 
-            $organization->members()->createMany([
-                ['name' => fake()->name(), 'position' => 'President'],
-                ['name' => fake()->name(), 'position' => 'Secretary'],
-            ]);
+            self::seedMembers($organization, $user, 5);
 
+            $submittedAt = now()->subDays(($index + 1) * 9);
             $application = ApplicationModel::factory()
                 ->for($organization)
-                ->atStage($stage)
                 ->create([
-                    'status' => $stage === 'not_endorsed' ? 'submitted' : 'under_review',
+                    'status' => $status,
+                    'hearing_outcome' => $outcome,
                     'submitted_by' => $user->id,
-                    'submitted_at' => now()->subDays(($index + 1) * 9),
+                    'submitted_at' => $submittedAt,
+                    'form_approved_at' => $status === 'submitted' ? null : $submittedAt->copy()->addDays(3),
+                    'requirements_submitted_at' => in_array($status, ['submitted', 'requirements_pending'], true) ? null : $submittedAt->copy()->addDays(5),
                 ]);
 
-            // The second-reading applicant attached its receipt in the by-laws slot; the pre-check flags it.
-            $this->documents($organization, $application, ocr: $stage === 'second_reading' ? [
+            // The hearings held so far, each with the feedback the organization received.
+            if ($outcome) {
+                $this->hearings($application, $outcome, $submittedAt->copy()->addDays(10));
+            }
+
+            // Before the form is approved only the two documents made online exist; the rest come after.
+            // The deferred applicant attached its receipt in the by-laws slot; the pre-check flags it.
+            $this->documents($organization, $application, ocr: $outcome === 'deferred' ? [
                 'constitution_bylaws' => 'Official Receipt. Office of the Municipal Treasurer. Amount: PHP 1,000.00.',
-            ] : []);
+            ] : [], only: in_array($status, ['submitted', 'requirements_pending'], true) ? ['accreditation_form', 'officers_members_list'] : null);
+        }
+    }
+
+    /** The committee hearings up to $outcome: a favorable one was deferred once before it. */
+    private function hearings(ApplicationModel $application, string $outcome, Carbon $from): void
+    {
+        $admin = User::where('role', 'admin')->first();
+        $committee = 'Committee on Social Services';
+
+        $application->hearings()->create([
+            'held_on' => $from->toDateString(), 'committee' => $committee, 'outcome' => 'deferred', 'recorded_by' => $admin?->id,
+            'remarks' => 'Not reached on the agenda because of the budget hearing. To be heard at the next regular sitting.',
+        ]);
+
+        if ($outcome === 'favorable') {
+            $application->hearings()->create([
+                'held_on' => $from->copy()->addWeek()->toDateString(), 'committee' => $committee, 'outcome' => 'favorable', 'recorded_by' => $admin?->id,
+                'remarks' => 'The committee reviewed the documents and the organization\'s activities and recommends the application for approval. No changes needed.',
+            ]);
         }
     }
 
     private function rejectedApplicant(): void
     {
         $user = User::factory()->create([
-            'name' => 'Representative, Wawa Community Circle',
+            'last_name' => 'Pascual', 'first_name' => 'Rhea', 'middle_name' => 'Tamayo',
             'email' => 'rejected@example.ph',
             'password' => $this->passwordHash,
         ]);
@@ -321,6 +436,8 @@ class DatabaseSeeder extends Seeder
             'barangay' => 'Wawa',
             'advocacy' => 'Brings Wawa residents together for clean-up days, feeding programmes, and disaster preparedness drills.',
         ]);
+
+        self::seedMembers($organization, $user);
 
         $application = ApplicationModel::factory()->for($organization)->rejected()->create([
             'submitted_by' => $user->id,
@@ -333,7 +450,7 @@ class DatabaseSeeder extends Seeder
     private function brandNewRegistrant(): void
     {
         $user = User::factory()->create([
-            'name' => 'Lorna Bautista',
+            'last_name' => 'Bautista', 'first_name' => 'Lorna', 'middle_name' => 'Ramos',
             'email' => 'new@example.ph',
             'password' => $this->passwordHash,
         ]);
@@ -371,7 +488,7 @@ class DatabaseSeeder extends Seeder
 
         // Invited by the office; the representative hasn't set a password yet.
         $invited = User::factory()->unverified()->create([
-            'name' => 'Ramon Aquino',
+            'last_name' => 'Aquino', 'first_name' => 'Ramon', 'middle_name' => 'Villanueva',
             'email' => 'invited@example.ph',
             'password' => Hash::make(Str::random(64)),
         ]);
@@ -383,7 +500,7 @@ class DatabaseSeeder extends Seeder
         ]);
 
         $deactivated = User::factory()->create([
-            'name' => 'Teresa Lim',
+            'last_name' => 'Lim', 'first_name' => 'Teresa', 'middle_name' => 'Santos',
             'email' => 'deactivated@example.ph',
             'password' => $this->passwordHash,
         ]);
@@ -402,16 +519,181 @@ class DatabaseSeeder extends Seeder
         AuditLog::record('account.deactivated', $deactivated, ['reason' => $deactivated->deactivation_reason], $admin);
     }
 
+    /**
+     * Registered and partway through applying (pre-final defense: registration and the application
+     * as one set of steps): members listed, the accreditation form not yet certified, so signing in
+     * as draft@example.ph resumes on step 4.
+     */
+    private function applicationInProgress(): void
+    {
+        $user = User::factory()->create([
+            'last_name' => 'Navarro', 'first_name' => 'Paolo', 'middle_name' => 'Ferrer',
+            'email' => 'draft@example.ph',
+            'password' => $this->passwordHash,
+        ]);
+        $user->forceFill(['privacy_consented_at' => now()->subDays(2)])->save();
+
+        $organization = Organization::factory()->for($user)->create([
+            'name' => 'Balococ Youth Volunteers',
+            'sector' => 'Independent Organizations',
+            'barangay' => 'Balococ',
+            'advocacy' => 'Young volunteers who run reading sessions for children and help during barangay clean-ups.',
+        ]);
+        self::seedMembers($organization, $user, 6);
+        ApplicationSteps::start($organization, $user);
+    }
+
+    /** Two notices the Desk Office sent, so representatives have something under Notifications. */
+    private function notices(User $admin): void
+    {
+        foreach ([
+            ['accredited', null, 'CSO Assembly on 15 December', "All accredited organizations are invited to the year-end CSO Assembly at the Municipal Hall, 9:00 AM.\n\nPlease send one officer besides the representative."],
+            ['sector', 'TODA', 'LGU event: Road safety seminar for TODA members', 'The municipal traffic office holds a road safety refresher for tricycle drivers next Saturday at the Poblacion terminal.'],
+        ] as [$audience, $value, $title, $body]) {
+            $recipients = OfficeNotice::recipients($audience, $value)->get();
+            $notice = OfficeNotice::create([
+                'sender_id' => $admin->id, 'title' => $title, 'body' => $body,
+                'audience' => $audience, 'audience_value' => $value, 'recipients' => $recipients->count(), 'emailed' => false,
+            ]);
+            Notification::send($recipients, new OfficeNoticeSent($notice));
+
+            // The seminar is an LGU event still to come: TODA representatives see it on their Activities page.
+            if ($audience === 'sector') {
+                LguEvent::create([
+                    'title' => 'Road safety seminar for TODA members', 'venue' => 'Poblacion tricycle terminal',
+                    'description' => 'The Municipal Traffic Management Office holds a road safety refresher for tricycle drivers and operators.',
+                    'held_on' => now()->next('Saturday')->toDateString(), 'notice_id' => $notice->id, 'created_by' => $admin->id,
+                ]);
+            }
+        }
+    }
+
+    /**
+     * LGU events across the past year, as the office records them (pre-final defense panel: LGU-organized
+     * activities come from the office, not from the CSOs' own logs). Attendance is credited per
+     * organization in creditLguAttendance().
+     */
+    private function heldLguEvents(User $admin)
+    {
+        return collect([
+            ['Municipal road safety seminar', 'Municipal Gymnasium', 'The Municipal Traffic Management Office briefs transport groups on road safety and the new traffic scheme.', 18],
+            ['Coastal clean-up drive', 'Lingayen Baywalk', 'The Municipal Environment and Natural Resources Office leads a clean-up of the shoreline with volunteer organizations.', 47],
+            ['Disaster preparedness orientation', 'Municipal Hall, Session Hall', 'The MDRRMO trains community volunteers on evacuation and first response before the typhoon season.', 95],
+            ['Barangay health day', 'Rural Health Unit I', 'The Municipal Health Office offers free check-ups and vaccinations; organizations help with registration and crowd control.', 140],
+            ['Senior citizens month celebration', 'Lingayen Civic Center', 'The Office of Senior Citizens Affairs celebrates Elderly Filipino Week with a program and health booths.', 182],
+            ['Tree planting along the Agno River', 'Agno River easement, Brgy. Tonton', 'The municipal agriculture office plants native trees along the river easement with community groups.', 230],
+            ['Livelihood and jobs fair', 'Capitol Plaza', 'PESO and partner agencies hold a jobs fair and livelihood demonstrations for residents.', 270],
+            ['Municipal fiesta street cleaning', 'Poblacion streets', 'The LGU mobilizes volunteers to clean the town proper before the fiesta.', 320],
+        ])->map(fn (array $e) => LguEvent::create([
+            'title' => $e[0], 'venue' => $e[1], 'description' => $e[2], 'held_on' => now()->subDays($e[3])->toDateString(),
+            'created_by' => $admin->id, 'attendance_recorded_at' => now()->subDays(max(1, $e[3] - 2)),
+        ]));
+    }
+
+    /** Credits the organization with attending $count of the LGU events, as the office records it. */
+    private function creditLguAttendance(Organization $organization, $events, int $count, User $admin): void
+    {
+        foreach ($events->shuffle()->take($count) as $event) {
+            $event->attendance()->create([
+                'organization_id' => $organization->id, 'title' => $event->title, 'description' => $event->description,
+                'venue' => $event->venue, 'activity_date' => $event->held_on->toDateString(), 'participants_estimate' => null,
+                'activity_source' => 'lgu_organized', 'status' => 'verified', 'verified_at' => $event->attendance_recorded_at,
+                'logged_by' => $admin->id, 'verified_by' => $admin->id,
+            ]);
+        }
+    }
+
+    /**
+     * Sign-in sheets on most waiting activities, then the free checks (App\Services\SheetChecks), so the
+     * Verify activities page shows both outcomes: every fourth has no sheet, and one reuses another's
+     * file. The AI reading is not faked here; it runs only with a key.
+     */
+    private function sheetsForWaitingActivities(): void
+    {
+        $first = null;
+        foreach (Activity::with('organization')->where('status', 'pending')->orderBy('id')->get() as $i => $activity) {
+            if ($i % 4 === 3) {
+                SheetChecks::run($activity);
+
+                continue;
+            }
+            $text = "ATTENDANCE / SIGN-IN SHEET. {$activity->organization->name}. Activity: {$activity->title}. Date: {$activity->activity_date->format('F j, Y')}.";
+            $pdf = $i === 5 && $first ? $first : self::pdf('pdf.sample-document', [
+                'organization' => $activity->organization,
+                'label' => 'Attendance / sign-in sheet',
+                'text' => $text,
+            ]);
+            $first ??= $pdf;
+
+            $path = "activity-evidence/{$activity->organization_id}/sample-{$activity->id}.pdf";
+            Storage::disk('local')->put($path, $pdf);
+            $activity->update([
+                'evidence_path' => $path,
+                'evidence_filename' => 'sign-in-sheet.pdf',
+                'evidence_mime' => 'application/pdf',
+                'evidence_hash' => hash('sha256', $pdf),
+            ]);
+            SheetChecks::run($activity, $text);
+        }
+    }
+
+    /**
+     * Photos on three waiting activities, so Verify activities shows each automated result: original
+     * phone photos taken on the day in Lingayen (Verified), one edited in Canva and taken weeks before
+     * (Needs review), and a re-saved copy of another activity's photo (Flagged).
+     */
+    private function photosForWaitingActivities(): void
+    {
+        // Activities whose sheet is their own (the seeded duplicate sheet is already flagged).
+        $waiting = Activity::with('organization')->where('status', 'pending')->whereNotNull('evidence_path')
+            ->where('evidence_mime', 'application/pdf')->orderBy('id')->get()
+            ->filter(fn (Activity $a) => Activity::where('evidence_hash', $a->evidence_hash)->count() === 1)->values();
+        if ($waiting->count() < 3) {
+            return;
+        }
+        $event = fn (int $n) => public_path("images/events/cso{$n}.jpg");
+        $phone = fn (Activity $a, string $time, array $at) => ['taken_at' => $a->activity_date->format('Y-m-d')." {$time}", 'make' => 'samsung', 'model' => 'SM-A155F', 'lat' => $at[0], 'lng' => $at[1]];
+
+        $plans = [
+            [$waiting[0], [
+                DemoPhoto::jpeg($event(1), $phone($waiting[0], '09:12:40', [16.0301, 120.2254])),
+                DemoPhoto::jpeg($event(2), $phone($waiting[0], '10:05:12', [16.0298, 120.2261])),
+            ], 'Barangay Hall'],
+            [$waiting[1], [
+                DemoPhoto::jpeg($event(3), ['software' => 'Canva', 'taken_at' => $waiting[1]->activity_date->copy()->subDays(24)->format('Y-m-d').' 15:20:00']),
+            ], 'Covered court'],
+            [$waiting[2], [
+                DemoPhoto::jpeg($event(1), [], width: 480, quality: 60),   // the first activity's photo, re-saved
+            ], 'Multi-purpose hall'],
+        ];
+
+        foreach ($plans as [$activity, $photos, $venue]) {
+            $activity->update(['venue' => "{$venue}, Brgy. {$activity->organization->barangay}"]);
+            foreach ($photos as $i => $bytes) {
+                $path = "activity-photos/{$activity->organization_id}/sample-{$activity->id}-{$i}.jpg";
+                Storage::disk('local')->put($path, $bytes);
+                $real = Storage::disk('local')->path($path);
+                $activity->photos()->create([
+                    'path' => $path, 'filename' => 'IMG_2026'.str_pad((string) ($activity->id * 10 + $i), 4, '0', STR_PAD_LEFT).'.jpg', 'mime' => 'image/jpeg',
+                    'hash' => hash('sha256', $bytes),
+                    'phash' => ImageForensics::fingerprint($real),
+                    'metadata' => ImageForensics::metadata($real) ?: null,
+                ]);
+            }
+            $text = "ATTENDANCE / SIGN-IN SHEET. {$activity->organization->name}. Activity: {$activity->title}. Date: {$activity->activity_date->format('F j, Y')}. Venue: {$activity->venue}.";
+            SheetChecks::run($activity->fresh(), $text);
+        }
+    }
+
     private function newsAndReports(User $admin): void
     {
         $accredited = Organization::where('public_visibility', true)->take(3)->get();
-
 
         foreach (self::NEWS_POSTS as $index => [$title, $body]) {
             $post = NewsPost::factory()->create([
                 'author_id' => $admin->id,
                 'title' => $title,
-                'slug' => \Illuminate\Support\Str::slug($title),
+                'slug' => Str::slug($title),
                 'body' => $body,
                 // Newest first, roughly a week apart, so the Resources news list runs to three pages.
                 'published_at' => now()->subDays($index * 7 + 2),
@@ -495,10 +777,10 @@ class DatabaseSeeder extends Seeder
      * Placeholder uploads with realistic OCR pre-check results. $ocr overrides the text "read" from
      * a requirement, to show the reviewer's flags (a wrong file, a handwritten scan).
      */
-    private function documents(Organization $organization, ApplicationModel $application, bool $expiring = false, array $ocr = []): void
+    private function documents(Organization $organization, ApplicationModel $application, bool $expiring = false, array $ocr = [], ?array $only = null): void
     {
         $readText = [
-            'accreditation_form' => "Application for CSO Accreditation. Name of organization: {$organization->name}. Barangay {$organization->barangay}. Signature of president.",
+            'accreditation_form' => "ACCREDITATION FORM For New Application (CSO). Name of Organization: {$organization->name}. Name of Representative. Place of Operation: Barangay {$organization->barangay}.",
             'officers_members_list' => 'List of Officers and Members. Position: President, Secretary, Treasurer, Auditor.',
             'constitution_bylaws' => "Constitution and By-Laws of {$organization->name}. Article I. Section 1. Membership.",
             'fee_receipt' => 'Official Receipt. Office of the Municipal Treasurer. Amount: PHP 1,000.00. Payment received.',
@@ -506,6 +788,9 @@ class DatabaseSeeder extends Seeder
         ];
 
         foreach (array_keys(config('document_types')) as $index => $type) {
+            if ($only !== null && ! in_array($type, $only, true)) {
+                continue;
+            }
             $check = DocumentPrecheck::evaluate($type, array_key_exists($type, $ocr) ? $ocr[$type] : $readText[$type], $organization->name);
 
             $path = "documents/{$organization->id}/sample-{$application->id}-{$type}.pdf";
@@ -524,6 +809,7 @@ class DatabaseSeeder extends Seeder
                 'original_filename' => "{$type}.pdf",
                 'mime_type' => 'application/pdf',
                 'expires_at' => match (true) {
+                    ! Document::expires($type) => null,
                     $expiring && $index === 0 => now()->addDays(21)->toDateString(),
                     $index % 3 === 0 => now()->addYears(2)->toDateString(),
                     default => null,

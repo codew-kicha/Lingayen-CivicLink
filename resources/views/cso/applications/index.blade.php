@@ -7,9 +7,11 @@
         </section>
     @else
         <x-slot:actions>
-            <button type="button" class="btn-primary" @click="$dispatch('open-dialog', 'apply')">
-                <x-phosphor-upload-simple class="h-4 w-4" aria-hidden="true" />{{ $applications->isEmpty() ? 'Apply for accreditation' : 'File a new application' }}
-            </button>
+            @php $inProgress = $applications->firstWhere('status', 'draft'); @endphp
+            <a href="{{ route('cso.application') }}" class="btn-primary">
+                <x-phosphor-clipboard-text class="h-4 w-4" aria-hidden="true" />
+                {{ $inProgress ? 'Continue your application' : ($applications->isEmpty() ? 'Apply for accreditation' : 'File a new application') }}
+            </a>
         </x-slot:actions>
 
         <section class="card">
@@ -26,18 +28,26 @@
                                 <th scope="col" class="table-head pl-6">Application</th>
                                 <th scope="col" class="table-head">Filed</th>
                                 <th scope="col" class="table-head">Status</th>
-                                <th scope="col" class="table-head pr-6">Sangguniang Bayan stage</th>
+                                <th scope="col" class="table-head pr-6">Phase</th>
                             </tr>
                         </thead>
                         <tbody>
                             @foreach ($applications as $application)
                                 <tr class="table-row">
                                     <td class="table-cell pl-6">
-                                        <a href="{{ route('cso.applications.show', $application) }}" class="entity-link capitalize">{{ $application->type }} application</a>
+                                        @if ($application->status === 'draft')
+                                            <a href="{{ route('cso.application') }}" class="entity-link capitalize">{{ $application->type }} application</a>
+                                            <span class="block text-xs text-muted">Being prepared · continue where you left off</span>
+                                        @else
+                                            <a href="{{ route('cso.applications.show', $application) }}" class="entity-link capitalize">{{ $application->type }} application</a>
+                                        @endif
                                     </td>
                                     <td class="table-date" data-label="Filed">{{ $application->submitted_at?->format('d M Y') ?? 'Not yet' }}</td>
                                     <td class="table-cell"><x-status-badge :status="$application->status" /></td>
-                                    <td class="table-cell pr-6"><x-sb-stepper :stage="$application->sb_stage" /></td>
+                                    <td class="table-cell pr-6">
+                                        <span class="font-semibold text-ink">{{ \App\Models\ApplicationModel::PHASES[$application->phase()] ?? 'Closed' }}</span>
+                                        <span class="block text-sm text-muted">{{ $application->phaseNote() }}</span>
+                                    </td>
                                 </tr>
                             @endforeach
                         </tbody>
@@ -46,6 +56,5 @@
             @endif
         </section>
 
-        @include('cso.applications.apply-dialog')
     @endif
 </x-layouts.app>

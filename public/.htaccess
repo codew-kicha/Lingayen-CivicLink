@@ -6,6 +6,11 @@ Require all granted
     Require all denied
 </FilesMatch>
 
+# JavaScript modules: some hosts serve .mjs as text/plain, which browsers refuse to run.
+<IfModule mod_mime.c>
+    AddType text/javascript .mjs
+</IfModule>
+
 <IfModule mod_rewrite.c>
     <IfModule mod_negotiation.c>
         Options -MultiViews -Indexes

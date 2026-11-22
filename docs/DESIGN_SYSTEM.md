@@ -162,6 +162,19 @@ To add a page: add a route, add an item under the right group in `config/navigat
 | `<x-pagination>` | Every paginated list | See §4 |
 | `<x-keep-query :only>` | Filter forms | Carries chosen keys (a scoped organization, an analytics period), never `page` |
 | `table-sticky` | Long tables without `table-scroll` | Header sticks at `lg`+ only |
+| `<x-name-fields :person>` | A person's name (registration, Account settings) | Last name, First name, Middle name (optional), Suffix (optional); the model composes `name` from them (`HasPersonName`) |
+| `<x-email-field>` | Every email entry | Faint "@gmail.com" completion until "@" is typed (Tab or → accepts), common domains after "@", "Did you mean ...?" on leaving the field; any address is accepted |
+| `<x-member-table :organization :user>` | Member lists (profile, application step 3) | Five rows a page, at least five members, the representative first and locked; Excel template and upload; blank rows are not submitted |
+| `<x-file-field>` | Around every file input | Adds an × that clears the chosen file and resets its pre-check |
+| `<x-application-frame :draft :step :done>` | The application steps | Six steps across the top (two done at sign-up); finished and current steps are links |
+| `<x-dashboard-fact label value>` | Figures in a dashboard details panel | Small label over a large number; `alert` for the warning colour |
+| `<x-chart-tip />` | Inside an Alpine `chart` plot (Analytics) | Hover/focus read-out above the mark; each mark carries `data-tip` JSON `{title, rows: [{value, label, key}]}` and a full `aria-label`; values lead, a short line in the series colour keys each row |
+| `<x-org-figures :rows empty>` | Analytics click-throughs (sector, barangay) | The organizations behind a bar with their period figures; `status` marks those not accredited |
+| `<x-info-tip metric>` | Beside a figure or column (Analytics) | ⓘ with the metric's definition and formula from `config/metrics.php`; hover/focus shows, click pins; opens in the top layer so tables don't clip it |
+| `<x-insight>` | Under a chart heading (Analytics) | One computed sentence from `ReportData::insights()`, with a lightbulb |
+| `<x-source-split :independent :lgu :unknown>` | Self-initiated vs LGU-organized | 100% bar, each colour labelled with its own percentage; clicking a colour or its legend entry states that part ("LGU-organized: 41 of 94 = 44%") |
+| `<x-phase-stepper :application note>` | Application pages and the CSO dashboard | The four phases (Application, Validation, Committee hearing, Approval) as done / now / next, with the current phase's note |
+| `<x-hearing-history :hearings>` | Application pages (admin and CSO) | Each committee hearing with its date, committee, outcome badge (Favorable, Deferred, Returned), the remarks and what happens next |
 
 All eight states apply to interactive parts: default, hover, focus (visible ring, never removed),
 active, disabled, loading, error, success.

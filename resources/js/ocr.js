@@ -47,11 +47,14 @@ export function normalize(text) {
     return text.toLowerCase().replace(/[^a-z0-9]/g, '');
 }
 
-export function evaluate(text, keywords, minMatches) {
+// checks: { 'what to look for': ['words', 'that', 'count'] }. Every check must be found.
+export function evaluate(text, checks) {
     const haystack = normalize(text);
-    const found = keywords.filter((keyword) => haystack.includes(normalize(keyword)));
+    const missing = Object.entries(checks)
+        .filter(([, words]) => !words.some((word) => haystack.includes(normalize(word))))
+        .map(([label]) => label);
 
-    if (haystack.length < MIN_READABLE) return { state: 'unreadable', found };
+    if (haystack.length < MIN_READABLE) return { state: 'unreadable', missing };
 
-    return { state: found.length >= minMatches ? 'matched' : 'mismatch', found };
+    return { state: missing.length === 0 ? 'matched' : 'mismatch', missing };
 }

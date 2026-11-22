@@ -62,11 +62,37 @@ class Organization extends Model
      * @param  array<string, string|null>  $expiries
      * @param  array<string, string|null>  $ocrTexts  text the browser read from each file, for the pre-check
      */
-    public function submitApplication(string $type, array $files, array $expiries, User $submittedBy, string $channel, array $ocrTexts = []): ApplicationModel
+    /**
+     * Replaces the member list with the submitted rows (profile page and the application's members
+     * step). A blank position is saved as "Member".
+     */
+    public function replaceMembers(array $rows): void
     {
-        return DB::transaction(function () use ($type, $files, $expiries, $submittedBy, $channel, $ocrTexts) {
+        DB::transaction(function () use ($rows) {
+            $this->members()->delete();
+            foreach ($rows as $row) {
+                $this->members()->create([
+                    'last_name' => trim($row['last_name']),
+                    'first_name' => trim($row['first_name']),
+                    'middle_name' => filled($row['middle_name'] ?? null) ? trim($row['middle_name']) : null,
+                    'position' => filled($row['position'] ?? null) ? trim($row['position']) : 'Member',
+                    'contact_number' => $row['contact_number'] ?? null,
+                    'email' => $row['email'] ?? null,
+                ]);
+            }
+        });
+        $this->unsetRelation('members');
+    }
+
+    public function submitApplication(string $type, array $files, array $expiries, User $submittedBy, string $channel, array $ocrTexts = [], ?bool $feeWaived = null): ApplicationModel
+    {
+        // No fee within a free period, unless the office says otherwise when filing it.
+        $feeWaived ??= FeeFreePeriod::open() !== null;
+
+        return DB::transaction(function () use ($type, $files, $expiries, $submittedBy, $channel, $ocrTexts, $feeWaived) {
             $application = $this->applications()->create([
                 'type' => $type,
+                'fee_waived' => $feeWaived,
                 'status' => 'submitted',
                 'submission_channel' => $channel,
                 'submitted_by' => $submittedBy->id,
@@ -75,6 +101,9 @@ class Organization extends Model
 
             foreach (array_keys(config('document_types')) as $documentType) {
                 if (! $file = $files[$documentType] ?? null) {
+                    continue;
+                }
+                if ($documentType === 'fee_receipt' && $feeWaived) {
                     continue;
                 }
 
@@ -86,7 +115,7 @@ class Organization extends Model
                     'file_path' => $file->store("documents/{$this->id}"),
                     'original_filename' => $file->getClientOriginalName(),
                     'mime_type' => $file->getMimeType(),
-                    'expires_at' => ($expiries[$documentType] ?? null) ?: null,
+                    'expires_at' => Document::expires($documentType) ? (($expiries[$documentType] ?? null) ?: null) : null,
                     'ocr_status' => $check['status'],
                     'ocr_details' => $check['details'],
                 ]);
@@ -99,25 +128,39 @@ class Organization extends Model
     /** Logs a pending activity and tags its partner organizations (validated StoreActivityRequest data). */
     public function logActivity(array $data, User $loggedBy): Activity
     {
-        return DB::transaction(function () use ($data, $loggedBy) {
+        $activity = DB::transaction(function () use ($data, $loggedBy) {
             $evidence = $data['evidence'] ?? null;
-            $activity = $this->activities()->create(Arr::except($data, ['partners', 'evidence']) + [
+            $activity = $this->activities()->create(Arr::except($data, ['partners', 'evidence', 'evidence_text', 'photos', 'remove_evidence', 'remove_photos', 'activity_source']) + [
                 'logged_by' => $loggedBy->id,
                 'status' => 'pending',
-                'evidence_path' => $evidence?->store("activity-evidence/{$this->id}"),
-                'evidence_filename' => $evidence?->getClientOriginalName(),
-                'evidence_mime' => $evidence?->getMimeType(),
-            ]);
+                // An organization's own log is its own work; LGU events are recorded by the office (LguEvent).
+                'activity_source' => 'independent',
+            ] + ($evidence ? Activity::evidenceAttributes($evidence, $this->id) : []));
             $activity->partnerOrganizations()->sync($data['partners'] ?? []);
+            $activity->syncPhotos($data['photos'] ?? []);
 
             return $activity;
         });
+
+        // The checks that help the office verify, after the activity is saved.
+        $activity->checkSheet($data['evidence_text'] ?? null);
+
+        return $activity;
     }
 
     /** @return array<int, string> every other organization, id => name, for the partner picker */
+    /** Holds an active accreditation: the condition for logging activities and being tagged as a partner. */
+    public function isAccredited(): bool
+    {
+        return $this->activeAccreditation()->exists();
+    }
+
+    // Partners must be accredited too, since tagged activities count toward their score.
     public static function partnerOptions(Organization $except): array
     {
-        return static::whereKeyNot($except->id)->orderBy('name')->pluck('name', 'id')->all();
+        return static::whereKeyNot($except->id)
+            ->whereHas('accreditations', fn ($q) => $q->where('status', 'active'))
+            ->orderBy('name')->pluck('name', 'id')->all();
     }
 
     public function user(): BelongsTo

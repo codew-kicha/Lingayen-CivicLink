@@ -16,7 +16,10 @@ class RegisterOrganizationRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
-        $this->merge(['phone' => User::normalizePhone($this->input('phone'))]);
+        $this->merge([
+            'phone' => User::normalizePhone($this->input('phone')),
+            'email' => is_string($this->input('email')) ? mb_strtolower(trim($this->input('email'))) : $this->input('email'),
+        ]);
     }
 
     /**
@@ -28,13 +31,15 @@ class RegisterOrganizationRequest extends FormRequest
             'organization_name' => ['required', 'string', 'max:255'],
             'sector' => ['required', Rule::in(config('sectors'))],
             'barangay' => ['required', Rule::in(config('barangays'))],
-            'name' => ['required', 'string', 'max:255'],
+            ...User::nameRules(),
             // On the live site the domain must exist and accept mail (DNS lookup); the emailed code then
             // proves the person can read that inbox.
             'email' => ['required', 'string', 'lowercase', app()->isProduction() ? 'email:rfc,dns' : 'email', 'max:255', Rule::unique(User::class)],
             'phone' => ['required', 'regex:/^\+639\d{9}$/'],
             // One password field with Show/Hide on the sign-up form, so no second "type it again" field.
             'password' => ['required', Password::defaults()],
+            // Data Privacy Act (RA 10173): consent to the privacy notice before personal data is stored.
+            'privacy_consent' => ['accepted'],
         ];
     }
 
@@ -42,11 +47,12 @@ class RegisterOrganizationRequest extends FormRequest
     {
         return [
             'phone.regex' => 'Enter a Philippine mobile number, for example 0917 123 4567.',
+            'privacy_consent.accepted' => 'Agree to the privacy notice to register.',
         ];
     }
 
     public function attributes(): array
     {
-        return ['name' => 'representative name'];
+        return ['last_name' => 'last name', 'first_name' => 'first name', 'middle_name' => 'middle name'];
     }
 }

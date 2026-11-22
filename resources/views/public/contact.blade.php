@@ -3,52 +3,56 @@
                    alt="Representatives of the PWD Association at a CSO assembly in Lingayen"
                    lede="For questions about accreditation requirements, the status of a filed application, or help encoding a paper form." />
 
-    <div class="mx-auto grid max-w-5xl gap-12 px-4 py-12 sm:px-6 lg:grid-cols-2 lg:px-8">
-        <div class="reveal">
-            <h2 class="font-serif text-xl font-bold text-brand-900">Visit or call</h2>
-
-            <dl class="mt-6 space-y-6 text-sm">
-                <div>
-                    <dt class="font-semibold text-ink">Office</dt>
-                    <dd class="mt-1 text-muted">
-                        {{ config('office.office.name') }}, {{ config('office.office.parent') }}<br>
-                        {{ config('office.office.address') }}
-                    </dd>
-                </div>
-                <div>
-                    <dt class="font-semibold text-ink">Phone</dt>
-                    <dd class="mt-1">
-                        <a href="tel:{{ config('office.office.phone_link') }}" class="tabular-nums text-brand-700 hover:underline">{{ config('office.office.phone') }}</a>
-                    </dd>
-                </div>
-                <div>
-                    <dt class="font-semibold text-ink">Email</dt>
-                    <dd class="mt-1">
-                        <a href="mailto:{{ config('office.office.email') }}" class="break-all text-brand-700 hover:underline">{{ config('office.office.email') }}</a>
-                    </dd>
-                </div>
-                <div>
-                    <dt class="font-semibold text-ink">Office hours</dt>
-                    <dd class="mt-1 text-muted">{{ config('office.office.hours') }}</dd>
-                </div>
-                <div>
-                    <dt class="font-semibold text-ink">Facebook</dt>
-                    <dd class="mt-1">
-                        <a href="{{ config('office.office.facebook') }}" rel="noopener" target="_blank"
-                           class="text-brand-700 hover:underline">facebook.com/pesolingayen</a>
-                    </dd>
-                </div>
-                <div>
-                    <dt class="font-semibold text-ink">Walk-in assistance</dt>
-                    <dd class="mt-1 text-muted">
-                        Staff can encode an application on your behalf if filling in the online form is
-                        difficult. Bring your printed requirements.
-                    </dd>
-                </div>
-            </dl>
+    <div class="mx-auto grid max-w-7xl gap-12 px-4 py-12 sm:px-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] lg:px-8 lg:py-section">
+        {{-- The ways to reach the office, each one a direct action (call, write, find, message). --}}
+        <div>
+            <h2 class="section-title">Visit or call</h2>
+            <p class="mt-4 max-w-[52ch] leading-relaxed text-muted">
+                {{ config('office.office.name') }}, {{ config('office.office.parent') }}. {{ config('office.office.hours') }}.
+            </p>
+            <ul class="mt-8 grid gap-4 sm:grid-cols-2">
+                @foreach ([
+                    ['phosphor-phone', 'Call the office', config('office.office.phone'), 'tel:'.config('office.office.phone_link'), false],
+                    ['phosphor-envelope-simple', 'Send an email', config('office.office.email'), 'mailto:'.config('office.office.email'), false],
+                    ['phosphor-map-pin', 'Visit', config('office.office.address'), null, false],
+                    ['phosphor-facebook-logo', 'Message on Facebook', 'facebook.com/pesolingayen', config('office.office.facebook'), true],
+                ] as [$icon, $label, $value, $href, $external])
+                    <li>
+                        @if ($href)
+                            <a href="{{ $href }}" @if ($external) target="_blank" rel="noopener" @endif
+                               class="group flex h-full gap-4 rounded-lg border border-line bg-paper p-6 transition duration-base ease-out-strong hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-panel">
+                        @else
+                            <div class="flex h-full gap-4 rounded-lg border border-line bg-paper p-6">
+                        @endif
+                            <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-brand-50 text-brand-700 transition-colors duration-base group-hover:bg-brand-800 group-hover:text-accent-400">
+                                <x-dynamic-component :component="$icon" class="h-6 w-6" aria-hidden="true" />
+                            </span>
+                            <span class="min-w-0">
+                                <span class="block text-sm font-semibold text-ink">{{ $label }}</span>
+                                <span class="mt-1 block break-words text-sm text-muted @if ($href) group-hover:text-brand-800 @endif">{{ $value }}</span>
+                            </span>
+                        @if ($href)
+                            </a>
+                        @else
+                            </div>
+                        @endif
+                    </li>
+                @endforeach
+            </ul>
+            <div class="mt-4 flex gap-4 rounded-lg bg-brand-900 p-6 text-brand-100">
+                <x-phosphor-hand-heart class="h-6 w-6 shrink-0 text-accent-400" aria-hidden="true" />
+                <p class="text-sm leading-relaxed">
+                    <span class="font-semibold text-paper">Walk-in assistance.</span> Staff can encode an application on your
+                    behalf if filling in the online form is difficult. Bring your printed requirements.
+                </p>
+            </div>
+            <figure class="mt-4 hidden overflow-hidden rounded-lg lg:block">
+                <img src="{{ asset('images/events/cso6.jpg') }}" alt="CSO representatives at an assembly in Lingayen" loading="lazy"
+                     width="1200" height="800" class="aspect-[16/9] w-full object-cover">
+            </figure>
         </div>
 
-        <div class="reveal panel h-fit p-6">
+        <div class="panel h-fit p-6 sm:p-8 lg:sticky lg:top-24">
             <h2 class="font-serif text-xl font-bold text-brand-900">Send a message</h2>
             <p class="mt-1 text-sm text-muted">
                 It goes to the Civil Society Desk Office's email, and they reply to the address you give.

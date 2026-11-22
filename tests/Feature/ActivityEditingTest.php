@@ -24,7 +24,7 @@ class ActivityEditingTest extends TestCase
         parent::setUp();
         Storage::fake('local');
         $this->rep = User::factory()->create();
-        $this->organization = Organization::factory()->for($this->rep)->create();
+        $this->organization = Organization::factory()->for($this->rep)->accredited()->create();
     }
 
     private function fields(array $overrides = []): array
@@ -39,7 +39,7 @@ class ActivityEditingTest extends TestCase
 
     public function test_a_pending_activity_can_be_corrected_and_given_a_sign_in_sheet(): void
     {
-        $partner = Organization::factory()->create();
+        $partner = Organization::factory()->accredited()->create();
         $activity = Activity::factory()->for($this->organization)->create(['title' => 'Mangrove plantng']);
 
         $this->actingAs($this->rep)->get(route('cso.activities.index'))

@@ -5,12 +5,14 @@ namespace Tests\Feature;
 use App\Models\Accreditation;
 use App\Models\Activity;
 use App\Models\ApplicationModel;
+use App\Models\Document;
 use App\Models\Organization;
 use App\Models\User;
 use App\Notifications\ActivityVerified;
 use App\Notifications\ApplicationStatusChanged;
+use App\Notifications\CommitteeHearingRecorded;
+use App\Services\ApplicationSteps;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
@@ -31,37 +33,47 @@ class AccreditationLoopTest extends TestCase
         $organization = Organization::factory()->for($rep)->create();
         $admin = User::factory()->admin()->create();
 
-        // Submit.
-        $documents = collect(array_keys(config('document_types')))
-            ->mapWithKeys(fn (string $type) => ["documents[{$type}]" => UploadedFile::fake()->create("{$type}.pdf", 100, 'application/pdf')])
-            ->all();
-
-        $this->actingAs($rep)
-            ->post(route('cso.applications.store'), ['type' => 'new'] + $this->nest($documents))
-            ->assertRedirect();
-
-        $application = ApplicationModel::firstOrFail();
+        // Apply online: members and the form, submitted on their own (the form and the officer list are
+        // produced by the system). The Desk Office approves the form, the CSO is told to upload the
+        // requirements, and once those are in every requirement is on file.
+        $application = $this->submitForm($rep);
         $this->assertSame('submitted', $application->status);
-        $this->assertCount(count(config('document_types')), $application->documents);
+        $this->assertSame(2, $application->documents()->count());
         Notification::assertNothingSentTo($rep);
 
-        // Review: advance the SB stage.
+        $application = $this->approveForm($application, $admin);
+        $this->assertSame('requirements_pending', $application->status);
+        Notification::assertSentTo($rep, ApplicationStatusChanged::class, fn ($n) => $n->toDatabase($rep)['url'] === route('cso.application.requirements.show'));
+
+        $this->uploadRequirements($rep, $this->requirementFiles(array_keys(ApplicationSteps::uploads($application))))->assertSessionHasNoErrors();
+        $application->refresh();
+        $this->assertSame('requirements_submitted', $application->status);
+        $this->assertCount(count(config('document_types')), $application->documents);
+        $this->assertSame(2, $application->documents->where('ocr_status', 'generated')->count());
+
+        // Validation, then the committee hearing. A hearing can't be recorded, nor the application
+        // approved, before it is forwarded to the committee.
+        $this->recordHearing($application, admin: $admin)->assertStatus(422);
         $this->actingAs($admin)
-            ->patch(route('admin.applications.stage', $application), ['sb_stage' => 'second_reading'])
-            ->assertRedirect();
+            ->post(route('admin.applications.approve', $application))
+            ->assertSessionHas('error');
+        $this->assertSame('requirements_submitted', $application->refresh()->status);
 
-        $this->assertSame('second_reading', $application->refresh()->sb_stage);
-        $this->assertSame('under_review', $application->status);
-        Notification::assertSentTo($rep, ApplicationStatusChanged::class);
+        $this->forwardToCommittee($application, $admin)->assertSessionHasNoErrors();
+        $this->assertSame(['under_review', null], [$application->refresh()->status, $application->hearing_outcome]);
+        $this->recordHearing($application, 'deferred', $admin)->assertSessionHasNoErrors();
+        $this->recordHearing($application, 'favorable', $admin)->assertSessionHasNoErrors();
+        $this->assertSame('favorable', $application->refresh()->hearing_outcome);
+        Notification::assertSentToTimes($rep, CommitteeHearingRecorded::class, 2);
 
-        // Approve: issues the accreditation in the same transaction.
+        // Approve (now that the hearing was favorable): issues the accreditation in the same transaction.
         $this->actingAs($admin)
             ->post(route('admin.applications.approve', $application))
             ->assertRedirect();
 
         $application->refresh();
         $this->assertSame('approved', $application->status);
-        $this->assertSame('endorsed', $application->sb_stage);
+        $this->assertSame('approval', $application->phase());
         $this->assertSame($admin->id, $application->reviewed_by);
 
         $accreditation = Accreditation::firstOrFail();
@@ -125,7 +137,7 @@ class AccreditationLoopTest extends TestCase
         $admin = User::factory()->admin()->create();
 
         foreach (range(1, 2) as $ignored) {
-            $application = ApplicationModel::factory()->for($organization)->create();
+            $application = ApplicationModel::factory()->for($organization)->heard('favorable')->create();
             $this->actingAs($admin)->post(route('admin.applications.approve', $application))->assertRedirect();
         }
 
@@ -152,39 +164,34 @@ class AccreditationLoopTest extends TestCase
         $rep = User::factory()->create();
         Organization::factory()->for($rep)->create();
 
-        $file = fn (string $type) => UploadedFile::fake()->create("{$type}.pdf", 100, 'application/pdf');
-        $required = collect(\App\Models\Document::requiredTypes())->mapWithKeys(fn ($type) => [$type => $file($type)]);
+        // Without the optional DOLE/SEC certificate: still complete.
+        $application = $this->applyOnline($rep);
+        $this->assertCount(count(Document::requiredTypes()), $application->documents);
 
-        $this->actingAs($rep)
-            ->post(route('cso.applications.store'), ['type' => 'new', 'documents' => $required->all()])
-            ->assertSessionHasNoErrors()
-            ->assertRedirect();
-
-        $this->assertCount(count(\App\Models\Document::requiredTypes()), ApplicationModel::firstOrFail()->documents);
-
-        $this->actingAs($rep)
-            ->post(route('cso.applications.store'), ['type' => 'new', 'documents' => $required->except('fee_receipt')->all()])
+        // Without the receipt: the requirements step says so and the requirements stay pending.
+        $other = User::factory()->create();
+        Organization::factory()->for($other)->create();
+        $pending = $this->approveForm($this->submitForm($other));
+        $this->uploadRequirements($other, $this->requirementFiles(['constitution_bylaws']))
+            ->assertRedirect(route('cso.application.requirements.show'))
             ->assertSessionHasErrors('documents.fee_receipt');
+        $this->assertSame('requirements_pending', $pending->fresh()->status);
     }
 
     public function test_renewals_do_not_need_the_constitution_and_by_laws_but_new_applications_do(): void
     {
         Storage::fake('local');
-        $file = fn (string $type) => UploadedFile::fake()->create("{$type}.pdf", 100, 'application/pdf');
-        $withoutConstitution = collect(\App\Models\Document::requiredTypes())->reject(fn ($type) => $type === 'constitution_bylaws')
-            ->mapWithKeys(fn ($type) => [$type => $file($type)]);
-
         $renewing = User::factory()->create();
         Organization::factory()->for($renewing)->create();
-        $this->actingAs($renewing)
-            ->post(route('cso.applications.store'), ['type' => 'renewal', 'documents' => $withoutConstitution->all()])
-            ->assertSessionHasNoErrors()->assertRedirect();
-        $this->assertSame('renewal', ApplicationModel::firstOrFail()->type);
+        $renewal = $this->approveForm($this->submitForm($renewing, 'renewal'));
+        $this->actingAs($renewing)->get(route('cso.application.requirements.show'))->assertOk()->assertDontSee('Constitution and By-Laws');
+        $this->uploadRequirements($renewing, $this->requirementFiles(['fee_receipt']))
+            ->assertSessionHasNoErrors()->assertRedirect(route('cso.applications.show', $renewal));
 
         $applying = User::factory()->create();
         Organization::factory()->for($applying)->create();
-        $this->actingAs($applying)
-            ->post(route('cso.applications.store'), ['type' => 'new', 'documents' => $withoutConstitution->all()])
+        $this->approveForm($this->submitForm($applying, 'new'));
+        $this->uploadRequirements($applying, $this->requirementFiles(['fee_receipt']))
             ->assertSessionHasErrors('documents.constitution_bylaws');
     }
 
@@ -195,13 +202,13 @@ class AccreditationLoopTest extends TestCase
         $rep = User::factory()->create();
         Organization::factory()->for($rep)->create();
 
-        $documents = collect(\App\Models\Document::requiredTypes())
-            ->mapWithKeys(fn ($type) => [$type => UploadedFile::fake()->create("{$type}.pdf", 100, 'application/pdf')])
-            ->put('made_up_type', UploadedFile::fake()->create('extra.pdf', 100, 'application/pdf'));
+        $this->approveForm($this->submitForm($rep));
+        $documents = $this->requirementFiles(['fee_receipt', 'constitution_bylaws', 'made_up_type', 'accreditation_form']);
+        $this->uploadRequirements($rep, $documents)->assertRedirect();
 
-        $this->actingAs($rep)
-            ->post(route('cso.applications.store'), ['type' => 'new', 'documents' => $documents->all()])
-            ->assertRedirect();
+        // Only the uploads this step asks for are stored; the form is made online, never uploaded here.
+        $this->assertDatabaseMissing('documents', ['document_type' => 'accreditation_form', 'ocr_status' => 'not_checked']);
+        $this->assertSame(1, Document::where('document_type', 'accreditation_form')->count());
 
         $this->assertDatabaseMissing('documents', ['document_type' => 'made_up_type']);
     }

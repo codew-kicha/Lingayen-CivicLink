@@ -44,11 +44,7 @@ class OrganizationProfileController extends Controller
                 ? tap($organization)->update($data)
                 : $request->user()->organization()->create($data);
 
-            $members = collect($request->validated('members', []))
-                ->filter(fn (array $member) => filled($member['name'] ?? null));
-
-            $organization->members()->delete();
-            $organization->members()->createMany($members->all());
+            $organization->replaceMembers($request->validated('members'));
         });
 
         return redirect()

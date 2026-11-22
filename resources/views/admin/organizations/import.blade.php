@@ -5,8 +5,10 @@
             @csrf
             <div>
                 <label for="file" class="field-label">CSV file</label>
-                <input type="file" id="file" name="file" accept=".csv,text/csv" required
-                       class="field-input @error('file') field-input-error @enderror">
+                <x-file-field>
+                    <input type="file" id="file" name="file" accept=".csv,text/csv" required
+                           class="field-file @error('file') field-input-error @enderror">
+                </x-file-field>
                 <p class="field-hint">In Excel: File, Save As, "CSV UTF-8". Up to 2 MB.</p>
                 @error('file')<p class="field-error">{{ $message }}</p>@enderror
             </div>

@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests;
 
+use App\Models\OrganizationMember;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Validator;
 use Illuminate\Validation\Rule;
 
 class UpdateOrganizationRequest extends FormRequest
@@ -30,12 +32,22 @@ class UpdateOrganizationRequest extends FormRequest
             'logo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
             'remove_logo' => ['nullable', 'boolean'],
 
-            'members' => ['array', 'max:50'],
-            'members.*.name' => ['required_with:members.*.position', 'nullable', 'string', 'max:255'],
-            'members.*.position' => ['required_with:members.*.name', 'nullable', 'string', 'max:255'],
-            'members.*.contact_number' => ['nullable', 'string', 'max:40'],
-            'members.*.email' => ['nullable', 'email', 'max:255'],
+            ...OrganizationMember::rules(),
         ];
+    }
+
+    public function messages(): array
+    {
+        return OrganizationMember::messages();
+    }
+
+    public function after(): array
+    {
+        return [function (Validator $validator) {
+            if (is_array($this->input('members')) && $problem = OrganizationMember::representativeProblem($this->input('members'))) {
+                $validator->errors()->add('members', $problem);
+            }
+        }];
     }
 
     public function attributes(): array

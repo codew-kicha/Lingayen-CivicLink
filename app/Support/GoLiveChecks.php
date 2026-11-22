@@ -36,7 +36,7 @@ class GoLiveChecks
     public function run(bool $probeUrls = true): array
     {
         return array_values(array_filter([
-            self::php(PHP_VERSION),
+            self::php(PHP_VERSION, (bool) config('app.php_patched_by_host')),
             $this->environment(),
             $this->debug(),
             $this->appKey(),
@@ -55,7 +55,7 @@ class GoLiveChecks
         return collect($results)->contains('status', 'fail');
     }
 
-    public static function php(string $version): array
+    public static function php(string $version, bool $patchedByHost = false): array
     {
         $branch = implode('.', array_slice(explode('.', $version), 0, 2));
         $patched = self::PATCHED_PHP[$branch] ?? null;
@@ -65,9 +65,11 @@ class GoLiveChecks
             return ['label' => $label, 'status' => 'fail', 'detail' => "PHP {$version} is not a supported branch and gets no PHP2Shell fix. Use PHP 8.3 or newer."];
         }
 
-        return version_compare($version, $patched, '>=')
-            ? ['label' => $label, 'status' => 'pass', 'detail' => "PHP {$version} includes the October 2026 PHP2Shell fixes."]
-            : ['label' => $label, 'status' => 'fail', 'detail' => "PHP {$version} is open to PHP2Shell (remote code execution). Update to {$patched} or newer before going live."];
+        return match (true) {
+            version_compare($version, $patched, '>=') => ['label' => $label, 'status' => 'pass', 'detail' => "PHP {$version} includes the October 2026 PHP2Shell fixes."],
+            $patchedByHost => ['label' => $label, 'status' => 'pass', 'detail' => "PHP {$version} is older than {$patched}, but the host has applied the PHP2Shell fix to it (PHP_PATCHED_BY_HOST=true, from the host's notice). Switch to {$patched} or newer when the host offers it."],
+            default => ['label' => $label, 'status' => 'fail', 'detail' => "PHP {$version} is open to PHP2Shell (remote code execution). Update to {$patched} or newer before going live, or, if the host confirms it patched this version in place, set PHP_PATCHED_BY_HOST=true."],
+        };
     }
 
     private function environment(): array

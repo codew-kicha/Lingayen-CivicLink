@@ -3,13 +3,7 @@
     <form method="POST" action="{{ route('admin.accounts.store') }}" class="panel max-w-xl space-y-6 p-6">
         @csrf
 
-        <div>
-            <label for="name" class="field-label">Full name</label>
-            <input id="name" name="name" value="{{ old('name') }}" required autocomplete="off"
-                   class="field-input @error('name') field-input-error @enderror"
-                   @error('name') aria-invalid="true" aria-describedby="name-error" @enderror>
-            @error('name')<p id="name-error" class="field-error">{{ $message }}</p>@enderror
-        </div>
+        <x-name-fields />
 
         <div>
             <label for="email" class="field-label">Email</label>

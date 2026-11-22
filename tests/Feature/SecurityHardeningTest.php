@@ -43,7 +43,7 @@ class SecurityHardeningTest extends TestCase
         $rep = User::factory()->create();
 
         $this->actingAs($rep)->patch(route('profile.update'), [
-            'name' => 'Rep', 'email' => $rep->email, 'phone' => '09171234567',
+            'last_name' => 'Rep', 'first_name' => 'Ana', 'email' => $rep->email, 'phone' => '09171234567',
             'role' => 'admin', 'is_active' => false, 'email_verified_at' => null, 'deactivated_at' => now(),
         ])->assertSessionHasNoErrors();
 
@@ -61,7 +61,7 @@ class SecurityHardeningTest extends TestCase
 
         $this->actingAs($rep)->patch(route('cso.profile.update'), [
             'name' => $organization->name, 'sector' => $organization->sector, 'barangay' => $organization->barangay,
-            'public_visibility' => true, 'user_id' => $other->id,
+            'members' => $this->memberRows(), 'public_visibility' => true, 'user_id' => $other->id,
         ])->assertSessionHasNoErrors();
 
         $organization->refresh();
@@ -72,7 +72,7 @@ class SecurityHardeningTest extends TestCase
     public function test_a_rep_cannot_log_an_activity_as_already_verified_or_for_another_organization(): void
     {
         $rep = User::factory()->create();
-        $mine = Organization::factory()->for($rep)->create();
+        $mine = Organization::factory()->for($rep)->accredited()->create();
         $theirs = Organization::factory()->create();
 
         $this->actingAs($rep)->post(route('cso.activities.store'), [
@@ -223,10 +223,9 @@ class SecurityHardeningTest extends TestCase
         $path = tempnam(sys_get_temp_dir(), 'upl');
         file_put_contents($path, "<?php\necho 'This is not a receipt.';\n");
 
-        $this->actingAs($rep)->post(route('cso.applications.store'), [
-            'type' => 'new',
-            'documents' => ['fee_receipt' => new UploadedFile($path, 'receipt.pdf', 'application/pdf', null, true)],
-        ])->assertSessionHasErrors('documents.fee_receipt');
+        $this->approveForm($this->submitForm($rep));
+        $this->uploadRequirements($rep, ['fee_receipt' => new UploadedFile($path, 'receipt.pdf', 'application/pdf', null, true)])
+            ->assertSessionHasErrors('documents.fee_receipt');
     }
 
     public function test_uploads_are_stored_privately_and_downloaded_as_attachments(): void
@@ -234,10 +233,8 @@ class SecurityHardeningTest extends TestCase
         Storage::fake('local');
         $rep = User::factory()->create();
         Organization::factory()->for($rep)->create();
-        $documents = collect(config('document_types'))->map(fn ($t, $key) => UploadedFile::fake()->create("{$key}.pdf", 20, 'application/pdf'))->all();
-
-        $this->actingAs($rep)->post(route('cso.applications.store'), ['type' => 'new', 'documents' => $documents]);
-        $document = \App\Models\Document::firstOrFail();
+        $this->applyOnline($rep);
+        $document = \App\Models\Document::where('document_type', 'fee_receipt')->firstOrFail();
 
         $this->assertStringStartsNotWith('public', $document->file_path);
         $this->assertContains($this->get('/storage/'.$document->file_path)->status(), [403, 404]);

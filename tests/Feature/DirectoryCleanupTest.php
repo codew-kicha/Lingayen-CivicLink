@@ -36,7 +36,7 @@ class DirectoryCleanupTest extends TestCase
     {
         Excel::fake();
         $waiting = Organization::factory()->create(['name' => 'Waiting Weavers']);
-        ApplicationModel::factory()->for($waiting)->create(['status' => 'under_review', 'sb_stage' => 'first_reading', 'submitted_at' => now()]);
+        ApplicationModel::factory()->for($waiting)->create(['status' => 'under_review', 'submitted_at' => now()]);
         ApplicationModel::factory()->for(Organization::factory()->create(['name' => 'Approved Anglers']))->approved()->create();
 
         $this->actingAs($this->admin())->get(route('admin.applications.index'))
@@ -47,7 +47,7 @@ class DirectoryCleanupTest extends TestCase
             $rows = $sheet->array();
 
             return count($rows) === 1 && $rows[0][0] === 'Waiting Weavers'
-                && $rows[0][5] === 'Under Review' && $rows[0][6] === 'First Reading';
+                && $rows[0][5] === 'Under Review' && $rows[0][6] === 'Committee hearing' && $rows[0][7] === '';
         });
 
         $this->actingAs(User::factory()->create())->get(route('admin.applications.export'))->assertForbidden();

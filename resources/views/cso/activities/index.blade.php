@@ -11,11 +11,45 @@
             </x-empty-state>
         </section>
     @else
-        <x-slot:actions>
-            <button type="button" class="btn-primary" @click="$dispatch('open-dialog', 'log-activity')">
-                <x-phosphor-plus class="h-4 w-4" aria-hidden="true" />Log an activity
-            </button>
-        </x-slot:actions>
+        @if ($canLog)
+            <x-slot:actions>
+                <button type="button" class="btn-primary" @click="$dispatch('open-dialog', 'log-activity')">
+                    <x-phosphor-plus class="h-4 w-4" aria-hidden="true" />Log an activity
+                </button>
+            </x-slot:actions>
+        @else
+            {{-- Logging opens once the organization is accredited; earlier entries stay listed below. --}}
+            <section class="card mb-6 flex flex-wrap items-center gap-4 p-6">
+                <x-phosphor-seal-check class="h-8 w-8 shrink-0 text-muted" aria-hidden="true" />
+                <div class="min-w-0 flex-1 basis-64">
+                    <h2 class="card-title">Activities are logged once you are accredited</h2>
+                    <p class="mt-1 text-sm text-muted">The Desk Office records the work of accredited organizations. Apply for accreditation, or renew it if it has ended, to start logging.</p>
+                </div>
+                <a href="{{ route('cso.application') }}" class="btn-primary">Apply for accreditation</a>
+            </section>
+        @endif
+
+        {{-- LGU events announced to this organization and still to come. Attendance is recorded by the
+             Desk Office afterwards; nothing to log here. --}}
+        @if ($upcomingEvents->isNotEmpty())
+            <section class="card mb-6" aria-labelledby="lgu-events-title">
+                <div class="border-b border-line px-6 py-4">
+                    <h2 id="lgu-events-title" class="card-title">Upcoming LGU events</h2>
+                    <p class="mt-1 text-sm text-muted">The Desk Office records who attends and credits your organization. You don't need to log them.</p>
+                </div>
+                <ul class="divide-y divide-line">
+                    @foreach ($upcomingEvents as $event)
+                        <li class="flex flex-wrap items-baseline gap-x-4 gap-y-1 px-6 py-4 text-sm">
+                            <span class="w-28 shrink-0 font-semibold tabular-nums text-brand-700">{{ $event->held_on->format('D, d M') }}</span>
+                            <span class="min-w-0 flex-1">
+                                <span class="block font-semibold text-ink">{{ $event->title }}</span>
+                                @if ($event->venue)<span class="block text-muted">{{ $event->venue }}</span>@endif
+                            </span>
+                        </li>
+                    @endforeach
+                </ul>
+            </section>
+        @endif
 
         <section class="card" aria-labelledby="history">
             <div class="flex flex-wrap items-center gap-3 border-b border-line px-6 py-4">
@@ -57,6 +91,9 @@
                                 <tr class="table-row cursor-pointer" @click="if (! $event.target.closest('a, button')) open = ! open">
                                     <td class="table-cell pl-6">
                                         <span class="font-semibold text-ink">{{ $activity->title }}</span>
+                                        @if ($activity->isLguEvent())
+                                            <span class="badge-info ml-1">LGU event</span>
+                                        @endif
                                         @if ($activity->partnerOrganizations->isNotEmpty())
                                             <span class="block text-xs text-muted">With {{ $activity->partnerOrganizations->pluck('name')->join(', ', ' and ') }}</span>
                                         @endif
@@ -82,7 +119,9 @@
                                 <tr id="activity-{{ $activity->id }}-details" x-show="open" x-cloak>
                                     <td colspan="5" class="border-b border-line bg-canvas/60 px-6 py-4 text-sm">
                                         <p class="max-w-[72ch] text-ink">{{ $activity->description }}</p>
-                                        <p class="mt-2 text-muted">{{ $activity->sourceLabel() }}</p>
+                                        <p class="mt-2 text-muted">
+                                            {{ $activity->isLguEvent() ? 'LGU-organized: your attendance was recorded by the Desk Office.' : $activity->sourceLabel() }}
+                                        </p>
 
                                         @if ($activity->status === 'rejected' && $activity->rejection_reason)
                                             <p class="mt-3 rounded-sm border border-danger bg-danger-subtle px-3 py-2 text-danger">
@@ -156,7 +195,9 @@
             </section>
         @endif
 
-        @include('cso.activities.log-dialog')
+        @if ($canLog)
+            @include('cso.activities.log-dialog')
+        @endif
         @include('cso.activities.withdraw-dialog')
     @endif
 </x-layouts.app>

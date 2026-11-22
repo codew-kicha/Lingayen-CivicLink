@@ -2,7 +2,9 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasPersonName;
 use App\Notifications\VerifyEmailCode;
+use App\Rules\PersonName;
 use Database\Factories\UserFactory;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -11,11 +13,12 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
 
 class User extends Authenticatable implements MustVerifyEmail
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable;
+    use HasFactory, HasPersonName, Notifiable;
 
     /** How long an emailed confirmation code works, and how many wrong tries it allows. */
     public const EMAIL_CODE_MINUTES = 15;
@@ -83,6 +86,17 @@ class User extends Authenticatable implements MustVerifyEmail
         return preg_match('/^(?:\+?63|0)(9\d{9})$/', $digits, $m) ? '+63'.$m[1] : $phone;
     }
 
+    /** Validation for a name in parts (registration, Account settings). */
+    public static function nameRules(): array
+    {
+        return [
+            'last_name' => ['required', 'string', 'max:100', new PersonName],
+            'first_name' => ['required', 'string', 'max:100', new PersonName],
+            'middle_name' => ['nullable', 'string', 'max:100', new PersonName],
+            'suffix' => ['nullable', Rule::in(self::SUFFIXES)],
+        ];
+    }
+
     public function isAdmin(): bool
     {
         return $this->role === 'admin';
@@ -115,6 +129,10 @@ class User extends Authenticatable implements MustVerifyEmail
     // mass-assignable: only the account-management code may change it.
     protected $fillable = [
         'name',
+        'last_name',
+        'first_name',
+        'middle_name',
+        'suffix',
         'position',
         'email',
         'phone',
@@ -143,6 +161,7 @@ class User extends Authenticatable implements MustVerifyEmail
         return [
             'email_verified_at' => 'datetime',
             'email_code_expires_at' => 'datetime',
+            'privacy_consented_at' => 'datetime',
             'password' => 'hashed',
             'is_active' => 'boolean',
             'deactivated_at' => 'datetime',

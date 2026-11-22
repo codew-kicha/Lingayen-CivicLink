@@ -5,6 +5,8 @@
     $map = [
         'draft' => ['Draft', 'badge-neutral'],
         'submitted' => ['Submitted', 'badge-info'],
+        'requirements_pending' => ['Requirements pending', 'badge-warning'],
+        'requirements_submitted' => ['Requirements submitted', 'badge-info'],
         'under_review' => ['Under review', 'badge-warning'],
         'pending' => ['Pending verification', 'badge-warning'],
         'approved' => ['Approved', 'badge-success'],

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Activity;
+use App\Models\ActivityPhoto;
 use App\Models\Document;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -44,6 +45,19 @@ class DocumentController extends Controller
 
         return Storage::disk('local')->response($activity->evidence_path, $activity->evidence_filename, [
             'Content-Type' => $activity->evidence_mime,
+            'Cache-Control' => 'private, max-age=3600',
+        ]);
+    }
+
+    /** A photo of an activity, for whoever may see the activity (its organization and the office). */
+    public function photo(Activity $activity, ActivityPhoto $photo): StreamedResponse
+    {
+        $this->authorize('view', $activity);
+
+        abort_unless(Storage::disk('local')->exists($photo->path), 404);
+
+        return Storage::disk('local')->response($photo->path, $photo->filename, [
+            'Content-Type' => $photo->mime,
             'Cache-Control' => 'private, max-age=3600',
         ]);
     }

@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Admin;
 
 use App\Models\User;
+use App\Rules\PersonName;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -17,7 +18,10 @@ class ManageOrganizationRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
-        $this->merge(['rep_phone' => User::normalizePhone($this->input('rep_phone'))]);
+        $this->merge([
+            'rep_phone' => User::normalizePhone($this->input('rep_phone')),
+            'rep_email' => is_string($this->input('rep_email')) ? mb_strtolower(trim($this->input('rep_email'))) : $this->input('rep_email'),
+        ]);
     }
 
     /**
@@ -36,7 +40,10 @@ class ManageOrganizationRequest extends FormRequest
             // The representative's fields count only when "Create a login for the representative" is ticked.
             $rules += [
                 'create_login' => ['boolean'],
-                'rep_name' => ['exclude_unless:create_login,1', 'required', 'string', 'max:255'],
+                'rep_last_name' => ['exclude_unless:create_login,1', 'required', 'string', 'max:100', new PersonName],
+                'rep_first_name' => ['exclude_unless:create_login,1', 'required', 'string', 'max:100', new PersonName],
+                'rep_middle_name' => ['exclude_unless:create_login,1', 'nullable', 'string', 'max:100', new PersonName],
+                'rep_suffix' => ['exclude_unless:create_login,1', 'nullable', Rule::in(User::SUFFIXES)],
                 'rep_email' => ['exclude_unless:create_login,1', 'required', 'email', 'lowercase', 'max:255', Rule::unique(User::class, 'email')],
                 'rep_phone' => ['exclude_unless:create_login,1', 'nullable', 'regex:/^\+639\d{9}$/'],
             ];
@@ -52,6 +59,6 @@ class ManageOrganizationRequest extends FormRequest
 
     public function attributes(): array
     {
-        return ['rep_name' => 'representative name', 'rep_email' => 'representative email', 'rep_phone' => 'representative mobile number'];
+        return ['rep_last_name' => 'last name', 'rep_first_name' => 'first name', 'rep_middle_name' => 'middle name', 'rep_email' => 'representative email', 'rep_phone' => 'representative mobile number'];
     }
 }

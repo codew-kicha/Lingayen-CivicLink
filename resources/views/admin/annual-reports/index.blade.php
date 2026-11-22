@@ -26,8 +26,10 @@
 
                 <div>
                     <label for="file" class="field-label">Report file</label>
-                    <input type="file" id="file" name="file" accept=".pdf"
-                           class="field-input @error('file') field-input-error @enderror" required>
+                    <x-file-field>
+                        <input type="file" id="file" name="file" accept=".pdf"
+                               class="field-file @error('file') field-input-error @enderror" required>
+                    </x-file-field>
                     @error('file')<p class="field-error">{{ $message }}</p>@enderror
                 </div>
 

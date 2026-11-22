@@ -63,13 +63,8 @@
                 </label>
 
                 <div x-show="login" x-cloak class="mt-4 grid gap-6 sm:grid-cols-2">
-                    <div>
-                        <label for="reg-rep-name" class="field-label field-required">Full name</label>
-                        <input id="reg-rep-name" name="rep_name" value="{{ $reopen ? old('rep_name') : '' }}" :disabled="! login" required
-                               maxlength="255" autocomplete="off" placeholder="Juan dela Cruz"
-                               @class(['field-input', 'field-input-error' => $field('rep_name')])
-                               @if ($field('rep_name')) aria-invalid="true" aria-describedby="reg-rep-name-error" @endif>
-                        @if ($field('rep_name'))<p id="reg-rep-name-error" class="field-error">{{ $errors->first('rep_name') }}</p>@endif
+                    <div class="sm:col-span-2">
+                        <x-name-fields prefix="rep_" id-prefix="reg-rep-" disabled="! login" />
                     </div>
                     <div>
                         <label for="reg-rep-email" class="field-label field-required">Email</label>

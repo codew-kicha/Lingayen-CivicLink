@@ -45,6 +45,7 @@
             <td><span class="val">{{ number_format($summary['verifiedActivities']) }}</span><br>Verified activities</td>
             <td><span class="val">{{ number_format($summary['residentsReached']) }}</span><br>Residents reached</td>
             <td><span class="val">{{ $percent($summary['selfInitiatedRatio']) }}</span><br>Self-initiated</td>
+            <td><span class="val">{{ $percent($summary['accreditationRate']) }}</span><br>Accreditation rate</td>
         </tr>
     </table>
 
@@ -164,6 +165,19 @@
             </tbody>
         </table>
     </div>
+
+    {{-- The same definitions as the page's ⓘ icons (config/metrics.php). --}}
+    <h2>How these figures are counted</h2>
+    <table>
+        <tbody>
+            @foreach (config('metrics') as [$name, $formula, $note])
+                <tr>
+                    <td style="width: 32%;"><b>{{ $name }}</b></td>
+                    <td>{{ $formula }}@if ($note)<br><span style="color: #6b7280;">{{ $note }}</span>@endif</td>
+                </tr>
+            @endforeach
+        </tbody>
+    </table>
 
     <p class="note">
         Figures cover verified activities only. An organization is credited with activities it logged and

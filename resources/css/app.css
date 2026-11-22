@@ -18,8 +18,23 @@
         text-wrap: balance;
     }
 
-    p {
+    p, li, blockquote, figcaption, dd {
         text-wrap: pretty;
+    }
+
+    /* The parts of the page the browser draws, in the palette too. */
+    ::selection {
+        background: rgb(var(--color-accent-200));
+        color: rgb(var(--color-brand-900));
+    }
+
+    input, textarea {
+        caret-color: rgb(var(--color-primary));
+    }
+
+    /* In-page links (About's contents) glide to their section unless the reader asks for less motion. */
+    @media (prefers-reduced-motion: no-preference) {
+        html { scroll-behavior: smooth; }
     }
 
     :focus-visible {
@@ -102,7 +117,8 @@
     }
 
     /* Focus is a soft maroon halo; an error is a red border on a faint red fill, so the two never look alike. */
-    .field-input-error {
+    .field-input-error,
+    input[data-name-invalid] {
         @apply border-danger bg-danger-subtle/40 focus:border-danger focus:ring-danger/15;
     }
 
@@ -111,8 +127,9 @@
     }
 
     /* File chooser: a field box whose button reads as a soft maroon chip, not the browser's grey default. */
+    /* pr-12 leaves room for the × of <x-file-field>. */
     .field-file {
-        @apply field-input cursor-pointer py-1 text-sm text-muted
+        @apply field-input cursor-pointer py-1 pr-12 text-sm text-muted
                file:mr-3 file:cursor-pointer file:rounded-sm file:border-0 file:bg-primary-subtle file:px-3 file:py-tight
                file:text-sm file:font-semibold file:text-primary hover:file:bg-primary/15;
     }
@@ -404,22 +421,152 @@
         background: linear-gradient(90deg, rgb(var(--color-primary-dark) / 0.92) 0%, rgb(var(--color-primary-dark) / 0.7) 45%, rgb(var(--color-primary-dark) / 0.25) 100%);
     }
 
-    /* Segmented utility buttons in the public identity bar (pcnc.com.ph's Report / Apply / Contact). */
     /*
      * Public header hover effects. Each one has the same cue on keyboard focus (:focus-visible),
      * animates only transform and colour, stays under 200ms, and is instant under reduced motion.
      */
 
-    /* Utility buttons: fill maroon on hover/focus; the call to action fills gold. */
-    .utility-link {
-        @apply px-6 py-3 text-ink transition-colors duration-fast ease-out-strong first:rounded-l-sm last:rounded-r-sm
-               hover:bg-primary hover:text-on-primary
-               focus-visible:bg-primary focus-visible:text-on-primary focus-visible:outline-focus;
+    /* Header buttons in the woven band's colours: Log in outlined in maroon (fills on hover), Apply now
+       filled amber with a darker amber underside, like the weave's edge. */
+    .header-login {
+        @apply btn border border-primary px-6 text-primary
+               hover:bg-primary hover:text-on-primary focus-visible:bg-primary focus-visible:text-on-primary;
     }
 
-    .utility-link-cta {
-        @apply font-semibold text-brand-800 hover:bg-accent hover:text-accent-fg
-               focus-visible:bg-accent focus-visible:text-accent-fg;
+    .header-apply {
+        @apply btn bg-accent px-6 text-accent-fg shadow-[inset_0_-2px_0_rgb(var(--color-accent-700)/0.5)]
+               hover:bg-accent-400 focus-visible:bg-accent-400 active:bg-accent-600;
+    }
+
+    /*
+     * Woven band (dashboards): a diamond lattice in maroon and amber, loosely after banig weaving,
+     * fading into the page. A thin amber rule runs along the very top. The lattice is a 32px SVG tile:
+     * amber diamonds with a maroon centre, alternating with maroon diamonds with an amber centre. Its
+     * fills are --color-primary and --color-accent written out (an image can't read CSS variables), and
+     * it is inline so it also works when the site runs from a subfolder.
+     */
+    .woven-band {
+        @apply pointer-events-none absolute inset-x-0 top-0 h-40 lg:h-52;
+    }
+
+    .woven-band::before {
+        content: '';
+        @apply absolute inset-x-0 top-0 z-[1] h-[3px] bg-accent;
+    }
+
+    .woven-band::after {
+        content: '';
+        @apply absolute inset-0;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Cpath d='M0 0h16L0 16zM32 0H16l16 16zM0 32h16L0 16zM32 32H16l16-16z' fill='%238F3339' fill-opacity='.16'/%3E%3Cpath d='M16 0l16 16-16 16L0 16z' fill='%23EDA62E' fill-opacity='.24'/%3E%3Cpath d='M16 0l16 16-16 16L0 16z' fill='none' stroke='%238F3339' stroke-opacity='.3'/%3E%3Cpath d='M16 10.5l5.5 5.5-5.5 5.5-5.5-5.5z' fill='%238F3339' fill-opacity='.4'/%3E%3Cpath d='M0 0h5.5L0 5.5zM32 0h-5.5L32 5.5zM0 32h5.5L0 26.5zM32 32h-5.5L32 26.5z' fill='%23EDA62E' fill-opacity='.6'/%3E%3C/svg%3E");
+        background-size: 32px 32px;
+        background-position: center top;
+        /* A mask reads only alpha, so the colour here doesn't matter. */
+        -webkit-mask-image: linear-gradient(to bottom, rgb(var(--color-text) / 0.85), rgb(var(--color-text) / 0.35) 45%, transparent);
+        mask-image: linear-gradient(to bottom, rgb(var(--color-text) / 0.85), rgb(var(--color-text) / 0.35) 45%, transparent);
+    }
+
+    /*
+     * CSO representatives' theme: an amber sidebar (the Apply now colour) with maroon as the second
+     * colour, so a representative's screens never look like the admin's. The sidebar, phone drawer and
+     * top bar remap the role tokens they already use to the amber and maroon scales; primary buttons
+     * turn amber with maroon text and secondary buttons take a maroon outline. Contrast: brand-900 on
+     * accent-500 is 7.5:1, on accent-600 6.3:1; brand-700 captions on accent-500 are 4.9:1.
+     */
+    .theme-cso :is(.app-sidebar, .app-drawer, .app-topbar) {
+        --color-primary-dark: var(--color-accent-500);
+        --color-primary-dark-hover: var(--color-accent-600);
+        --color-on-primary: var(--color-brand-900);
+        --color-on-dark: var(--color-brand-900);
+        --color-on-dark-muted: var(--color-brand-700);
+        --color-focus-on-dark: var(--color-brand-900);
+        /* The gold accents (active bar, count badges, rail dots) become maroon on the amber ground. */
+        --color-accent: var(--color-brand-600);
+        --color-on-accent: var(--color-surface);
+    }
+
+    .theme-cso .btn-primary {
+        @apply bg-accent text-accent-fg hover:bg-accent-400 active:bg-accent-600 disabled:bg-accent/40;
+    }
+
+    .theme-cso .btn-secondary {
+        @apply border-primary hover:border-primary;
+    }
+
+    /* Slim band for every other signed-in page: the same lattice, smaller and fainter, gone by 3.5rem. */
+    .woven-band-slim {
+        @apply h-14;
+    }
+
+    .woven-band-slim::after {
+        background-size: 20px 20px;
+        -webkit-mask-image: linear-gradient(to bottom, rgb(var(--color-text) / 0.55), transparent);
+        mask-image: linear-gradient(to bottom, rgb(var(--color-text) / 0.55), transparent);
+    }
+
+    /*
+     * Collapsible desktop sidebar (app layout): the width animates from 16rem to a 4rem icon rail and
+     * the page column grows with it. Text marked .sidebar-fade fades; icons stay where they are.
+     */
+    .app-sidebar {
+        width: 16rem;
+        transition: width 400ms cubic-bezier(0.23, 1, 0.32, 1);
+    }
+
+    .app-sidebar .sidebar-fade {
+        transition: opacity 200ms ease-out;
+    }
+
+    .app-main {
+        transition: max-width 400ms cubic-bezier(0.23, 1, 0.32, 1);
+    }
+
+    /* A gold dot on a nav icon, shown only in the rail where the count badge is out of view. */
+    .nav-dot {
+        @apply pointer-events-none absolute left-8 top-2 h-2 w-2 rounded-full bg-accent opacity-0 transition-opacity duration-base;
+    }
+
+    /* Menu icon: three bars; while collapsed the outer two fold into an arrow pointing at the page. */
+    .burger {
+        @apply relative block h-3.5 w-[18px];
+    }
+
+    .burger > span {
+        @apply absolute left-0 block h-0.5 w-[18px] rounded-full bg-current;
+        transform-origin: right center;
+        transition: transform 400ms cubic-bezier(0.23, 1, 0.32, 1), width 400ms cubic-bezier(0.23, 1, 0.32, 1);
+    }
+
+    .burger > span:nth-child(1) { top: 0; }
+    .burger > span:nth-child(2) { top: 6px; }
+    .burger > span:nth-child(3) { top: 12px; }
+
+    @media (min-width: 1024px) {
+        [data-sidebar='collapsed'] .app-sidebar {
+            width: 4rem;
+        }
+
+        [data-sidebar='collapsed'] .app-sidebar .sidebar-fade {
+            opacity: 0;
+        }
+
+        [data-sidebar='collapsed'] .app-sidebar .nav-dot {
+            opacity: 1;
+        }
+
+        [data-sidebar='collapsed'] .burger > span:nth-child(1) {
+            width: 10px;
+            transform: translate(8px, 6px) rotate(45deg);
+        }
+
+        [data-sidebar='collapsed'] .burger > span:nth-child(3) {
+            width: 10px;
+            transform: translate(8px, -6px) rotate(-45deg);
+        }
+
+        /* Full width: the page stops at 160rem instead of 80rem, so it fills any normal screen. */
+        [data-sidebar='collapsed'] .app-main {
+            max-width: 160rem;
+        }
     }
 
     /* Menu bar links: a gold underline grows from the centre; the current page keeps it full. */
@@ -437,13 +584,52 @@
         height: 2px;
         background: rgb(var(--color-accent));
         transform: scaleX(0);
-        transition: transform 180ms cubic-bezier(0.23, 1, 0.32, 1);
+        transform-origin: right;
+        transition: transform 220ms cubic-bezier(0.23, 1, 0.32, 1);
     }
 
+    /* The line draws in from the left on hover and slides out to the right when the pointer leaves. */
     .nav-link:hover::after,
     .nav-link:focus-visible::after,
     .nav-link[aria-current="page"]::after {
         transform: scaleX(1);
+        transform-origin: left;
+    }
+
+    /* Dropdown items: compact rows, the label turns orange and a 1px line draws under it from the left. */
+    .nav-sub-link {
+        @apply flex items-center px-4 py-2 text-sm font-medium text-paper transition-colors duration-fast ease-out-strong
+               hover:text-accent-400 focus-visible:text-accent-400 focus-visible:outline-none;
+    }
+
+    .nav-sub-link > span {
+        position: relative;
+    }
+
+    .nav-sub-link > span::after {
+        content: '';
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: -3px;
+        height: 1px;
+        background: rgb(var(--color-accent));
+        transform: scaleX(0);
+        transform-origin: right;
+        transition: transform 220ms cubic-bezier(0.23, 1, 0.32, 1);
+    }
+
+    .nav-sub-link:hover > span::after,
+    .nav-sub-link:focus-visible > span::after {
+        transform: scaleX(1);
+        transform-origin: left;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .nav-link::after,
+        .nav-sub-link > span::after {
+            transition: none;
+        }
     }
 
     /* Logo: the seal turns slightly and the name darkens. */
@@ -536,14 +722,12 @@
         mix-blend-mode: multiply;
     }
 
-    /* Directory cards reveal as they scroll in (§4). .motion-ok is set only by the public layout. */
-    .motion-ok .reveal {
-        @apply translate-y-2 opacity-0 transition duration-slow ease-out-strong;
-    }
-
-    .motion-ok .reveal.is-revealed {
-        @apply translate-y-0 opacity-100;
-    }
+    /*
+     * Content no longer fades in as it scrolls (public refinement, Nov 2026): a fade on every block is
+     * the template tell, and it hides the record from anyone who scrolls fast. Each page keeps one
+     * authored moment: the banner entrance, and the record's figures counting up. The .reveal,
+     * .reveal-photo and .reveal-line hooks stay in the markup and do nothing.
+     */
 
     /*
      * Public-page motion (MOTION_INTENSITY 5, only with .motion-ok, so reduced-motion and no-JS
@@ -562,23 +746,17 @@
         animation: banner-settle 1400ms cubic-bezier(0.23, 1, 0.32, 1) both;
     }
 
-    /* Timelines: the connecting line draws as the list scrolls in. */
-    .motion-ok .reveal-line {
-        @apply transition-transform duration-[900ms] ease-out-strong;
+    /* A linked photo answers the pointer: it zooms slightly inside its frame. */
+    .photo-zoom img {
+        @apply transition-transform duration-slow ease-out-strong;
     }
 
-    .motion-ok .reveal-line-x { transform: scaleX(0); transform-origin: left; }
-    .motion-ok .reveal-line-y { transform: scaleY(0); transform-origin: top; }
-
-    .motion-ok .reveal-line.is-revealed { transform: none; }
-
-    /* A photo that eases up and un-zooms as it enters. */
-    .motion-ok .reveal-photo {
-        @apply translate-y-4 scale-[1.02] opacity-0 transition duration-[700ms] ease-out-strong;
+    .photo-zoom:hover img {
+        @apply scale-[1.03];
     }
 
-    .motion-ok .reveal-photo.is-revealed {
-        @apply translate-y-0 scale-100 opacity-100;
+    @media (prefers-reduced-motion: reduce) {
+        .photo-zoom:hover img { transform: none; }
     }
 
     /*
@@ -639,6 +817,24 @@
 }
 
 [x-cloak] { display: none !important; }
+
+/* Chart segments (Analytics split bars): a segment's value shows whenever it fits inside it, at any
+   screen width. How much room a value needs depends on its length (chart-len-3, -4, -5 for "11%",
+   "100%" or "1234", "12345"), so a long one is hidden rather than clipped. A clicked colour widens
+   its narrow segments (data-[on=true]:min-w-12) so the value appears. */
+.chart-seg { container-type: inline-size; }
+@container (max-width: 1.5rem) {
+    .chart-seg-label { display: none; }
+}
+@container (max-width: 1.75rem) {
+    .chart-seg-label.chart-len-3 { display: none; }
+}
+@container (max-width: 2.25rem) {
+    .chart-seg-label.chart-len-4 { display: none; }
+}
+@container (max-width: 2.75rem) {
+    .chart-seg-label.chart-len-5 { display: none; }
+}
 
 /* Page-load progress bar (app layout): a segment sliding across. Reduced motion: a still bar. */
 @keyframes banner-rise {

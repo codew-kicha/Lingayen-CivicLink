@@ -21,11 +21,13 @@ class AccountSecurityTest extends TestCase
             'organization_name' => 'Wawa Fisherfolk Association',
             'sector' => 'Farmers and Fisherfolks',
             'barangay' => array_values(config('barangays'))[0],
-            'name' => 'Maria Santos',
+            'last_name' => 'Santos',
+            'first_name' => 'Maria',
             'email' => 'maria@example.ph',
             'phone' => '0917 123 4567',
             'password' => self::STRONG,
             'password_confirmation' => self::STRONG,
+            'privacy_consent' => '1',
         ], $overrides);
     }
 

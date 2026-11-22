@@ -3,17 +3,20 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Support\Mailer;
 use App\Http\Requests\RejectActivityRequest;
 use App\Models\Activity;
 use App\Models\AuditLog;
+use App\Models\LguEvent;
 use App\Notifications\ActivityVerified;
 use App\Services\PerformanceScoreCalculator;
+use App\Services\SheetReader;
 use App\Support\ListPagination;
+use App\Support\Mailer;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
+use Illuminate\Support\Arr;
+use Illuminate\Support\Carbon;
 use Illuminate\View\View;
 
 class ActivityVerificationController extends Controller
@@ -21,26 +24,132 @@ class ActivityVerificationController extends Controller
     /** Filter chips: the review queue first, then what was already decided. */
     public const FILTERS = ['pending' => 'Waiting', 'verified' => 'Verified', 'rejected' => 'Rejected'];
 
+    /** On the waiting list: the automated result (App\Services\SheetChecks, SheetReader). */
+    public const CHECKS = ['consistent' => 'Verified', 'review' => 'Needs review', 'flagged' => 'Flagged', 'unchecked' => 'Not checked'];
+
+    /** Sheets read by the AI per click of "Read new sheets", so one request stays short. */
+    public const READ_BATCH = 5;
+
+    /** Sort orders for the list. The waiting queue defaults to "waiting longest", decided lists to the latest decisions. */
+    public const SORTS = [
+        'waiting' => 'Waiting longest',
+        'logged' => 'Logged most recently',
+        'held_new' => 'Held: newest first',
+        'held_old' => 'Held: oldest first',
+        'decided' => 'Decided most recently',
+    ];
+
     public function index(Request $request): View
     {
         $this->authorize('viewAny', Activity::class);
 
         $status = array_key_exists($request->string('status')->value(), self::FILTERS) ? $request->string('status')->value() : 'pending';
+        $sorts = $status === 'pending' ? Arr::except(self::SORTS, 'decided') : self::SORTS;
+        $sort = array_key_exists($request->string('sort')->value(), $sorts) ? $request->string('sort')->value() : ($status === 'pending' ? 'waiting' : 'decided');
+        // "Held from / to" bounds on the activity date; anything that isn't a real date is ignored.
+        $date = fn (string $key) => rescue(fn () => Carbon::createFromFormat('Y-m-d', $request->string($key)->value())->toDateString(), null, false);
+        [$from, $to] = [$request->filled('from') ? $date('from') : null, $request->filled('to') ? $date('to') : null];
+        $check = $status === 'pending' && array_key_exists($request->string('check')->value(), self::CHECKS) ? $request->string('check')->value() : null;
+        $waiting = fn () => Activity::where('status', 'pending');
+
+        $activities = ListPagination::paginate(Activity::with(['organization', 'loggedBy', 'verifiedBy:id,name', 'partnerOrganizations:id,name', 'photos'])
+            ->where('status', $status)
+            ->when($request->string('q')->trim()->value(), fn ($q, $term) => $q->where(fn ($q) => $q
+                ->where('title', 'like', "%{$term}%")
+                ->orWhereHas('organization', fn ($q) => $q->where('name', 'like', "%{$term}%")->orWhere('barangay', 'like', "%{$term}%"))))
+            ->when($from, fn ($q, $from) => $q->whereDate('activity_date', '>=', $from))
+            ->when($to, fn ($q, $to) => $q->whereDate('activity_date', '<=', $to))
+            ->when($check, fn ($q, $check) => $check === 'unchecked' ? $q->whereNull('check_status') : $q->where('check_status', $check))
+            ->tap(fn ($q) => match ($sort) {
+                'logged' => $q->latest('created_at')->latest('id'),
+                'held_new' => $q->latest('activity_date')->latest('id'),
+                'held_old' => $q->oldest('activity_date')->oldest('id'),
+                'decided' => $q->latest('verified_at')->latest('id'),
+                default => $q->oldest('created_at')->oldest('id'),   // waiting longest: the fair queue order
+            }),
+            $request);
 
         return view('admin.activities.index', [
-            'activities' => ListPagination::paginate(Activity::with(['organization', 'loggedBy', 'verifiedBy:id,name', 'partnerOrganizations:id,name'])
-                ->where('status', $status)
-                ->when($request->string('q')->trim()->value(), fn ($q, $term) => $q->where(fn ($q) => $q
-                    ->where('title', 'like', "%{$term}%")
-                    ->orWhereHas('organization', fn ($q) => $q->where('name', 'like', "%{$term}%")->orWhere('barangay', 'like', "%{$term}%"))))
-                // The queue is worked oldest first; decided activities show the latest decisions first.
-                ->when($status === 'pending',
-                    fn ($q) => $q->oldest('created_at')->oldest('id'),
-                    fn ($q) => $q->latest('verified_at')->latest('id')),
-                $request),
+            'activities' => $activities,
+            'nearbyEvents' => $status === 'pending' ? $this->nearbyEvents($activities->getCollection()) : collect(),
             'currentStatus' => $status,
+            'sorts' => $sorts,
+            'currentSort' => $sort,
+            'from' => $from,
+            'to' => $to,
             'pendingCount' => Activity::where('status', 'pending')->count(),
+            'currentCheck' => $check,
+            'checkCounts' => [
+                'consistent' => $waiting()->where('check_status', 'consistent')->count(),
+                'review' => $waiting()->where('check_status', 'review')->count(),
+                'flagged' => $waiting()->where('check_status', 'flagged')->count(),
+                'unchecked' => $waiting()->whereNull('check_status')->count(),
+            ],
+            'aiEnabled' => SheetReader::enabled(),
+            'unreadSheets' => SheetReader::enabled() ? $waiting()->whereNotNull('evidence_path')->whereNull('ai_checked_at')->count() : 0,
         ]);
+    }
+
+    /**
+     * Verifies every waiting activity the automated checks marked Verified, in one go (pre-final
+     * defense panel: the office should only need to open the flagged or low-confidence ones). Needs
+     * review and Flagged ones stay. Each organization is rescored once and told by email after the
+     * page has answered.
+     */
+    public function verifyConsistent(Request $request, PerformanceScoreCalculator $scores): RedirectResponse
+    {
+        $this->authorize('viewAny', Activity::class);
+
+        $activities = Activity::with(['organization.user', 'partnerOrganizations'])
+            ->where('status', 'pending')->where('check_status', 'consistent')->get()
+            ->filter(fn (Activity $activity) => $request->user()->can('verify', $activity));
+        if ($activities->isEmpty()) {
+            return back()->with('error', 'No waiting activity is marked Verified by the checks.');
+        }
+
+        Activity::whereKey($activities->modelKeys())->update([
+            'status' => 'verified',
+            'verified_by' => $request->user()->id,
+            'verified_at' => now(),
+        ]);
+
+        $activities->flatMap(fn (Activity $a) => $a->partnerOrganizations->prepend($a->organization))
+            ->unique('id')->each(fn ($organization) => $scores->recalculate($organization));
+        AuditLog::record('activity.bulk_verified', null, ['count' => $activities->count(), 'ids' => $activities->modelKeys()]);
+        \Illuminate\Support\defer(fn () => $activities->each(fn (Activity $a) => Mailer::send($a->organization->user, new ActivityVerified($a->fresh()))));
+
+        return back()->with('status', $activities->count().' '.str('activity')->plural($activities->count()).' marked Verified by the checks '.($activities->count() === 1 ? 'was' : 'were').' verified, and scores recalculated.');
+    }
+
+    /** How far from an activity's date an LGU event can be and still be offered to link it to. */
+    public const LINK_WINDOW_DAYS = 14;
+
+    /** LGU events held near the activities on this page, for the review dialog's "This was an LGU event". */
+    private function nearbyEvents($activities)
+    {
+        $dates = $activities->pluck('activity_date');
+        if ($dates->isEmpty()) {
+            return collect();
+        }
+
+        return LguEvent::whereDate('held_on', '>=', $dates->min()->copy()->subDays(self::LINK_WINDOW_DAYS)->toDateString())
+            ->whereDate('held_on', '<=', $dates->max()->copy()->addDays(self::LINK_WINDOW_DAYS)->min(today())->toDateString())
+            ->orderByDesc('held_on')->get(['id', 'title', 'held_on']);
+    }
+
+    /** Reads up to READ_BATCH waiting sheets with the AI (those it hasn't read yet). */
+    public function readSheets(Request $request): RedirectResponse
+    {
+        $this->authorize('viewAny', Activity::class);
+        abort_unless(SheetReader::enabled(), 404);
+
+        $read = Activity::where('status', 'pending')->whereNotNull('evidence_path')->whereNull('ai_checked_at')
+            ->oldest('created_at')->limit(self::READ_BATCH)->get()
+            ->filter(fn (Activity $activity) => SheetReader::read($activity))->count();
+
+        return back()->with($read ? 'status' : 'error', $read
+            ? "Read {$read} ".str('sheet')->plural($read).'.'
+            : 'No sheet could be read just now. Try again in a minute.');
     }
 
     // Both decisions answer JSON to the review dialog (which sends them after its Undo window) and
@@ -51,18 +160,9 @@ class ActivityVerificationController extends Controller
 
         abort_unless($activity->status === 'pending', 422, 'This activity has already been reviewed.');
 
-        // The organization's own claim of who organized it is confirmed here, since a CSO has a
-        // reason to call LGU events its own. Corrections are kept in the audit log.
-        $source = $request->validate([
-            'activity_source' => ['required', Rule::in(array_keys(Activity::SOURCES))],
-        ])['activity_source'];
-
-        if ($activity->activity_source !== $source) {
-            AuditLog::record('activity.source_corrected', $activity, ['from' => $activity->activity_source, 'to' => $source]);
-        }
-
+        // A CSO's own log is self-initiated; LGU events are recorded by the office (LguEvent), and one
+        // logged by mistake is linked to its event instead (linkToEvent).
         $activity->update([
-            'activity_source' => $source,
             'status' => 'verified',
             'verified_by' => $request->user()->id,
             'verified_at' => now(),
@@ -75,6 +175,38 @@ class ActivityVerificationController extends Controller
         $sent = Mailer::send($activity->organization->user, new ActivityVerified($activity));
 
         return $this->done($request, 'Activity verified and the score has been recalculated.', $sent);
+    }
+
+    /**
+     * The organization logged an LGU event as its own activity: it is credited as attending that event
+     * instead (an LGU-organized credit, like the office's attendance), and its own log is removed.
+     */
+    public function linkToEvent(Request $request, Activity $activity): RedirectResponse|JsonResponse
+    {
+        $this->authorize('verify', $activity);
+        abort_unless($activity->status === 'pending' && ! $activity->isLguEvent(), 422, 'This activity has already been reviewed.');
+        $event = LguEvent::findOrFail($request->validate(['lgu_event_id' => ['required', 'integer']])['lgu_event_id']);
+        abort_unless($event->isHeld(), 422, 'That LGU event has not been held yet.');
+
+        $organization = $activity->organization;
+        // Only accredited organizations are credited for LGU events; keep the log and say why.
+        abort_unless($organization->isAccredited(), 422, "{$organization->name} is no longer accredited, so it can't be credited for an LGU event. Verify or reject the activity instead.");
+
+        $attending = $event->attendance()->pluck('organization_id')->push($organization->id)->unique()->all();
+        $changes = $event->recordAttendance($attending, $request->user());
+        AuditLog::record('activity.linked_to_lgu_event', $organization, ['activity' => $activity->title, 'lgu_event_id' => $event->id]);
+        $activity->withdraw();
+
+        // recordAttendance told a newly credited organization in the app; this adds the email, once.
+        // One already credited for the event is not told again.
+        $credit = $event->attendance()->where('organization_id', $organization->id)->first();
+        $sent = in_array($organization->id, $changes['added_ids'], true) && $credit && $organization->user
+            ? Mailer::send($organization->user, new ActivityVerified($credit, ['mail']))
+            : true;
+
+        return $this->done($request, in_array($organization->id, $changes['added_ids'], true)
+            ? "Credited to {$organization->name} as attending the LGU event “{$event->title}”."
+            : "{$organization->name} was already credited for “{$event->title}”; its duplicate log was removed.", $sent);
     }
 
     public function reject(RejectActivityRequest $request, Activity $activity): RedirectResponse|JsonResponse
